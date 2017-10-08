@@ -48,6 +48,7 @@ import java.io.UncheckedIOException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
@@ -77,7 +78,7 @@ public class DatabaseConnection {
     private SshTunnel sshTunnel = null;
 
     @Nonnull
-    private final String name; //a comprehensible name for this connection
+    private final String dbName; //a comprehensible name for this connection
 
     @Nonnull
     private volatile DatabaseState state = DatabaseState.UNINITIALIZED;
@@ -85,14 +86,17 @@ public class DatabaseConnection {
     private final ScheduledExecutorService connectionCheck = Executors.newSingleThreadScheduledExecutor();
 
     /**
-     * @param jdbcUrl       where to find the db, which user, which pw, etc
-     * @param appName       name that the connections will show up as in the db management tools
-     * @param entityPackage example: "space.npstr.wolfia.db.entity" package containing all your entites todo allow several packages; include HStore
-     * @param sshOptions    optionally ssh tunnel the connection; highly recommended for all remote databases
+     * @param dbName         name for this database
+     * @param jdbcUrl        where to find the db, which user, which pw, etc
+     * @param appName        optional name that the connections will show up as in the db management tools
+     * @param entityPackages example: "space.npstr.wolfia.db.entity", the names of the packages containing all your annotated entites
+     * @param poolName       optional name forht connection pool
+     * @param sshOptions     optionally ssh tunnel the connection; highly recommended for all remote databases
      */
-    public DatabaseConnection(@Nonnull final String name, @Nonnull final String jdbcUrl, @Nullable final String appName,
-                              @Nonnull final String entityPackage, @Nullable final SshTunnel.SshOptions sshOptions) {
-        this.name = name;
+    public DatabaseConnection(@Nonnull final String dbName, @Nonnull final String jdbcUrl, @Nullable final String appName,
+                              @Nonnull final Collection<String> entityPackages, @Nullable final String poolName,
+                              @Nullable final SshTunnel.SshOptions sshOptions) {
+        this.dbName = dbName;
         this.state = DatabaseState.INITIALIZING;
 
         try {
@@ -104,7 +108,7 @@ public class DatabaseConnection {
             this.hikariDs = new HikariDataSource();
             this.hikariDs.setJdbcUrl(jdbcUrl);
             this.hikariDs.setMaximumPoolSize(Runtime.getRuntime().availableProcessors() * 2);
-            this.hikariDs.setPoolName("Default Pool");
+            this.hikariDs.setPoolName(poolName != null && !poolName.isEmpty() ? poolName : "Default Pool");
             this.hikariDs.setValidationTimeout(1000);
             this.hikariDs.setConnectionTimeout(2000);
             this.hikariDs.setConnectionTestQuery(TEST_QUERY);
@@ -118,8 +122,10 @@ public class DatabaseConnection {
             props.setProperty("stringtype", "unspecified");
             this.hikariDs.setDataSourceProperties(props);
 
+            //add provided entities
+            entityPackages.add("space.npstr.sqlstack.entities");
             // jpa
-            final PersistenceUnitInfo puInfo = defaultPersistenceUnitInfo(this.hikariDs, entityPackage);
+            final PersistenceUnitInfo puInfo = defaultPersistenceUnitInfo(this.hikariDs, entityPackages);
 
             // hibernate
             final Properties hibernateProps = new Properties();
@@ -159,7 +165,7 @@ public class DatabaseConnection {
     @Nonnull
     @CheckReturnValue
     public String getName() {
-        return this.name;
+        return this.dbName;
     }
 
     @Nonnull
@@ -231,7 +237,7 @@ public class DatabaseConnection {
     }
 
     //copy pasta'd this from somewhere on stackoverflow, seems to work with slight adjustments
-    private PersistenceUnitInfo defaultPersistenceUnitInfo(final DataSource ds, @SuppressWarnings("SameParameterValue") final String entityPackage) {
+    private PersistenceUnitInfo defaultPersistenceUnitInfo(final DataSource ds, @SuppressWarnings("SameParameterValue") final Collection<String> entityPackages) {
         return new PersistenceUnitInfo() {
             @Override
             public String getPersistenceUnitName() {
@@ -281,7 +287,9 @@ public class DatabaseConnection {
 
             @Override
             public List<String> getManagedClassNames() {
-                return getClassesForPackage(entityPackage).stream().map(Class::getName).collect(Collectors.toList());
+                return entityPackages.stream()
+                        .flatMap(entityPackage -> getClassesForPackage(entityPackage).stream().map(Class::getName))
+                        .collect(Collectors.toList());
             }
 
             @Override
@@ -417,8 +425,63 @@ public class DatabaseConnection {
         SHUTDOWN
     }
 
-    //todo de-uglify this class by introducing a builder
+    //builder pattern, duh
     public static class Builder {
+        @Nonnull
+        private String dbName;
+        @Nonnull
+        private String jdbcUrl;
+        @Nullable
+        private String appName;
+        @Nonnull
+        private Collection<String> entityPackages = new ArrayList<>();
+        @Nullable
+        private String poolName;
+        @Nullable
+        private SshTunnel.SshOptions sshOptions;
 
+        public Builder(@Nonnull final String dbName, @Nonnull final String jdbcUrl) {
+            this.dbName = dbName;
+            this.jdbcUrl = jdbcUrl;
+        }
+
+        public Builder setDatabaseName(final String dbName) {
+            this.dbName = dbName;
+            return this;
+        }
+
+        public Builder setAppName(final String appName) {
+            this.appName = appName;
+            return this;
+        }
+
+        public Builder setJdbcUrl(final String jdbcUrl) {
+            this.jdbcUrl = jdbcUrl;
+            return this;
+        }
+
+        public Builder setEntityPackages(final Collection<String> entityPackages) {
+            this.entityPackages = entityPackages;
+            return this;
+        }
+
+        public Builder addEntityPackage(final String entityPackage) {
+            this.entityPackages.add(entityPackage);
+            return this;
+        }
+
+        public Builder setPoolName(final String poolName) {
+            this.poolName = poolName;
+            return this;
+        }
+
+        public Builder setSshOptions(final SshTunnel.SshOptions sshOptions) {
+            this.sshOptions = sshOptions;
+            return this;
+        }
+
+        public DatabaseConnection build() {
+            return new DatabaseConnection(this.dbName, this.jdbcUrl, this.appName, this.entityPackages, this.poolName, this.sshOptions);
+        }
     }
 }
