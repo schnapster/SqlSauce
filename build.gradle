@@ -1,0 +1,47 @@
+plugins {
+    id 'java'
+    id 'idea'
+    id 'com.github.spotbugs' version '1.4'
+}
+group 'space.npstr'
+version '0.0.1'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+
+    //@formatter:off
+    ext.postgresDriverVersion   = '42.1.4'
+    ext.hibernateVersion        = '5.2.11.Final'
+    ext.hikariVersion           = '2.7.2'
+    ext.slf4jVersion            = '1.7.25'
+    ext.spotbugsVersion         = '3.1.0-RC6'
+    ext.jschVersion             = '0.1.54'
+
+    //database stuff
+    compile group: 'org.postgresql', name: 'postgresql',       version: ext.postgresDriverVersion //postgres jdbc driver
+    compile group: 'org.hibernate',  name: 'hibernate-core',       version: ext.hibernateVersion  //hibernate + JPA
+    compile group: 'com.zaxxer',     name: 'HikariCP',             version: ext.hikariVersion     //connection pool
+    compile group: 'com.jcraft',     name: 'jsch',                 version: ext.jschVersion       //ssh tunnel
+
+
+    //various/QA
+    compile group: 'org.slf4j',      name: 'slf4j-api',                 version: ext.slf4jVersion //logging framework
+    compile group: 'com.github.spotbugs', name: 'spotbugs-annotations', version: ext.spotbugsVersion //annotations
+    //@formatter:on
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '4.2.1'
+}
+
+compileJava.dependsOn 'clean'
+compileJava.options.encoding = 'UTF-8'
+compileJava.options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
+
+jar.dependsOn 'spotbugsMain'
