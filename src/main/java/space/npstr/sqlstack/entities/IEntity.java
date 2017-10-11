@@ -24,6 +24,8 @@
 
 package space.npstr.sqlstack.entities;
 
+import javax.annotation.CheckReturnValue;
+import javax.annotation.Nonnull;
 import java.io.Serializable;
 
 /**
@@ -35,9 +37,13 @@ import java.io.Serializable;
  * Works best for entities where we have a natural id for (for example entities on a guild or channel scope cause we can use their snowflakeIds)
  * IEntities should have a constructor that sets them up with sensible defaults
  */
-public interface IEntity<I extends Serializable> {
+public interface IEntity<I extends Serializable, Self extends IEntity<I, Self>> {
 
-    void setId(I id);
+    @Nonnull
+    @CheckReturnValue
+    Self setId(I id);
 
+    @Nonnull
+    @CheckReturnValue
     I getId();
 }

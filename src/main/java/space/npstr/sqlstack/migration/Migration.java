@@ -22,28 +22,21 @@
  * SOFTWARE.
  */
 
-package space.npstr.sqlstack;
+package space.npstr.sqlstack.migration;
+
+import space.npstr.sqlstack.DatabaseConnection;
+import space.npstr.sqlstack.DatabaseException;
 
 /**
- * Created by napster on 03.07.17.
+ * Created by napster on 11.10.17.
  * <p>
- * Thrown by our database connection
+ * Whatever you do, never rename any migrations you are registering. The simple class name is used to identify them.
  */
-public class DatabaseException extends Exception {
+public interface Migration {
 
+    //ready to use connection to the target database
+    //keep in mind these migrations are meant to run after hibernate ddl set up new columns etc
+    //throwing a DatabaseException is an acceptable way to indicate that the migration was not successful
+    void up(DatabaseConnection databaseConnection) throws DatabaseException;
 
-    private static final long serialVersionUID = 4421127305934584766L;
-
-    //force creation with a message
-    private DatabaseException() {
-
-    }
-
-    public DatabaseException(final String message) {
-        super(message);
-    }
-
-    public DatabaseException(final String message, final Throwable t) {
-        super(message, t);
-    }
 }

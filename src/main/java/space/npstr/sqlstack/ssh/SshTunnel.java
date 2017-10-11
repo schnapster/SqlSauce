@@ -31,21 +31,24 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.File;
 import java.util.Properties;
 
 /**
  * Created by napster on 08.10.17.
+ *
+ * Class initially heavily inspired by the way FredBoat handles the SSH tunnel (MIT license)
  */
 public class SshTunnel {
 
     private static final Logger log = LoggerFactory.getLogger(SshTunnel.class);
 
-    private final SshOptions sshOptions;
+    private final SshDetails sshDetails;
     private volatile Session sshTunnel;
 
-    public SshTunnel(final SshOptions sshOptions) {
-        this.sshOptions = sshOptions;
+    public SshTunnel(final SshDetails sshDetails) {
+        this.sshDetails = sshDetails;
     }
 
     public synchronized SshTunnel connect() {
@@ -58,32 +61,36 @@ public class SshTunnel {
             //establish the tunnel
             log.info("Starting SSH tunnel");
 
-            final Properties config = new Properties();
             final JSch jsch = new JSch();
             JSch.setLogger(new JSchLogger());
 
-            final Session session = jsch.getSession(this.sshOptions.user, this.sshOptions.host, this.sshOptions.sshPort);
+            final Session session = jsch.getSession(
+                    this.sshDetails.user,
+                    this.sshDetails.host,
+                    this.sshDetails.sshPort
+            );
 
-            jsch.addIdentity(this.sshOptions.keyFile.getPath());
+            jsch.addIdentity(this.sshDetails.keyFile.getPath(), this.sshDetails.passphrase);
+
+            final Properties config = new Properties();
             config.put("StrictHostKeyChecking", "no");
             config.put("ConnectionAttempts", "3");
+            //dont set the keep alive too low or you might suffer from a breaking connection during start up (for whatever reason)
+            session.setServerAliveInterval(1000);//milliseconds
             session.setConfig(config);
-            session.setServerAliveInterval(500);//milliseconds
-            session.connect();
-
-            log.info("SSH Connected");
 
             //forward the port
             final int assignedPort = session.setPortForwardingL(
-                    this.sshOptions.localPort,
+                    this.sshDetails.localPort,
                     "localhost",
-                    this.sshOptions.remotePort
+                    this.sshDetails.remotePort
             );
+            log.info("Port Forwarded: localhost:" + assignedPort + " -> " + this.sshDetails.host + ":" + this.sshDetails.remotePort);
+
+            session.connect();
+            log.info("SSH Connected");
 
             this.sshTunnel = session;
-
-            log.info("localhost:" + assignedPort + " -> " + this.sshOptions.host + ":" + this.sshOptions.remotePort);
-            log.info("Port Forwarded");
         } catch (final Exception e) {
             throw new RuntimeException("Failed to start SSH tunnel", e);
         }
@@ -98,15 +105,16 @@ public class SshTunnel {
         this.sshTunnel.disconnect();
     }
 
-    public static class SshOptions {
+    public static class SshDetails {
         private String host;
         private String user;
-        private File keyFile;          //private key file for auth
-        private int sshPort = 22;      //port of the ssh service running on the remote machine
-        private int localPort = 1111;  //the local endpoint of the tunnel; make sure it's available
-        private int remotePort = 5432; //port that the database is running on on the remote machine
+        private File keyFile;              //private key file for auth
+        private String passphrase = null;  //optional passphase for the keyfile
+        private int sshPort = 22;          //port of the ssh service running on the remote machine
+        private int localPort = 5432;      //the local endpoint of the tunnel; make sure it's available
+        private int remotePort = 5432;     //port that the database is running on on the remote machine
 
-        SshOptions(@Nonnull final String host, @Nonnull final String user) {
+        public SshDetails(@Nonnull final String host, @Nonnull final String user) {
             this.host = host;
             this.user = user;
             this.keyFile = new File("database-openssh.ppk");
@@ -114,23 +122,23 @@ public class SshTunnel {
 
         @Nonnull
         @CheckReturnValue
-        public SshOptions setHost(@Nonnull final String host) {
+        public SshDetails setHost(@Nonnull final String host) {
             this.host = host;
             return this;
         }
 
         @Nonnull
         @CheckReturnValue
-        public SshOptions setUser(@Nonnull final String user) {
+        public SshDetails setUser(@Nonnull final String user) {
             this.user = user;
             return this;
         }
 
         @Nonnull
         @CheckReturnValue
-        public SshOptions setKeyFile(@Nonnull final File file) {
+        public SshDetails setKeyFile(@Nonnull final File file) {
             if (!file.exists()) {
-                log.warn("Set key file {} does not exist.", file.getPath());
+                log.warn("Provided key file {} does not exist.", file.getPath());
             }
             this.keyFile = file;
             return this;
@@ -138,27 +146,34 @@ public class SshTunnel {
 
         @Nonnull
         @CheckReturnValue
-        public SshOptions setKeyFile(@Nonnull final String path) {
+        public SshDetails setKeyFile(@Nonnull final String path) {
             return this.setKeyFile(new File(path));
         }
 
         @Nonnull
         @CheckReturnValue
-        public SshOptions setSshPort(final int sshPort) {
+        public SshDetails setPassphrase(@Nullable final String passphrase) {
+            this.passphrase = passphrase;
+            return this;
+        }
+
+        @Nonnull
+        @CheckReturnValue
+        public SshDetails setSshPort(final int sshPort) {
             this.sshPort = sshPort;
             return this;
         }
 
         @Nonnull
         @CheckReturnValue
-        public SshOptions setLocalPort(final int localPort) {
+        public SshDetails setLocalPort(final int localPort) {
             this.localPort = localPort;
             return this;
         }
 
         @Nonnull
         @CheckReturnValue
-        public SshOptions setRemotePort(final int remotePort) {
+        public SshDetails setRemotePort(final int remotePort) {
             this.remotePort = remotePort;
             return this;
         }

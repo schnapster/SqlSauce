@@ -24,9 +24,13 @@
 
 package space.npstr.sqlstack.entities;
 
+import space.npstr.sqlstack.DatabaseException;
 import space.npstr.sqlstack.DatabaseWrapper;
 import space.npstr.sqlstack.converters.PostgresHStoreConverter;
 
+import javax.annotation.CheckReturnValue;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.persistence.Column;
 import javax.persistence.Convert;
 import javax.persistence.Entity;
@@ -46,7 +50,7 @@ import java.util.Map;
  */
 @Entity
 @Table(name = "hstorex")
-public class Hstore implements IEntity<String> {
+public class Hstore extends SaucedEntity<String, Hstore> {
 
     public static final String DEFAULT_HSTORE_NAME = "default";
 
@@ -59,90 +63,106 @@ public class Hstore implements IEntity<String> {
     @Convert(converter = PostgresHStoreConverter.class)
     public final Map<String, String> hstore = new HashMap<>();
 
-    //for jpa
-    Hstore() {
-
+    //for jpa && sauced entity
+    //prefer to use Hstore.load() to create on of these to avoid overwriting an existing one
+    public Hstore() {
     }
 
+    @Nonnull
     @Override
-    public void setId(final String id) {
+    @CheckReturnValue
+    public Hstore setId(@Nonnull final String id) {
         this.name = id;
+        return this;
     }
 
+    @Nonnull
     @Override
+    @CheckReturnValue
     public String getId() {
         return this.name;
     }
 
 
-    public Hstore(final String name) {
-        this.name = name;
-    }
-
-    /**
-     * Convenience method to commit several changes at once
-     * Use after calling set()
-     * Example:
-     * Hstore.loadAndSet("a", "a").set("b", "b").set("c", "c").save();
-     *
-     * @return the merged object
-     */
-    public Hstore save(final DatabaseWrapper databaseWrapper) {
-        return databaseWrapper.merge(this);
-    }
-
     /**
      * @return itself for chaining calls
      */
-    public Hstore set(final String key, final String value) {
+    @Nonnull
+    @CheckReturnValue
+    public Hstore set(@Nonnull final String key, @Nonnull final String value) {
         this.hstore.put(key, value);
         return this;
     }
 
     /**
+     * Intended as a finishing move, so no @CheckReturnValue annotation. Manually check the return value if you want
+     * to keep using this Hstore
+     */
+    public Hstore setAndSave(@Nonnull final String key, @Nonnull final String value) throws DatabaseException {
+        this.hstore.put(key, value);
+        return this.save();
+    }
+
+    /**
      * @return the requested value
      */
-    public String get(final String key, final String defaultValue) {
+    @Nonnull
+    @CheckReturnValue
+    public String get(@Nonnull final String key, @Nonnull final String defaultValue) {
         return this.hstore.getOrDefault(key, defaultValue);
     }
 
     /**
      * @return the requested value or null if it doesnt exist
      */
-    public String get(final String key) {
+    @Nullable
+    @CheckReturnValue
+    public String get(@Nonnull final String key) {
         return this.hstore.getOrDefault(key, null);
     }
 
 
     //################################################################################
-    //                      Stats convenience stuff below
+    //                      Static convenience stuff
     //################################################################################
 
     /**
      * @return load a value from an hstore object
      */
-    public static String loadAndGet(final DatabaseWrapper databaseWrapper, final String name, final String key, final String defaultValue) {
-        return databaseWrapper.getOrCreateHstore(name).hstore.getOrDefault(key, defaultValue);
+    @Nonnull
+    @CheckReturnValue
+    public static String loadAndGet(@Nonnull final DatabaseWrapper databaseWrapper, @Nonnull final String name,
+                                    @Nonnull final String key, @Nonnull final String defaultValue)
+            throws DatabaseException {
+        return databaseWrapper.getOrCreate(name, Hstore.class).hstore.getOrDefault(key, defaultValue);
     }
 
     /**
      * @return loads a value from the default hstore
      */
-    public static String loadAndGet(final DatabaseWrapper databaseWrapper, final String key, final String defaultValue) {
+    @Nonnull
+    @CheckReturnValue
+    public static String loadAndGet(@Nonnull final DatabaseWrapper databaseWrapper, @Nonnull final String key,
+                                    @Nonnull final String defaultValue) throws DatabaseException {
         return loadAndGet(databaseWrapper, DEFAULT_HSTORE_NAME, key, defaultValue);
     }
 
     /**
      * @return the requested Hstore object
      */
-    public static Hstore load(final DatabaseWrapper databaseWrapper, final String name) {
-        return databaseWrapper.getOrCreateHstore(name);
+    @Nonnull
+    @CheckReturnValue
+    public static Hstore load(@Nonnull final DatabaseWrapper databaseWrapper, @Nonnull final String name)
+            throws DatabaseException {
+        return databaseWrapper.getOrCreate(name, Hstore.class);
     }
 
     /**
      * @return the default Hstore object
      */
-    public static Hstore load(final DatabaseWrapper databaseWrapper) {
+    @Nonnull
+    @CheckReturnValue
+    public static Hstore load(@Nonnull final DatabaseWrapper databaseWrapper) throws DatabaseException {
         return load(databaseWrapper, DEFAULT_HSTORE_NAME);
     }
 
@@ -151,7 +171,10 @@ public class Hstore implements IEntity<String> {
      *
      * @return the object for chaining calls; dont forget to merge() the changes
      */
-    public static Hstore loadAndSet(final DatabaseWrapper databaseWrapper, final String name, final String key, final String value) {
+    @Nonnull
+    @CheckReturnValue
+    public static Hstore loadAndSet(@Nonnull final DatabaseWrapper databaseWrapper, @Nonnull final String name,
+                                    @Nonnull final String key, @Nonnull final String value) throws DatabaseException {
         return load(databaseWrapper, name).set(key, value);
     }
 
@@ -160,7 +183,10 @@ public class Hstore implements IEntity<String> {
      *
      * @return the object for chaining calls; dont forget to merge() the changes
      */
-    public static Hstore loadAndSet(final DatabaseWrapper databaseWrapper, final String key, final String value) {
+    @Nonnull
+    @CheckReturnValue
+    public static Hstore loadAndSet(@Nonnull final DatabaseWrapper databaseWrapper, @Nonnull final String key,
+                                    @Nonnull final String value) throws DatabaseException {
         return loadAndSet(databaseWrapper, DEFAULT_HSTORE_NAME, key, value);
     }
 }

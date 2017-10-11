@@ -25,6 +25,10 @@
 package space.npstr.sqlstack;
 
 import com.zaxxer.hikari.HikariDataSource;
+import com.zaxxer.hikari.metrics.MetricsTrackerFactory;
+import io.prometheus.client.hibernate.HibernateStatisticsCollector;
+import org.hibernate.engine.jdbc.connections.spi.ConnectionProvider;
+import org.hibernate.internal.SessionFactoryImpl;
 import org.hibernate.jpa.HibernatePersistenceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,6 +63,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Created by napster on 29.05.17.
@@ -86,22 +91,33 @@ public class DatabaseConnection {
     private final ScheduledExecutorService connectionCheck = Executors.newSingleThreadScheduledExecutor();
 
     /**
-     * @param dbName         name for this database
-     * @param jdbcUrl        where to find the db, which user, which pw, etc
-     * @param appName        optional name that the connections will show up as in the db management tools
-     * @param entityPackages example: "space.npstr.wolfia.db.entity", the names of the packages containing all your annotated entites
-     * @param poolName       optional name forht connection pool
-     * @param sshOptions     optionally ssh tunnel the connection; highly recommended for all remote databases
+     * @param dbName          name for this database connection, also used as the persistence unit name
+     * @param jdbcUrl         where to find the db, which user, which pw, etc
+     * @param entityPackages  example: "space.npstr.wolfia.db.entity", the names of the packages containing your
+     *                        annotated entites. root package names are fine, they will pick up all children
+     * @param driverClassName optional name of the driver class; occasionally needed when there are several drivers
+     *                        present in the classpath and hikari has issues picking the correct one
+     * @param appName         optional name that the connections will show up as in the db management tools
+     * @param poolName        optional name forht connection pool
+     * @param sshDetails      optionally ssh tunnel the connection; highly recommended for all remote databases
+     * @param hibernateStats  optional metrics for hibernate. make sure to register it after adding all connections to it
+     * @param hikariStats     optional metrics for hikari
      */
-    public DatabaseConnection(@Nonnull final String dbName, @Nonnull final String jdbcUrl, @Nullable final String appName,
-                              @Nonnull final Collection<String> entityPackages, @Nullable final String poolName,
-                              @Nullable final SshTunnel.SshOptions sshOptions) {
+    public DatabaseConnection(@Nonnull final String dbName,
+                              @Nonnull final String jdbcUrl,
+                              @Nullable final String driverClassName,
+                              @Nullable final String appName,
+                              @Nonnull final Collection<String> entityPackages,
+                              @Nullable final String poolName,
+                              @Nullable final SshTunnel.SshDetails sshDetails,
+                              @Nullable final HibernateStatisticsCollector hibernateStats,
+                              @Nullable final MetricsTrackerFactory hikariStats) throws DatabaseException {
         this.dbName = dbName;
         this.state = DatabaseState.INITIALIZING;
 
         try {
-            if (sshOptions != null) {
-                this.sshTunnel = new SshTunnel(sshOptions).connect();
+            if (sshDetails != null) {
+                this.sshTunnel = new SshTunnel(sshDetails).connect();
             }
 
             // hikari connection pool
@@ -113,6 +129,9 @@ public class DatabaseConnection {
             this.hikariDs.setConnectionTimeout(2000);
             this.hikariDs.setConnectionTestQuery(TEST_QUERY);
             this.hikariDs.setAutoCommit(false);
+            if (driverClassName != null && !driverClassName.isEmpty()) {
+                this.hikariDs.setDriverClassName(driverClassName);
+            }
             final Properties props = new Properties();
             if (appName != null && !appName.isEmpty()) {
                 props.setProperty("ApplicationName", appName);
@@ -125,12 +144,10 @@ public class DatabaseConnection {
             //add provided entities
             entityPackages.add("space.npstr.sqlstack.entities");
             // jpa
-            final PersistenceUnitInfo puInfo = defaultPersistenceUnitInfo(this.hikariDs, entityPackages);
+            final PersistenceUnitInfo puInfo = defaultPersistenceUnitInfo(this.hikariDs, entityPackages, dbName);
 
             // hibernate
             final Properties hibernateProps = new Properties();
-            //not sure if this is really necessary but it probably doesnt hurt
-            hibernateProps.put("hibernate.connection.provider_class", "org.hibernate.hikaricp.internal.HikariCPConnectionProvider");
 
             //automatically update the tables we need
             //caution: only add new columns, don't remove or alter old ones, otherwise manual db table migration needed
@@ -151,6 +168,18 @@ public class DatabaseConnection {
             hibernateProps.put("hibernate.connection.provider_disables_autocommit", "true");
 
             this.emf = new HibernatePersistenceProvider().createContainerEntityManagerFactory(puInfo, hibernateProps);
+
+            final SessionFactoryImpl sessionFactory = this.emf.unwrap(SessionFactoryImpl.class);
+            if (hikariStats != null) {
+                sessionFactory.getServiceRegistry().getService(ConnectionProvider.class)
+                        .unwrap(HikariDataSource.class)
+                        .setMetricsTrackerFactory(hikariStats);
+            }
+            if (hibernateStats != null) {
+                hibernateStats.add(sessionFactory, dbName);
+            }
+
+
             this.state = DatabaseState.READY;
 
             this.connectionCheck.scheduleAtFixedRate(this::healthCheck, 5, 5, TimeUnit.SECONDS);
@@ -237,11 +266,13 @@ public class DatabaseConnection {
     }
 
     //copy pasta'd this from somewhere on stackoverflow, seems to work with slight adjustments
-    private PersistenceUnitInfo defaultPersistenceUnitInfo(final DataSource ds, @SuppressWarnings("SameParameterValue") final Collection<String> entityPackages) {
+    private PersistenceUnitInfo defaultPersistenceUnitInfo(final DataSource ds,
+                                                           @SuppressWarnings("SameParameterValue") final Collection<String> entityPackages,
+                                                           final String persistenceUnitName) {
         return new PersistenceUnitInfo() {
             @Override
             public String getPersistenceUnitName() {
-                return "ApplicationPersistenceUnit";
+                return persistenceUnitName;
             }
 
             @Override
@@ -288,7 +319,14 @@ public class DatabaseConnection {
             @Override
             public List<String> getManagedClassNames() {
                 return entityPackages.stream()
-                        .flatMap(entityPackage -> getClassesForPackage(entityPackage).stream().map(Class::getName))
+                        .flatMap(entityPackage -> {
+                            try {
+                                return getClassesForPackage(entityPackage).stream().map(Class::getName);
+                            } catch (DatabaseException e) {
+                                log.error("Failed to load entity package {}", entityPackage, e);
+                                return Stream.empty();
+                            }
+                        })
                         .collect(Collectors.toList());
             }
 
@@ -342,7 +380,7 @@ public class DatabaseConnection {
     // just want to know if it's possible), but at the same time I don't want to add spring or other frameworks who
     // allow xml free configuration (and have methods to add whole packages to be monitored for managed classes)
 
-    private static List<Class<?>> getClassesForPackage(final String pkgName) {
+    private static List<Class<?>> getClassesForPackage(final String pkgName) throws DatabaseException {
         final List<Class<?>> classes = new ArrayList<>();
         // Get a File object for the package
         File directory;
@@ -432,56 +470,111 @@ public class DatabaseConnection {
         @Nonnull
         private String jdbcUrl;
         @Nullable
+        private String driverClassName;
+        @Nullable
         private String appName;
         @Nonnull
         private Collection<String> entityPackages = new ArrayList<>();
         @Nullable
         private String poolName;
         @Nullable
-        private SshTunnel.SshOptions sshOptions;
+        private SshTunnel.SshDetails sshDetails;
+        @Nullable
+        private HibernateStatisticsCollector hibernateStats;
+        @Nullable
+        private MetricsTrackerFactory hikariStats;
 
+        @Nonnull
+        @CheckReturnValue
         public Builder(@Nonnull final String dbName, @Nonnull final String jdbcUrl) {
             this.dbName = dbName;
             this.jdbcUrl = jdbcUrl;
         }
 
-        public Builder setDatabaseName(final String dbName) {
+        @Nonnull
+        @CheckReturnValue
+        public Builder setDatabaseName(@Nonnull final String dbName) {
             this.dbName = dbName;
             return this;
         }
 
-        public Builder setAppName(final String appName) {
+        @Nonnull
+        @CheckReturnValue
+        public Builder setAppName(@Nullable final String appName) {
             this.appName = appName;
             return this;
         }
 
-        public Builder setJdbcUrl(final String jdbcUrl) {
+        @Nonnull
+        @CheckReturnValue
+        public Builder setJdbcUrl(@Nonnull final String jdbcUrl) {
             this.jdbcUrl = jdbcUrl;
             return this;
         }
 
-        public Builder setEntityPackages(final Collection<String> entityPackages) {
+        @Nonnull
+        @CheckReturnValue
+        public Builder setDriverClassName(@Nonnull final String driverClassName) {
+            this.driverClassName = driverClassName;
+            return this;
+        }
+
+        @Nonnull
+        @CheckReturnValue
+        public Builder setEntityPackages(@Nonnull final Collection<String> entityPackages) {
             this.entityPackages = entityPackages;
             return this;
         }
 
-        public Builder addEntityPackage(final String entityPackage) {
+        @Nonnull
+        @CheckReturnValue
+        public Builder addEntityPackage(@Nonnull final String entityPackage) {
             this.entityPackages.add(entityPackage);
             return this;
         }
 
-        public Builder setPoolName(final String poolName) {
+        @Nonnull
+        @CheckReturnValue
+        public Builder setPoolName(@Nullable final String poolName) {
             this.poolName = poolName;
             return this;
         }
 
-        public Builder setSshOptions(final SshTunnel.SshOptions sshOptions) {
-            this.sshOptions = sshOptions;
+        @Nonnull
+        @CheckReturnValue
+        public Builder setSshDetails(@Nullable final SshTunnel.SshDetails sshDetails) {
+            this.sshDetails = sshDetails;
             return this;
         }
 
-        public DatabaseConnection build() {
-            return new DatabaseConnection(this.dbName, this.jdbcUrl, this.appName, this.entityPackages, this.poolName, this.sshOptions);
+        @Nonnull
+        @CheckReturnValue
+        public Builder setHibernateStats(@Nullable final HibernateStatisticsCollector hibernateStats) {
+            this.hibernateStats = hibernateStats;
+            return this;
+        }
+
+        @Nonnull
+        @CheckReturnValue
+        public Builder setHikariStats(@Nullable final MetricsTrackerFactory hikariStats) {
+            this.hikariStats = hikariStats;
+            return this;
+        }
+
+        @Nonnull
+        @CheckReturnValue
+        public DatabaseConnection build() throws DatabaseException {
+            return new DatabaseConnection(
+                    this.dbName,
+                    this.jdbcUrl,
+                    this.driverClassName,
+                    this.appName,
+                    this.entityPackages,
+                    this.poolName,
+                    this.sshDetails,
+                    this.hibernateStats,
+                    this.hikariStats
+            );
         }
     }
 }

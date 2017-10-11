@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'idea'
+    id 'maven-publish'
     id 'com.github.spotbugs' version '1.4'
 }
 group 'space.npstr'
@@ -15,25 +16,24 @@ repositories {
 
 dependencies {
 
-    //@formatter:off
-    ext.postgresDriverVersion   = '42.1.4'
-    ext.hibernateVersion        = '5.2.11.Final'
-    ext.hikariVersion           = '2.7.2'
-    ext.slf4jVersion            = '1.7.25'
-    ext.spotbugsVersion         = '3.1.0-RC6'
-    ext.jschVersion             = '0.1.54'
+    ext.postgresDriverVersion = '42.1.4'
+    ext.hibernateVersion = '5.2.11.Final'
+    ext.hikariVersion = '2.7.2'
+    ext.jschVersion = '0.1.54'
+    ext.slf4jVersion = '1.7.25'
+    ext.spotbugsVersion = '3.1.0-RC6'
+    ext.prometheusVersion = '0.0.26'
 
     //database stuff
-    compile group: 'org.postgresql', name: 'postgresql',       version: ext.postgresDriverVersion //postgres jdbc driver
-    compile group: 'org.hibernate',  name: 'hibernate-core',       version: ext.hibernateVersion  //hibernate + JPA
-    compile group: 'com.zaxxer',     name: 'HikariCP',             version: ext.hikariVersion     //connection pool
-    compile group: 'com.jcraft',     name: 'jsch',                 version: ext.jschVersion       //ssh tunnel
-
+    compile group: 'org.postgresql', name: 'postgresql', version: ext.postgresDriverVersion //postgres jdbc driver
+    compile group: 'org.hibernate', name: 'hibernate-core', version: ext.hibernateVersion   //hibernate + JPA
+    compile group: 'com.zaxxer', name: 'HikariCP', version: ext.hikariVersion               //connection pool
 
     //various/QA
-    compile group: 'org.slf4j',      name: 'slf4j-api',                 version: ext.slf4jVersion //logging framework
-    compile group: 'com.github.spotbugs', name: 'spotbugs-annotations', version: ext.spotbugsVersion //annotations
-    //@formatter:on
+    compile group: 'com.jcraft', name: 'jsch', version: ext.jschVersion           //ssh tunnel
+    compile group: 'org.slf4j', name: 'slf4j-api', version: ext.slf4jVersion      //logging framework
+    compileOnly group: 'com.github.spotbugs', name: 'spotbugs-annotations', version: ext.spotbugsVersion //annotations
+    compileOnly group: 'io.prometheus', name: 'simpleclient_hibernate', version: ext.prometheusVersion   //db metrics
 }
 
 task wrapper(type: Wrapper) {
@@ -45,3 +45,23 @@ compileJava.options.encoding = 'UTF-8'
 compileJava.options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
 
 jar.dependsOn 'spotbugsMain'
+
+task install(dependsOn: 'publishToMavenLocal')
+publishToMavenLocal.dependsOn 'jar'
+
+
+task sourceJar(type: Jar) {
+    from sourceSets.main.allJava
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+
+            artifact sourceJar {
+                classifier "sources"
+            }
+        }
+    }
+}

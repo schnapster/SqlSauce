@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Created by napster on 08.10.17.
  * <p>
- * Adapter for ssh logs. Originally written by Fre_d for FredBoat
+ * Adapter for ssh logs. Originally written by Fre_d for FredBoat under MIT license.
  */
 public class JSchLogger implements com.jcraft.jsch.Logger {
 
@@ -58,7 +58,8 @@ public class JSchLogger implements com.jcraft.jsch.Logger {
                 log.error(message);
                 break;
             default:
-                throw new RuntimeException("Invalid log level");
+                log.warn("Unexpected Jsch log level: {}", level);
+                log.warn(message);
         }
     }
 }
