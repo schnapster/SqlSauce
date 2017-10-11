@@ -1,6 +1,7 @@
 # SqlSauce
 
-[![Release](https://jitpack.io/v/napstr/SqlSauce.svg?style=flat-square)](https://jitpack.io/napstr/SqlSauce)
+[![Release](https://jitpack.io/v/space.npstr/SqlSauce.svg?style=flat-square)](https://jitpack.io/#space.npstr/SqlSauce)
+
 
 SQL database stack I use between various projects.
 
@@ -45,6 +46,36 @@ This package is not meant to make these tools exchangeable.
 Sure, you can also run raw SQL queries.
 
 
+## Adding SqlSauce
+Add through the [JitPack](https://jitpack.io/) repo to your project:
+
+###### Gradle build.gradle
+```gradle
+    repositories {
+        maven { url 'https://jitpack.io' }
+    }
+
+    dependencies {
+        compile group: 'space.npstr', name: 'sqlsauce', version: '0.0.1'
+    }
+
+```
+
+###### Maven pom.xml
+```xml
+    <repositories>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+    </repositories>
+
+    <dependency>
+        <groupId>space.npstr</groupId>
+        <artifactId>sqlsauce</artifactId>
+        <version>0.0.1</version>
+    </dependency>
+```
 
 ## TODOs
 
