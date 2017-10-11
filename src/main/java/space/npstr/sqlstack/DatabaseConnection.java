@@ -198,6 +198,7 @@ public class DatabaseConnection {
     }
 
     @Nonnull
+    @CheckReturnValue
     public EntityManager getEntityManager() throws IllegalStateException {
         if (this.state == DatabaseState.SHUTDOWN) {
             throw new IllegalStateException("Database has been shutdown.");
@@ -250,6 +251,7 @@ public class DatabaseConnection {
     }
 
     //returns true if the test query was successful and false if not
+    @CheckReturnValue
     private boolean runTestQuery() {
         final EntityManager em = getEntityManager();
         try {
@@ -266,6 +268,7 @@ public class DatabaseConnection {
     }
 
     //copy pasta'd this from somewhere on stackoverflow, seems to work with slight adjustments
+    @CheckReturnValue
     private PersistenceUnitInfo defaultPersistenceUnitInfo(final DataSource ds,
                                                            @SuppressWarnings("SameParameterValue") final Collection<String> entityPackages,
                                                            final String persistenceUnitName) {
@@ -379,7 +382,7 @@ public class DatabaseConnection {
     // why, you ask? because I want to avoid using xml files to configure the database connection (no reason really, I
     // just want to know if it's possible), but at the same time I don't want to add spring or other frameworks who
     // allow xml free configuration (and have methods to add whole packages to be monitored for managed classes)
-
+    @CheckReturnValue
     private static List<Class<?>> getClassesForPackage(final String pkgName) throws DatabaseException {
         final List<Class<?>> classes = new ArrayList<>();
         // Get a File object for the package
