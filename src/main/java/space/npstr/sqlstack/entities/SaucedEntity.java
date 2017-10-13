@@ -42,6 +42,27 @@ import java.io.Serializable;
 @MappedSuperclass
 public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEntity<I, Self>> implements IEntity<I, Self> {
 
+    //for when you only use a single connection application-wide, this might provide some handy static methods after
+    // setting it
+    // see Hstore for an example implementation.
+    // Creating a database connection will automatically set it as the default sauce.
+    @Transient
+    protected static DatabaseWrapper defaultSauce;
+
+    public static void setDefaultSauce(final DatabaseWrapper dbWrapper) {
+        SaucedEntity.defaultSauce = dbWrapper;
+    }
+
+    public static DatabaseWrapper getDefaultSauce() {
+        if (defaultSauce == null) {
+            throw new IllegalStateException("Default DatabaseWrapper not set. Make sure to create at least one " +
+                    "database connection.");
+        }
+        return defaultSauce;
+    }
+
+
+
     //the sauce of this entity
     @Transient
     protected DatabaseWrapper dbWrapper;
@@ -66,6 +87,7 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
     //                              Convenience stuff
     //################################################################################
 
+    //to merge an entity after touching it
     @Nonnull
     @CheckReturnValue
     public Self save() throws DatabaseException {
@@ -73,6 +95,14 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
         return this.dbWrapper.merge(getThis());
     }
 
+    //Attempts to load an entity through the default sauce. Consider this to be the global entry point for a single
+    //db connection app for all your SaucedEntity needs where you know the id of.
+    @Nonnull
+    @CheckReturnValue
+    public static <E extends SaucedEntity<I, E>, I extends Serializable> E load(final I id, final Class<E> clazz)
+            throws DatabaseException {
+        return getDefaultSauce().getOrCreate(id, clazz);
+    }
 
     //################################################################################
     //                                  Internals

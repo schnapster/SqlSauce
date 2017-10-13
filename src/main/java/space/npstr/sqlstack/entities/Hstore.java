@@ -123,7 +123,72 @@ public class Hstore extends SaucedEntity<String, Hstore> {
 
 
     //################################################################################
-    //                      Static convenience stuff
+    //                 Static single connection convenience stuff
+    //################################################################################
+
+    /**
+     * @return load a value from an hstore object
+     */
+    @Nonnull
+    @CheckReturnValue
+    public static String loadAndGet(@Nonnull final String name, @Nonnull final String key,
+                                    @Nonnull final String defaultValue) throws DatabaseException {
+        return Hstore.loadAndGet(getDefaultSauce(), name, key, defaultValue);
+    }
+
+    /**
+     * @return loads a value from the default hstore
+     */
+    @Nonnull
+    @CheckReturnValue
+    public static String loadAndGet(@Nonnull final String key, @Nonnull final String defaultValue)
+            throws DatabaseException {
+        return Hstore.loadAndGet(getDefaultSauce(), DEFAULT_HSTORE_NAME, key, defaultValue);
+    }
+
+    /**
+     * @return the requested Hstore object
+     */
+    @Nonnull
+    @CheckReturnValue
+    public static Hstore load(@Nonnull final String name) throws DatabaseException {
+        return Hstore.load(getDefaultSauce(), name);
+    }
+
+    /**
+     * @return the default Hstore object
+     */
+    @Nonnull
+    @CheckReturnValue
+    public static Hstore load() throws DatabaseException {
+        return Hstore.load(getDefaultSauce(), DEFAULT_HSTORE_NAME);
+    }
+
+    /**
+     * Load an Hstore object
+     *
+     * @return the object for chaining calls; dont forget to merge() the changes
+     */
+    @Nonnull
+    @CheckReturnValue
+    public static Hstore loadAndSet(@Nonnull final String name, @Nonnull final String key, @Nonnull final String value)
+            throws DatabaseException {
+        return Hstore.loadAndSet(getDefaultSauce(), name, key, value);
+    }
+
+    /**
+     * Uses the default hstore
+     *
+     * @return the object for chaining calls; dont forget to save() the changes
+     */
+    @Nonnull
+    @CheckReturnValue
+    public static Hstore loadAndSet(@Nonnull final String key, @Nonnull final String value) throws DatabaseException {
+        return Hstore.loadAndSet(getDefaultSauce(), DEFAULT_HSTORE_NAME, key, value);
+    }
+
+    //################################################################################
+    //                  Static convenience stuff with custom sauce
     //################################################################################
 
     /**
@@ -181,7 +246,7 @@ public class Hstore extends SaucedEntity<String, Hstore> {
     /**
      * Uses the default hstore
      *
-     * @return the object for chaining calls; dont forget to merge() the changes
+     * @return the object for chaining calls; dont forget to save() the changes
      */
     @Nonnull
     @CheckReturnValue

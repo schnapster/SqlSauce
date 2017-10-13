@@ -32,6 +32,7 @@ import org.hibernate.internal.SessionFactoryImpl;
 import org.hibernate.jpa.HibernatePersistenceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import space.npstr.sqlstack.entities.SaucedEntity;
 import space.npstr.sqlstack.ssh.SshTunnel;
 
 import javax.annotation.CheckReturnValue;
@@ -183,6 +184,7 @@ public class DatabaseConnection {
             this.state = DatabaseState.READY;
 
             this.connectionCheck.scheduleAtFixedRate(this::healthCheck, 5, 5, TimeUnit.SECONDS);
+            SaucedEntity.setDefaultSauce(new DatabaseWrapper(this));
         } catch (final Exception e) {
             this.state = DatabaseState.FAILED;
             final String message = "Failed to create database connection";
