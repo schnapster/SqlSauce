@@ -53,6 +53,11 @@ public class DatabaseWrapper {
         this.databaseConnection = database;
     }
 
+    @Nonnull
+    public DatabaseConnection unwrap() {
+        return this.databaseConnection;
+    }
+
     //################################################################################
     //                                   Reading
     //################################################################################
