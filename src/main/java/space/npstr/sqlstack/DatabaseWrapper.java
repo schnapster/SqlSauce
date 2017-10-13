@@ -187,15 +187,14 @@ public class DatabaseWrapper {
      */
     @Nonnull
     @CheckReturnValue
-    //returns a sauced entity
-    public <E extends SaucedEntity<I, E>, I extends Serializable> E persist(@Nonnull final E entity) throws DatabaseException {
+    //returns whatever was passed in, with a sauce if it was a sauced entity
+    public <E> E persist(@Nonnull final E entity) throws DatabaseException {
         final EntityManager em = this.databaseConnection.getEntityManager();
         try {
             em.getTransaction().begin();
             em.persist(entity);
             em.getTransaction().commit();
-            return entity
-                    .setSauce(this);
+            return setSauce(entity);
         } catch (final PersistenceException e) {
             final String message = String.format("Failed to persist entity %s on DB %s",
                     entity.toString(), this.databaseConnection.getName());
