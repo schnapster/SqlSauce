@@ -47,7 +47,7 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
     // see Hstore for an example implementation.
     // Creating a database connection will automatically set it as the default sauce.
     @Transient
-    protected static DatabaseWrapper defaultSauce;
+    private static DatabaseWrapper defaultSauce;
 
     public static void setDefaultSauce(final DatabaseWrapper dbWrapper) {
         SaucedEntity.defaultSauce = dbWrapper;

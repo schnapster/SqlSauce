@@ -36,6 +36,7 @@ import javax.persistence.Convert;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -52,8 +53,11 @@ import java.util.Map;
 @Table(name = "hstorex")
 public class Hstore extends SaucedEntity<String, Hstore> {
 
+    @Transient
     public static final String DEFAULT_HSTORE_NAME = "default";
-    public static Object hstoreLock = new Object();
+
+    @Transient
+    public static final Object hstoreLock = new Object();
 
     //you are responsible for using unique names when you want to access unique hstores
     @Id
