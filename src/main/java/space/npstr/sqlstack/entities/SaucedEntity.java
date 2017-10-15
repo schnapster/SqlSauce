@@ -32,6 +32,8 @@ import javax.annotation.Nonnull;
 import javax.persistence.MappedSuperclass;
 import javax.persistence.Transient;
 import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by napster on 10.10.17.
@@ -72,16 +74,6 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
     protected Self getThis() {
         return (Self) this;
     }
-
-
-    /**
-     * Abusing Hibernate with a lot of load/create entity -> detach -> save entity can lead to concurrent inserts
-     * if an entity is created two times and then merged simultaneously. For this case you may provide an entity level
-     * lock to which the save() method will use to synchronize on
-     */
-    @Nonnull
-    protected abstract Object getEntityLock();
-
 
     //when loading / creating with the DatabaseWrapper class, it will make sure to set this so that the convenience
     //methods may be used
@@ -124,6 +116,27 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
             throw new IllegalStateException("DatabaseWrapper not set. Make sure to load entity through a " +
                     "DatabaseWrapper or manually set it by calling SaucedEntity#setSauce");
         }
+    }
+
+
+    private static final Map<Class, Object> entityLocks = new HashMap<>();
+
+    /**
+     * Abusing Hibernate with a lot of load/create entity -> detach -> save entity can lead to concurrent inserts
+     * if an entity is created two times and then merged simultaneously. For this case we provide an entity level
+     * lock to which the save() method will use to synchronize on
+     */
+    @Nonnull
+    private Object getEntityLock() {
+        //double lock synchronizing to create new entity locks, wew
+        final Class c = getClass();
+        Object lock = entityLocks.get(c);
+        if (lock == null) {
+            synchronized (entityLocks) {
+                lock = entityLocks.computeIfAbsent(c, k -> new Object());
+            }
+        }
+        return lock;
     }
 
 }
