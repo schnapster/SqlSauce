@@ -53,6 +53,7 @@ import java.util.Map;
 public class Hstore extends SaucedEntity<String, Hstore> {
 
     public static final String DEFAULT_HSTORE_NAME = "default";
+    public static Object hstoreLock = new Object();
 
     //you are responsible for using unique names when you want to access unique hstores
     @Id
@@ -83,6 +84,10 @@ public class Hstore extends SaucedEntity<String, Hstore> {
         return this.name;
     }
 
+    @Override
+    protected Object getEntityLock() {
+        return hstoreLock;
+    }
 
     /**
      * @return itself for chaining calls

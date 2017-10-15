@@ -74,6 +74,14 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
     }
 
 
+    /**
+     * Abusing Hibernate with a lot of load/create entity -> detach -> save entity can lead to concurrent inserts
+     * if an entity is created two times and then merged simultaneously. For this case you may provide an entity level
+     * lock to which the save() method will use to synchronize on
+     */
+    protected abstract Object getEntityLock();
+
+
     //when loading / creating with the DatabaseWrapper class, it will make sure to set this so that the convenience
     //methods may be used
     @Nonnull
@@ -91,8 +99,10 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
     @Nonnull
     @CheckReturnValue
     public Self save() throws DatabaseException {
-        checkWrapper();
-        return this.dbWrapper.merge(getThis());
+        synchronized (getEntityLock()) {
+            checkWrapper();
+            return this.dbWrapper.merge(getThis());
+        }
     }
 
     //Attempts to load an entity through the default sauce. Consider this to be the global entry point for a single
