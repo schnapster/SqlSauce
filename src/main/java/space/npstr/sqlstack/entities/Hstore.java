@@ -88,6 +88,7 @@ public class Hstore extends SaucedEntity<String, Hstore> {
         return this.name;
     }
 
+    @Nonnull
     @Override
     protected Object getEntityLock() {
         return hstoreLock;

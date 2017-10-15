@@ -79,6 +79,7 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
      * if an entity is created two times and then merged simultaneously. For this case you may provide an entity level
      * lock to which the save() method will use to synchronize on
      */
+    @Nonnull
     protected abstract Object getEntityLock();
 
 
