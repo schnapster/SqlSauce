@@ -95,20 +95,22 @@ public class DatabaseConnection {
      * @param jdbcUrl         where to find the db, which user, which pw, etc
      * @param entityPackages  example: "space.npstr.wolfia.db.entity", the names of the packages containing your
      *                        annotated entites. root package names are fine, they will pick up all children
-     * @param driverClassName optional name of the driver class; occasionally needed when there are several drivers
-     *                        present in the classpath and hikari has issues picking the correct one
      * @param appName         optional name that the connections will show up as in the db management tools
      * @param poolName        optional name forht connection pool
+     * @param driverClassName optional name of the driver class; occasionally needed when there are several drivers
+     *                        present in the classpath and hikari has issues picking the correct one
+     * @param dialect     optional name of the dialect. sometimes autodetection is off
      * @param sshDetails      optionally ssh tunnel the connection; highly recommended for all remote databases
      * @param hibernateStats  optional metrics for hibernate. make sure to register it after adding all connections to it
      * @param hikariStats     optional metrics for hikari
      */
     public DatabaseConnection(@Nonnull final String dbName,
                               @Nonnull final String jdbcUrl,
-                              @Nullable final String driverClassName,
-                              @Nullable final String appName,
                               @Nonnull final Collection<String> entityPackages,
+                              @Nullable final String appName,
                               @Nullable final String poolName,
+                              @Nullable final String driverClassName,
+                              @Nullable final String dialect,
                               @Nullable final SshTunnel.SshDetails sshDetails,
                               @Nullable final HibernateStatisticsCollector hibernateStats,
                               @Nullable final MetricsTrackerFactory hikariStats) throws DatabaseException {
@@ -169,6 +171,10 @@ public class DatabaseConnection {
             // em.getTransaction.commit() to prevent a rollback spam at the database
             hibernateProps.put("hibernate.connection.autocommit", "false");
             hibernateProps.put("hibernate.connection.provider_disables_autocommit", "true");
+
+            if (dialect != null) {
+                hibernateProps.put("hibernate.dialect", dialect);
+            }
 
             this.emf = new HibernatePersistenceProvider().createContainerEntityManagerFactory(puInfo, hibernateProps);
 
@@ -470,14 +476,16 @@ public class DatabaseConnection {
         private String dbName;
         @Nonnull
         private String jdbcUrl;
-        @Nullable
-        private String driverClassName;
-        @Nullable
-        private String appName;
         @Nonnull
         private Collection<String> entityPackages = new ArrayList<>();
         @Nullable
+        private String appName;
+        @Nullable
         private String poolName;
+        @Nullable
+        private String driverClassName;
+        @Nullable
+        private String dialect;
         @Nullable
         private SshTunnel.SshDetails sshDetails;
         @Nullable
@@ -517,6 +525,13 @@ public class DatabaseConnection {
         @CheckReturnValue
         public Builder setDriverClassName(@Nonnull final String driverClassName) {
             this.driverClassName = driverClassName;
+            return this;
+        }
+
+        @Nonnull
+        @CheckReturnValue
+        public Builder setDialect(@Nonnull final String dialect) {
+            this.dialect = dialect;
             return this;
         }
 
@@ -568,10 +583,11 @@ public class DatabaseConnection {
             return new DatabaseConnection(
                     this.dbName,
                     this.jdbcUrl,
-                    this.driverClassName,
-                    this.appName,
                     this.entityPackages,
+                    this.appName,
                     this.poolName,
+                    this.driverClassName,
+                    this.dialect,
                     this.sshDetails,
                     this.hibernateStats,
                     this.hikariStats
