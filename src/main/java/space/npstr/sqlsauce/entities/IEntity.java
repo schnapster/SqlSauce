@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package space.npstr.sqlstack.entities;
+package space.npstr.sqlsauce.entities;
 
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;

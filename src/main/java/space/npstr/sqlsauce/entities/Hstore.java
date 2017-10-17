@@ -22,11 +22,11 @@
  * SOFTWARE.
  */
 
-package space.npstr.sqlstack.entities;
+package space.npstr.sqlsauce.entities;
 
-import space.npstr.sqlstack.DatabaseException;
-import space.npstr.sqlstack.DatabaseWrapper;
-import space.npstr.sqlstack.converters.PostgresHStoreConverter;
+import space.npstr.sqlsauce.DatabaseException;
+import space.npstr.sqlsauce.DatabaseWrapper;
+import space.npstr.sqlsauce.converters.PostgresHStoreConverter;
 
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;

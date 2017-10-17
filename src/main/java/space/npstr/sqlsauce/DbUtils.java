@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package space.npstr.sqlstack;
+package space.npstr.sqlsauce;
 
 import org.hibernate.Session;
 

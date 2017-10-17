@@ -22,14 +22,14 @@
  * SOFTWARE.
  */
 
-package space.npstr.sqlstack.migration;
+package space.npstr.sqlsauce.migration;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import space.npstr.sqlstack.DatabaseConnection;
-import space.npstr.sqlstack.DatabaseException;
-import space.npstr.sqlstack.DatabaseWrapper;
-import space.npstr.sqlstack.entities.Hstore;
+import space.npstr.sqlsauce.DatabaseConnection;
+import space.npstr.sqlsauce.DatabaseException;
+import space.npstr.sqlsauce.DatabaseWrapper;
+import space.npstr.sqlsauce.entities.Hstore;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;

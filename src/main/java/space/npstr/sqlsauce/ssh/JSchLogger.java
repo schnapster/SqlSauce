@@ -22,35 +22,44 @@
  * SOFTWARE.
  */
 
-package space.npstr.sqlstack.converters;
+package space.npstr.sqlsauce.ssh;
 
-import org.postgresql.util.HStoreConverter;
-
-import javax.persistence.AttributeConverter;
-import javax.persistence.Converter;
-import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Created by napster on 07.07.17.
+ * Created by napster on 08.10.17.
  * <p>
- * Glue between JPA and postgres's hstore extension
- * When using this, you will likely need to set "stringtype" to "unspecified" in your JDBC url/parameters
- * You also need to enable the postgres hstore extension with
- * <p>
- * CREATE EXTENSION hstore;
- * <p>
- * for each database you want to use it in.
+ * Adapter for ssh logs. Originally written by Fre_d for FredBoat under MIT license.
  */
-@Converter(autoApply = true)
-public class PostgresHStoreConverter implements AttributeConverter<Map<String, String>, String> {
+public class JSchLogger implements com.jcraft.jsch.Logger {
+
+    private static final Logger log = LoggerFactory.getLogger("JSch");
 
     @Override
-    public String convertToDatabaseColumn(final Map<String, String> attribute) {
-        return HStoreConverter.toString(attribute);
+    public boolean isEnabled(final int level) {
+        return true;
     }
 
     @Override
-    public Map<String, String> convertToEntityAttribute(final String dbData) {
-        return HStoreConverter.fromString(dbData);
+    public void log(final int level, final String message) {
+        switch (level) {
+            case com.jcraft.jsch.Logger.DEBUG:
+                log.debug(message);
+                break;
+            case com.jcraft.jsch.Logger.INFO:
+                log.info(message);
+                break;
+            case com.jcraft.jsch.Logger.WARN:
+                log.warn(message);
+                break;
+            case com.jcraft.jsch.Logger.ERROR:
+            case com.jcraft.jsch.Logger.FATAL:
+                log.error(message);
+                break;
+            default:
+                log.warn("Unexpected Jsch log level: {}", level);
+                log.warn(message);
+        }
     }
 }

@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package space.npstr.sqlstack.ssh;
+package space.npstr.sqlsauce.ssh;
 
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;

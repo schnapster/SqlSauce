@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package space.npstr.sqlstack;
+package space.npstr.sqlsauce;
 
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.metrics.MetricsTrackerFactory;
@@ -32,8 +32,8 @@ import org.hibernate.internal.SessionFactoryImpl;
 import org.hibernate.jpa.HibernatePersistenceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import space.npstr.sqlstack.entities.SaucedEntity;
-import space.npstr.sqlstack.ssh.SshTunnel;
+import space.npstr.sqlsauce.entities.SaucedEntity;
+import space.npstr.sqlsauce.ssh.SshTunnel;
 
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
@@ -143,7 +143,7 @@ public class DatabaseConnection {
             this.hikariDs.setDataSourceProperties(props);
 
             //add provided entities
-            entityPackages.add("space.npstr.sqlstack.entities");
+            entityPackages.add("space.npstr.sqlsauce.entities");
             // jpa
             final PersistenceUnitInfo puInfo = defaultPersistenceUnitInfo(this.hikariDs, entityPackages, dbName);
 

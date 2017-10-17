@@ -22,44 +22,21 @@
  * SOFTWARE.
  */
 
-package space.npstr.sqlstack.ssh;
+package space.npstr.sqlsauce.migration;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import space.npstr.sqlsauce.DatabaseConnection;
+import space.npstr.sqlsauce.DatabaseException;
 
 /**
- * Created by napster on 08.10.17.
+ * Created by napster on 11.10.17.
  * <p>
- * Adapter for ssh logs. Originally written by Fre_d for FredBoat under MIT license.
+ * Whatever you do, never rename any migrations you are registering. The simple class name is used to identify them.
  */
-public class JSchLogger implements com.jcraft.jsch.Logger {
+public interface Migration {
 
-    private static final Logger log = LoggerFactory.getLogger("JSch");
+    //ready to use connection to the target database
+    //keep in mind these migrations are meant to run after hibernate ddl set up new columns etc
+    //throwing a DatabaseException is an acceptable way to indicate that the migration was not successful
+    void up(DatabaseConnection databaseConnection) throws DatabaseException;
 
-    @Override
-    public boolean isEnabled(final int level) {
-        return true;
-    }
-
-    @Override
-    public void log(final int level, final String message) {
-        switch (level) {
-            case com.jcraft.jsch.Logger.DEBUG:
-                log.debug(message);
-                break;
-            case com.jcraft.jsch.Logger.INFO:
-                log.info(message);
-                break;
-            case com.jcraft.jsch.Logger.WARN:
-                log.warn(message);
-                break;
-            case com.jcraft.jsch.Logger.ERROR:
-            case com.jcraft.jsch.Logger.FATAL:
-                log.error(message);
-                break;
-            default:
-                log.warn("Unexpected Jsch log level: {}", level);
-                log.warn(message);
-        }
-    }
 }

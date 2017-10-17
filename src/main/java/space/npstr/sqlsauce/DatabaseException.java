@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package space.npstr.sqlstack;
+package space.npstr.sqlsauce;
 
 /**
  * Created by napster on 03.07.17.

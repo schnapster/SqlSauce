@@ -22,11 +22,11 @@
  * SOFTWARE.
  */
 
-package space.npstr.sqlstack;
+package space.npstr.sqlsauce;
 
 import org.hibernate.Session;
-import space.npstr.sqlstack.entities.IEntity;
-import space.npstr.sqlstack.entities.SaucedEntity;
+import space.npstr.sqlsauce.entities.IEntity;
+import space.npstr.sqlsauce.entities.SaucedEntity;
 
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;

@@ -22,21 +22,35 @@
  * SOFTWARE.
  */
 
-package space.npstr.sqlstack.migration;
+package space.npstr.sqlsauce.converters;
 
-import space.npstr.sqlstack.DatabaseConnection;
-import space.npstr.sqlstack.DatabaseException;
+import org.postgresql.util.HStoreConverter;
+
+import javax.persistence.AttributeConverter;
+import javax.persistence.Converter;
+import java.util.Map;
 
 /**
- * Created by napster on 11.10.17.
+ * Created by napster on 07.07.17.
  * <p>
- * Whatever you do, never rename any migrations you are registering. The simple class name is used to identify them.
+ * Glue between JPA and postgres's hstore extension
+ * When using this, you will likely need to set "stringtype" to "unspecified" in your JDBC url/parameters
+ * You also need to enable the postgres hstore extension with
+ * <p>
+ * CREATE EXTENSION hstore;
+ * <p>
+ * for each database you want to use it in.
  */
-public interface Migration {
+@Converter(autoApply = true)
+public class PostgresHStoreConverter implements AttributeConverter<Map<String, String>, String> {
 
-    //ready to use connection to the target database
-    //keep in mind these migrations are meant to run after hibernate ddl set up new columns etc
-    //throwing a DatabaseException is an acceptable way to indicate that the migration was not successful
-    void up(DatabaseConnection databaseConnection) throws DatabaseException;
+    @Override
+    public String convertToDatabaseColumn(final Map<String, String> attribute) {
+        return HStoreConverter.toString(attribute);
+    }
 
+    @Override
+    public Map<String, String> convertToEntityAttribute(final String dbData) {
+        return HStoreConverter.fromString(dbData);
+    }
 }
