@@ -27,7 +27,6 @@ package space.npstr.sqlsauce;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.metrics.MetricsTrackerFactory;
 import io.prometheus.client.hibernate.HibernateStatisticsCollector;
-import org.hibernate.engine.jdbc.connections.spi.ConnectionProvider;
 import org.hibernate.internal.SessionFactoryImpl;
 import org.hibernate.jpa.HibernatePersistenceProvider;
 import org.slf4j.Logger;
@@ -133,6 +132,9 @@ public class DatabaseConnection {
             if (driverClassName != null && !driverClassName.isEmpty()) {
                 this.hikariDs.setDriverClassName(driverClassName);
             }
+            if (hibernateStats != null) {
+                this.hikariDs.setMetricsTrackerFactory(hikariStats);
+            }
             final Properties props = new Properties();
             if (appName != null && !appName.isEmpty()) {
                 props.setProperty("ApplicationName", appName);
@@ -170,14 +172,8 @@ public class DatabaseConnection {
 
             this.emf = new HibernatePersistenceProvider().createContainerEntityManagerFactory(puInfo, hibernateProps);
 
-            final SessionFactoryImpl sessionFactory = this.emf.unwrap(SessionFactoryImpl.class);
-            if (hikariStats != null) {
-                sessionFactory.getServiceRegistry().getService(ConnectionProvider.class)
-                        .unwrap(HikariDataSource.class)
-                        .setMetricsTrackerFactory(hikariStats);
-            }
             if (hibernateStats != null) {
-                hibernateStats.add(sessionFactory, dbName);
+                hibernateStats.add(this.emf.unwrap(SessionFactoryImpl.class), dbName);
             }
 
 
