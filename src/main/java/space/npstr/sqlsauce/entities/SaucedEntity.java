@@ -51,10 +51,11 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
     @Transient
     private static DatabaseWrapper defaultSauce;
 
-    public static void setDefaultSauce(final DatabaseWrapper dbWrapper) {
+    public static void setDefaultSauce(@Nonnull final DatabaseWrapper dbWrapper) {
         SaucedEntity.defaultSauce = dbWrapper;
     }
 
+    @Nonnull
     public static DatabaseWrapper getDefaultSauce() {
         if (defaultSauce == null) {
             throw new IllegalStateException("Default DatabaseWrapper not set. Make sure to create at least one " +
