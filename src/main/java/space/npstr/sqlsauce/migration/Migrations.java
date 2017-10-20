@@ -68,7 +68,7 @@ public class Migrations {
         // for each newly created db by running:
         // psql -d template1 -c 'create extension hstore;'
         final String createHstore = "CREATE EXTENSION IF NOT EXISTS hstore SCHEMA public;";
-        dbWrapper.executePlainSqlQuery(createHstore, null);
+        dbWrapper.executeSqlQuery(createHstore, null);
         Hstore.load(dbWrapper, "test").setAndSave("test", "test"); //test it
 
         //run the registered migrations

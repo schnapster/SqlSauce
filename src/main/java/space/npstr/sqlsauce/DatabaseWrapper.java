@@ -249,7 +249,7 @@ public class DatabaseWrapper {
     /**
      * @return the number of entities updated or deleted
      */
-    public int executeJPQLQuery(@Nonnull final String queryString, @Nullable final Map<String, Object> parameters)
+    public int executeJpqlQuery(@Nonnull final String queryString, @Nullable final Map<String, Object> parameters)
             throws DatabaseException {
         final EntityManager em = this.databaseConnection.getEntityManager();
         try {
@@ -282,7 +282,7 @@ public class DatabaseWrapper {
     //limited and offset results
     @Nonnull
     @CheckReturnValue
-    public <T> List<T> selectJPQLQuery(@Nonnull final String queryString, @Nullable final Map<String, Object> parameters,
+    public <T> List<T> selectJpqlQuery(@Nonnull final String queryString, @Nullable final Map<String, Object> parameters,
                                        @Nonnull final Class<T> resultClass, final int offset, final int limit)
             throws DatabaseException {
         final EntityManager em = this.databaseConnection.getEntityManager();
@@ -316,33 +316,33 @@ public class DatabaseWrapper {
     //limited results without offset
     @Nonnull
     @CheckReturnValue
-    public <T> List<T> selectJPQLQuery(@Nonnull final String queryString, @Nullable final Map<String, Object> parameters,
+    public <T> List<T> selectJpqlQuery(@Nonnull final String queryString, @Nullable final Map<String, Object> parameters,
                                        @Nonnull final Class<T> resultClass, final int limit) throws DatabaseException {
-        return selectJPQLQuery(queryString, parameters, resultClass, -1, limit);
+        return selectJpqlQuery(queryString, parameters, resultClass, -1, limit);
     }
 
     //limited results without offset
     @Nonnull
     @CheckReturnValue
-    public <T> List<T> selectJPQLQuery(@Nonnull final String queryString, @Nonnull final Class<T> resultClass,
+    public <T> List<T> selectJpqlQuery(@Nonnull final String queryString, @Nonnull final Class<T> resultClass,
                                        final int limit) throws DatabaseException {
-        return selectJPQLQuery(queryString, null, resultClass, -1, limit);
+        return selectJpqlQuery(queryString, null, resultClass, -1, limit);
     }
 
     //no limit and no offset
     @Nonnull
     @CheckReturnValue
-    public <T> List<T> selectJPQLQuery(@Nonnull final String queryString, @Nullable final Map<String, Object> parameters,
+    public <T> List<T> selectJpqlQuery(@Nonnull final String queryString, @Nullable final Map<String, Object> parameters,
                                        @Nonnull final Class<T> resultClass) throws DatabaseException {
-        return selectJPQLQuery(queryString, parameters, resultClass, -1);
+        return selectJpqlQuery(queryString, parameters, resultClass, -1);
     }
 
     //no limit and no offset
     @Nonnull
     @CheckReturnValue
-    public <T> List<T> selectJPQLQuery(@Nonnull final String queryString, @Nonnull final Class<T> resultClass)
+    public <T> List<T> selectJpqlQuery(@Nonnull final String queryString, @Nonnull final Class<T> resultClass)
             throws DatabaseException {
-        return selectJPQLQuery(queryString, null, resultClass, -1);
+        return selectJpqlQuery(queryString, null, resultClass, -1);
     }
 
     //################################################################################
@@ -353,8 +353,8 @@ public class DatabaseWrapper {
     /**
      * Run a good old SQL query
      */
-    public void executePlainSqlQuery(@Nonnull final String queryString,
-                                     @Nullable final Map<String, Object> parameters) throws DatabaseException {
+    public void executeSqlQuery(@Nonnull final String queryString,
+                                @Nullable final Map<String, Object> parameters) throws DatabaseException {
         final EntityManager em = this.databaseConnection.getEntityManager();
         try {
             final Query q = em.createNativeQuery(queryString);
@@ -379,9 +379,9 @@ public class DatabaseWrapper {
     @Nonnull
     @CheckReturnValue
     @SuppressWarnings("unchecked")
-    public <T> List<T> selectPlainSqlQueryList(@Nonnull final String queryString,
-                                               @Nullable final Map<String, Object> parameters,
-                                               @Nonnull final Class<T> resultClass) throws DatabaseException {
+    public <T> List<T> selectSqlQueryList(@Nonnull final String queryString,
+                                          @Nullable final Map<String, Object> parameters,
+                                          @Nonnull final Class<T> resultClass) throws DatabaseException {
         final EntityManager em = this.databaseConnection.getEntityManager();
         try {
             final Query q = em.createNativeQuery(queryString, resultClass);
@@ -408,9 +408,9 @@ public class DatabaseWrapper {
      */
     @Nonnull
     @CheckReturnValue
-    public <T> T selectPlainSqlQuerySingleResult(@Nonnull final String queryString,
-                                                 @Nullable final Map<String, Object> parameters,
-                                                 @Nonnull final Class<T> resultClass) throws DatabaseException {
+    public <T> T selectSqlQuerySingleResult(@Nonnull final String queryString,
+                                            @Nullable final Map<String, Object> parameters,
+                                            @Nonnull final Class<T> resultClass) throws DatabaseException {
         final EntityManager em = this.databaseConnection.getEntityManager();
         try {
             final Query q = em.createNativeQuery(queryString);
