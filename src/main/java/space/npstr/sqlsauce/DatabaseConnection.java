@@ -161,6 +161,10 @@ public class DatabaseConnection {
             //pl0x no log spam
             hibernateProps.put("hibernate.show_sql", "false");
 
+            //generate statistics but dont spam log them
+            hibernateProps.put("hibernate.generate_statistics", "true");
+            hibernateProps.put("hibernate.session.events.log", "false");
+
             //sane batch sizes
             hibernateProps.put("hibernate.default_batch_fetch_size", 100);
             hibernateProps.put("hibernate.jdbc.batch_size", 100);
