@@ -152,10 +152,9 @@ The data about migrations that have been run is saved in an Hstore entity.
 ### v0.0.1
 - Initial release
 
-## Acknowledgements
-
 ## TODOs
 
 - test whether this can actually run more than one connection at a time
 - improve security of the ssh tunnels
 - make migrations part of the database creation instead of manually handling them
+- 2nd level cache support (ehcache?)
