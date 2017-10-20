@@ -10,26 +10,9 @@ like names or avatar urls etc.
 
 ## Adding SqlSauce Discord Entities to your project
 
-Make sure to include [SqlSauce](https://github.com/napstr/SqlSauce) in your project,
-then add an additional dependency for this module.
-The version will probably always be the same as the main SqlSauce one.
-
-###### Gradle build.gradle
-```gradle
-    dependencies {
-        compile group: 'space.npstr', name: 'sqlsauce-discord-entities', version: '0.0.2'
-    }
-```
-
-###### Maven pom.xml
-```xml
-    <dependency>
-        <groupId>space.npstr</groupId>
-        <artifactId>sqlsauce-discord-entities</artifactId>
-        <version>0.0.2</version>
-    </dependency>
-```
-
+Make sure to include [SqlSauce](https://github.com/napstr/SqlSauce) in your project.
+The jitpack build should include all modules by default. See [here](https://jitpack.io/docs/BUILDING/#multi-module-projects)
+for more information on getting/excluding modules. This module doesn't bring any dependencies outside of compile time.
 
 ## Usage
 
