@@ -1,5 +1,6 @@
 package space.npstr.sqlsauce.entities.discord;
 
+import net.dv8tion.jda.core.Region;
 import net.dv8tion.jda.core.entities.Guild;
 import org.hibernate.annotations.NaturalId;
 import space.npstr.sqlsauce.DatabaseException;
@@ -12,6 +13,7 @@ import javax.annotation.Nullable;
 import javax.persistence.Column;
 import javax.persistence.Id;
 import javax.persistence.MappedSuperclass;
+import javax.persistence.Transient;
 import java.util.Objects;
 
 /**
@@ -26,6 +28,9 @@ import java.util.Objects;
  */
 @MappedSuperclass
 public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extends SaucedEntity<Long, Self> {
+
+    @Transient
+    private static final String UNKNOWN_NAME = "Unknown Guild";
 
     @Id
     @NaturalId
@@ -50,20 +55,20 @@ public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extend
 
     // cached values
 
-    @Column(nullable = false, name = "name")
-    protected String name;
+    @Column(nullable = false, name = "name", columnDefinition = "text")
+    protected String name = UNKNOWN_NAME;
 
     @Column(nullable = false, name = "owner_id")
     protected long ownerId;
 
-    @Column(nullable = true, name = "icon_id")
+    @Column(nullable = true, name = "icon_id", columnDefinition = "text")
     protected String iconId;
 
-    @Column(nullable = true, name = "splash_id")
+    @Column(nullable = true, name = "splash_id", columnDefinition = "text")
     protected String splashId;
 
-    @Column(nullable = false, name = "region")
-    protected String region;                 //Region enum key
+    @Column(nullable = false, name = "region", columnDefinition = "text")
+    protected String region = Region.UNKNOWN.getKey();      //Region enum key
 
     @Column(nullable = true, name = "afk_channel_id")
     protected Long afkChannelId;               //VoiceChannel id
@@ -93,7 +98,7 @@ public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extend
 
     @Nonnull
     @Override
-    public Self setId(Long guildId) {
+    public Self setId(final Long guildId) {
         this.guildId = guildId;
         return getThis();
     }
@@ -101,7 +106,7 @@ public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extend
     @Nonnull
     @Override
     public Long getId() {
-        return guildId;
+        return this.guildId;
     }
 
     @Override
@@ -119,13 +124,13 @@ public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extend
     // ################################################################################
 
     @Nonnull
-    public static <E extends DiscordGuild<E>> E load(@Nonnull DatabaseWrapper dbWrapper, long guildId,
-                                                     @Nonnull Class<E> clazz) throws DatabaseException {
+    public static <E extends DiscordGuild<E>> E load(@Nonnull final DatabaseWrapper dbWrapper, final long guildId,
+                                                     @Nonnull final Class<E> clazz) throws DatabaseException {
         return dbWrapper.getOrCreate(guildId, clazz);
     }
 
     @Nonnull
-    public static <E extends DiscordGuild<E>> E load(long guildId, @Nonnull Class<E> clazz)
+    public static <E extends DiscordGuild<E>> E load(final long guildId, @Nonnull final Class<E> clazz)
             throws DatabaseException {
         return load(getDefaultSauce(), guildId, clazz);
     }
@@ -138,7 +143,7 @@ public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extend
 
     //Good idea to call this each time you are loading one of these before saving.
     @Nonnull
-    public Self set(@Nullable Guild guild) {
+    public Self set(@Nullable final Guild guild) {
         if (guild == null) {
             return getThis();//gracefully ignore null guilds
         }
@@ -159,7 +164,7 @@ public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extend
 
     //convenience static setters for cached values
 
-    public static <E extends DiscordGuild<E>> DiscordGuild<E> join(@Nonnull Guild guild, @Nonnull Class<E> clazz)
+    public static <E extends DiscordGuild<E>> DiscordGuild<E> join(@Nonnull final Guild guild, @Nonnull final Class<E> clazz)
             throws DatabaseException {
         return DiscordGuild.load(guild.getIdLong(), clazz)
                 .set(guild)
@@ -167,7 +172,7 @@ public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extend
                 .save();
     }
 
-    public static <E extends DiscordGuild<E>> DiscordGuild<E> leave(@Nonnull Guild guild, @Nonnull Class<E> clazz)
+    public static <E extends DiscordGuild<E>> DiscordGuild<E> leave(@Nonnull final Guild guild, @Nonnull final Class<E> clazz)
             throws DatabaseException {
         return DiscordGuild.load(guild.getIdLong(), clazz)
                 .set(guild)
@@ -176,13 +181,13 @@ public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extend
     }
 
 
-    public static <E extends DiscordGuild<E>> DiscordGuild<E> cache(@Nonnull Guild guild, @Nonnull Class<E> clazz)
+    public static <E extends DiscordGuild<E>> DiscordGuild<E> cache(@Nonnull final Guild guild, @Nonnull final Class<E> clazz)
             throws DatabaseException {
         return cache(getDefaultSauce(), guild, clazz);
     }
 
-    public static <E extends DiscordGuild<E>> DiscordGuild<E> cache(@Nonnull DatabaseWrapper dbWrapper,
-                                                                    @Nonnull Guild guild, @Nonnull Class<E> clazz)
+    public static <E extends DiscordGuild<E>> DiscordGuild<E> cache(@Nonnull final DatabaseWrapper dbWrapper,
+                                                                    @Nonnull final Guild guild, @Nonnull final Class<E> clazz)
             throws DatabaseException {
         return DiscordGuild.load(dbWrapper, guild.getIdLong(), clazz)
                 .set(guild)
@@ -227,62 +232,62 @@ public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extend
     }
 
     public long getOwnerId() {
-        return ownerId;
+        return this.ownerId;
     }
 
     @Nullable
     public String getIconId() {
-        return iconId;
+        return this.iconId;
     }
 
     @Nullable
     public String getSplashId() {
-        return splashId;
+        return this.splashId;
     }
 
     @Nonnull
     public String getRegion() {
-        return region;
+        return this.region;
     }
 
     @Nullable
     public Long getAfkChannelId() {
-        return afkChannelId;
+        return this.afkChannelId;
     }
 
     @Nullable
     public Long getSystemChannelId() {
-        return systemChannelId;
+        return this.systemChannelId;
     }
 
     public int getVerificationLevel() {
-        return verificationLevel;
+        return this.verificationLevel;
     }
 
     public int getNotificationLevel() {
-        return notificationLevel;
+        return this.notificationLevel;
     }
 
     public int getMfaLevel() {
-        return mfaLevel;
+        return this.mfaLevel;
     }
 
     public int getExplicitContentLevel() {
-        return explicitContentLevel;
+        return this.explicitContentLevel;
     }
 
     public int getAfkTimeoutSeconds() {
-        return afkTimeoutSeconds;
+        return this.afkTimeoutSeconds;
     }
 
     //convenience getters:
     @Nullable
-    public String getAvatarUrl() {
-        return iconId == null ? null : "https://cdn.discordapp.com/icons/" + guildId + "/" + iconId + ".jpg";
+    public String getAvatarUrl() {//ty JDA
+        return this.iconId == null ? null : "https://cdn.discordapp.com/icons/" + this.guildId + "/" + this.iconId + ".jpg";
     }
 
     @Nullable
-    public String getSplashUrl() {
-        return splashId == null ? null : "https://cdn.discordapp.com/splashes/" + guildId + "/" + splashId + ".jpg";
+    public String getSplashUrl() {//ty JDA
+        return this.splashId == null ? null : "https://cdn.discordapp.com/splashes/" + this.guildId + "/" + this.splashId + ".jpg";
     }
 }
