@@ -26,40 +26,33 @@ package space.npstr.sqlsauce.converters;
 
 import org.postgresql.util.HStoreConverter;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.persistence.AttributeConverter;
 import javax.persistence.Converter;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
  * Created by napster on 07.07.17.
  * <p>
- * Glue between JPA and postgres's hstore extension
- * When using this, you will likely need to set "stringtype" to "unspecified" in your JDBC url/parameters
- * You also need to enable the postgres hstore extension with
- * <p>
- * CREATE EXTENSION hstore;
- * <p>
- * for each database you want to use it in.
- *
- * This converter will never return null values, instead creating/storing empty HashMaps
+ * The difference to the PostgresHstoreConverter is that this will accept and return null values.
  */
 @Converter(autoApply = true)
-public class PostgresHStoreConverter implements AttributeConverter<Map<String, String>, String> {
+public class PostgresHStoreNullableConverter implements AttributeConverter<Map<String, String>, String> {
 
     @Override
-    @Nonnull
+    @Nullable
     public String convertToDatabaseColumn(@Nullable final Map<String, String> attribute) {
-        return HStoreConverter.toString(attribute != null ? attribute : new HashMap<>());
+        if (attribute == null) {
+            return null;
+        }
+        return HStoreConverter.toString(attribute);
     }
 
     @Override
-    @Nonnull
+    @Nullable
     public Map<String, String> convertToEntityAttribute(@Nullable final String dbData) {
         if (dbData == null) {
-            return new HashMap<>();
+            return null;
         }
         return HStoreConverter.fromString(dbData);
     }
