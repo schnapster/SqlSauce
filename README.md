@@ -147,6 +147,12 @@ Create a package where you are going to drop your migration classes. It is impor
 Run this code before proceeding with the start of your app.
 The data about migrations that have been run is saved in an Hstore entity.
 
+
+## Additional Modules
+
+[Discord Entities](https://github.com/napstr/SqlSauce/blob/master/sqlsauce-discord-entities/README.md)
+
+
 ## Changelog
 
 ### v0.0.1

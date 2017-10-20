@@ -1,0 +1,7 @@
+ext {
+    moduleName = 'sqlsauce-discord-entities'
+}
+
+dependencies {
+    compileOnly group: 'net.dv8tion', name: 'JDA', version: jdaVersion        // discord API
+}

@@ -1,67 +1,90 @@
 plugins {
-    id 'java'
-    id 'idea'
-    id 'maven-publish'
-    id 'com.github.spotbugs' version '1.4'
-}
-group 'space.npstr'
-version '0.0.2-SNAPSHOT'
-
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
-
-repositories {
-    mavenCentral()
+    id 'com.github.spotbugs' version '1.5'
 }
 
-dependencies {
+allprojects {
+    repositories {
+        jcenter()                               // JDA, maybe others
+        mavenCentral()                          // everything else
+        mavenLocal()                            // local maven repo, mostly for testing stuff
+        maven { url 'https://jitpack.io' }      // for getting builds from github
+    }
 
-    ext.postgresDriverVersion = '42.1.4'
-    ext.hibernateVersion = '5.2.11.Final'
-    ext.hikariVersion = '2.7.2'
-    ext.jschVersion = '0.1.54'
-    ext.slf4jVersion = '1.7.25'
-    ext.spotbugsVersion = '3.1.0-RC6'
-    ext.prometheusVersion = '0.0.26'
+    apply plugin: 'java'
+    apply plugin: 'idea'
+    apply plugin: 'maven-publish'
+    apply plugin: 'com.github.spotbugs'
 
-    //database stuff
-    compile group: 'org.postgresql', name: 'postgresql', version: ext.postgresDriverVersion //postgres jdbc driver
-    compile group: 'org.hibernate', name: 'hibernate-core', version: ext.hibernateVersion   //hibernate + JPA
-    compile group: 'com.zaxxer', name: 'HikariCP', version: ext.hikariVersion               //connection pool
+    sourceCompatibility = 1.8
+    targetCompatibility = 1.8
 
-    //various/QA
-    compile group: 'com.jcraft', name: 'jsch', version: ext.jschVersion           //ssh tunnel
-    compile group: 'org.slf4j', name: 'slf4j-api', version: ext.slf4jVersion      //logging framework
-    compileOnly group: 'com.github.spotbugs', name: 'spotbugs-annotations', version: ext.spotbugsVersion //annotations
-    compileOnly group: 'io.prometheus', name: 'simpleclient_hibernate', version: ext.prometheusVersion   //db metrics
-}
+    group 'space.npstr'
+    version '0.0.2-SNAPSHOT'
 
-task wrapper(type: Wrapper) {
-    gradleVersion = '4.2.1'
-}
+    ext {
+        spotbugsVersion = '3.1.0-RC6'
+        postgresDriverVersion = '42.1.4'
+        hibernateVersion = '5.2.11.Final'
+        hikariVersion = '2.7.2'
+        jschVersion = '0.1.54'
+        slf4jVersion = '1.7.25'
+        prometheusVersion = '0.0.26'
 
-compileJava.dependsOn 'clean'
-compileJava.options.encoding = 'UTF-8'
-compileJava.options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
+        //discord entities module
+        jdaVersion = '3.3.1_292'
+    }
 
-jar.dependsOn 'spotbugsMain'
+    publishing {
+        publications {
+            mavenJava(MavenPublication) {
+                groupId rootProject.group
+                artifactId moduleName
 
-task install(dependsOn: 'publishToMavenLocal')
-publishToMavenLocal.dependsOn 'jar'
+                from components.java
 
-
-task sourceJar(type: Jar) {
-    from sourceSets.main.allJava
-}
-
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            from components.java
-
-            artifact sourceJar {
-                classifier "sources"
+                artifact sourceJar {
+                    classifier "sources"
+                }
             }
         }
     }
+
+    task wrapper(type: Wrapper) {
+        gradleVersion = '4.2.1'
+    }
+
+    compileJava.dependsOn 'clean'
+    compileJava.options.encoding = 'UTF-8'
+    compileJava.options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
+
+    jar.dependsOn 'spotbugsMain'
+    task install(dependsOn: 'publishToMavenLocal')
+    publishToMavenLocal.dependsOn 'jar'
+
+    task sourceJar(type: Jar) {
+        from sourceSets.main.allJava
+    }
+}
+
+subprojects {
+    dependencies {
+        compileOnly rootProject
+    }
+}
+
+ext {
+    moduleName = 'sqlsauce'
+}
+
+dependencies {
+    //database stuff
+    compile group: 'org.postgresql', name: 'postgresql', version: postgresDriverVersion //postgres jdbc driver
+    compile group: 'org.hibernate', name: 'hibernate-core', version: hibernateVersion   //hibernate + JPA
+    compile group: 'com.zaxxer', name: 'HikariCP', version: hikariVersion               //connection pool
+
+    //various/QA
+    compile group: 'com.jcraft', name: 'jsch', version: jschVersion           //ssh tunnel
+    compile group: 'org.slf4j', name: 'slf4j-api', version: slf4jVersion      //logging framework
+    compileOnly group: 'com.github.spotbugs', name: 'spotbugs-annotations', version: spotbugsVersion //annotations
+    compileOnly group: 'io.prometheus', name: 'simpleclient_hibernate', version: prometheusVersion   //db metrics
 }
