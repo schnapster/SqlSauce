@@ -56,7 +56,7 @@ Add through the [JitPack](https://jitpack.io/) repo to your project:
     }
 
     dependencies {
-        compile group: 'space.npstr', name: 'sqlsauce', version: '0.0.1'
+        compile group: 'space.npstr', name: 'sqlsauce', version: '0.0.2'
     }
 
 ```
@@ -73,7 +73,7 @@ Add through the [JitPack](https://jitpack.io/) repo to your project:
     <dependency>
         <groupId>space.npstr</groupId>
         <artifactId>sqlsauce</artifactId>
-        <version>0.0.1</version>
+        <version>0.0.2</version>
     </dependency>
 ```
 
@@ -154,6 +154,20 @@ The data about migrations that have been run is saved in an Hstore entity.
 
 
 ## Changelog
+
+### v0.0.2
+- Initial release of Discord Entities module with Proof of Concept for Guilds and Users + JDA listeners to cache them
+- Support plain SQL queries with result mapping
+- Actually enable Hibernate statistics collection
+- Set the Dialect to be used in the DatabaseConnection. This is needed in some cases when the automagic recognition fails due to several Dialects are present in the class path.
+- Add an HStore converter that accepts Null values. Default HStore converter converts null values into empty maps.
+- Better naming for some methods (more concise and adhering to general conventions)
+- More annotations of all kinds
+- Changed a wrong package name
+- Writes and Reads for entities are secured by a cheap lock implementation. The acquiring of the lock can be overriden with custom implementations (lock striping, anyone?)
+- Static default Sauce is set for all Sauced Entities whenever a DatabaseConnection is created - works great with single-connection apps
+- Unwrap the DatabaseConnection from the DatabaseWrapper
+- Less strict persist method, accepting IEntities instead of SaucedEntities
 
 ### v0.0.1
 - Initial release

@@ -1,5 +1,5 @@
 plugins {
-    id 'com.github.spotbugs' version '1.5'
+    id 'com.github.spotbugs' version '1.6.0'
 }
 
 allprojects {
@@ -19,19 +19,21 @@ allprojects {
     targetCompatibility = 1.8
 
     group 'space.npstr'
-    version '0.0.2-SNAPSHOT'
+    version '0.0.2'
 
     ext {
-        spotbugsVersion = '3.1.0-RC6'
+        gradleVers = '4.2.1'
+
+        spotbugsVersion = '3.1.0-RC7'
         postgresDriverVersion = '42.1.4'
-        hibernateVersion = '5.2.11.Final'
+        hibernateVersion = '5.2.12.Final'
         hikariVersion = '2.7.2'
         jschVersion = '0.1.54'
         slf4jVersion = '1.7.25'
-        prometheusVersion = '0.0.26'
+        prometheusVersion = '0.1.0'
 
         //discord entities module
-        jdaVersion = '3.3.1_292'
+        jdaVersion = '3.3.1_295'
     }
 
     publishing {
@@ -47,10 +49,6 @@ allprojects {
                 }
             }
         }
-    }
-
-    task wrapper(type: Wrapper) {
-        gradleVersion = '4.2.1'
     }
 
     compileJava.dependsOn 'clean'
@@ -74,6 +72,12 @@ subprojects {
 
 ext {
     moduleName = 'sqlsauce'
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = gradleVers
+    //noinspection UnnecessaryQualifiedReference
+    distributionType = org.gradle.api.tasks.wrapper.Wrapper.DistributionType.ALL
 }
 
 dependencies {
