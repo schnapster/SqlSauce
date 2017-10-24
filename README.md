@@ -164,3 +164,4 @@ The data about migrations that have been run is saved in an Hstore entity.
 - improve security of the ssh tunnels
 - make migrations part of the database creation instead of manually handling them
 - 2nd level cache support (ehcache?)
+- make entity locks less of a hack and more of a feature

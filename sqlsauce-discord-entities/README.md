@@ -25,7 +25,7 @@ Example class:
    @Table(name = "guild_settings")
    public class MyGuildSettings extends DiscordGuild<MyGuildSettings> {
    
-       @Column(name = "thonks_enabled")
+       @Column(name = "prefix")
        private String prefix = "!";
    
        //for JPA / SaucedEntity
@@ -75,3 +75,4 @@ Setting the entity up to be automatically cached with [JDA](https://github.com/D
 - static getters should not load the entity and instead look up the field by a direct query
 - provide better support for mass syncing data on shard creation. this would allow this to be used as a full cache of discord entities
 - caching listeners probably shouldnt run the db queries on the main thread
+- indices?

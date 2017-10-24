@@ -125,6 +125,8 @@ public class DatabaseConnection {
             // hikari connection pool
             this.hikariDs = new HikariDataSource();
             this.hikariDs.setJdbcUrl(jdbcUrl);
+            //more database connections don't help with performance, so use a default value based on available cores
+            //http://www.dailymotion.com/video/x2s8uec_oltp-performance-concurrent-mid-tier-connections_tech
             this.hikariDs.setMaximumPoolSize(Runtime.getRuntime().availableProcessors() * 2);
             this.hikariDs.setPoolName(poolName != null && !poolName.isEmpty() ? poolName : "Default Pool");
             this.hikariDs.setValidationTimeout(1000);
