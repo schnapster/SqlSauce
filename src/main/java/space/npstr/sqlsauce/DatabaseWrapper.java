@@ -36,6 +36,7 @@ import javax.persistence.PersistenceException;
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import java.io.Serializable;
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -475,11 +476,11 @@ public class DatabaseWrapper {
                                                                                  @Nonnull final Class<E> clazz)
             throws DatabaseException {
         try {
-            final E entity = clazz.newInstance();
+            final E entity = clazz.getConstructor().newInstance();
             return entity
                     .setId(id)
                     .setSauce(this);
-        } catch (InstantiationException | IllegalAccessException e) {
+        } catch (NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
             final String message = String.format("Could not construct an entity of class %s with id %s",
                     clazz.getName(), id.toString());
             throw new DatabaseException(message, e);
