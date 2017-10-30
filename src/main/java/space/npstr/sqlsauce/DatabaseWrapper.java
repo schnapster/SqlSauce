@@ -39,6 +39,7 @@ import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -142,8 +143,8 @@ public class DatabaseWrapper {
         try {
             em.getTransaction().begin();
             final List<E> results = em.unwrap(Session.class)
-                    .byMultipleIds(clazz)
-                    .multiLoad(ids);
+                                      .byMultipleIds(clazz)
+                                      .multiLoad(ids);
             em.getTransaction().commit();
             return results
                     .stream()
@@ -169,7 +170,8 @@ public class DatabaseWrapper {
     @Nonnull
     @CheckReturnValue
     //returns a sauced entity
-    public <E extends SaucedEntity<I, E>, I extends Serializable> E merge(@Nonnull final E entity) throws DatabaseException {
+    public <E extends SaucedEntity<I, E>, I extends Serializable> E merge(@Nonnull final E entity)
+            throws DatabaseException {
         final EntityManager em = this.databaseConnection.getEntityManager();
         try {
             em.getTransaction().begin();
@@ -204,6 +206,48 @@ public class DatabaseWrapper {
         } catch (final PersistenceException e) {
             final String message = String.format("Failed to persist entity %s on DB %s",
                     entity.toString(), this.databaseConnection.getName());
+            throw new DatabaseException(message, e);
+        } finally {
+            em.close();
+        }
+    }
+
+    //################################################################################
+    //                             Functional Magic
+    //################################################################################
+
+    /**
+     * So you want to load an entity, set some data, and save it again, without detaching it from the persistence
+     * context and without bothering with the EntityManager?
+     * Look no further! Functional programming to the rescue, just pass a function that does the required transformation
+     * on the entity.
+     * Note that this will create a new instance of the entity if it does not exist yet.
+     *
+     * @param transform Some function to apply to the entity while it is present in the persistence context. Usually this
+     *                  is some function to set or edit data of the entity, that returns the entity itself again.
+     */
+    @Nonnull
+    @CheckReturnValue
+    public <E extends SaucedEntity<I, E>, I extends Serializable> E findApplyAndMerge(@Nonnull final I id,
+                                                                                      @Nonnull final Class<E> clazz,
+                                                                                      @Nonnull final Function<E, E> transform)
+            throws DatabaseException {
+        final EntityManager em = this.databaseConnection.getEntityManager();
+        try {
+            synchronized (SaucedEntity.getEntityLock(id, clazz)) {
+                em.getTransaction().begin();
+                E entity = em.find(clazz, id);
+                if (entity == null) {
+                    entity = newInstance(id, clazz);
+                }
+                entity = transform.apply(entity);
+                entity = em.merge(entity);
+                em.getTransaction().commit();
+                return entity;
+            }
+        } catch (final PersistenceException e) {
+            final String message = String.format("Failed to find, apply and merge entity id %s of class %s on DB %s",
+                    id.toString(), clazz.getName(), this.databaseConnection.getName());
             throw new DatabaseException(message, e);
         } finally {
             em.close();
@@ -303,8 +347,8 @@ public class DatabaseWrapper {
             final List<T> resultList = q.getResultList();
             em.getTransaction().commit();
             return resultList.stream()
-                    .peek(this::setSauce)
-                    .collect(Collectors.toList());
+                             .peek(this::setSauce)
+                             .collect(Collectors.toList());
         } catch (final PersistenceException e) {
             final String message = String.format("Failed to select JPQL query %s with %s parameters, offset %s, limit %s, on DB %s",
                     queryString, parameters != null ? parameters.size() : "null", offset, limit, this.databaseConnection.getName());
@@ -427,13 +471,13 @@ public class DatabaseWrapper {
     @Nonnull
     @CheckReturnValue
     @SuppressWarnings("unchecked")
-    private <T> List<T> selectNativeSqlQuery(@Nonnull EntityManager em, @Nonnull Query query) {
+    private <T> List<T> selectNativeSqlQuery(@Nonnull final EntityManager em, @Nonnull final Query query) {
         em.getTransaction().begin();
         final List resultList = query.getResultList();
         em.getTransaction().commit();
         return (List<T>) resultList.stream()
-                .peek(this::setSauce)
-                .collect(Collectors.toList());
+                                   .peek(this::setSauce)
+                                   .collect(Collectors.toList());
     }
 
     /**
@@ -477,9 +521,8 @@ public class DatabaseWrapper {
             throws DatabaseException {
         try {
             final E entity = clazz.getConstructor().newInstance();
-            return entity
-                    .setId(id)
-                    .setSauce(this);
+            return entity.setId(id)
+                         .setSauce(this);
         } catch (NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
             final String message = String.format("Could not construct an entity of class %s with id %s",
                     clazz.getName(), id.toString());

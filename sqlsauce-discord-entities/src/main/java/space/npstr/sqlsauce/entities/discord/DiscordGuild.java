@@ -164,34 +164,45 @@ public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extend
 
     //convenience static setters for cached values
 
-    public static <E extends DiscordGuild<E>> DiscordGuild<E> join(@Nonnull final Guild guild, @Nonnull final Class<E> clazz)
+    //joins
+    public static <E extends DiscordGuild<E>> DiscordGuild<E> join(@Nonnull final Guild guild,
+                                                                   @Nonnull final Class<E> clazz)
             throws DatabaseException {
-        return DiscordGuild.load(guild.getIdLong(), clazz)
-                .set(guild)
-                .join()
-                .save();
+        return join(getDefaultSauce(), guild, clazz);
     }
 
-    public static <E extends DiscordGuild<E>> DiscordGuild<E> leave(@Nonnull final Guild guild, @Nonnull final Class<E> clazz)
+    public static <E extends DiscordGuild<E>> DiscordGuild<E> join(@Nonnull final DatabaseWrapper dbWrapper,
+                                                                   @Nonnull final Guild guild,
+                                                                   @Nonnull final Class<E> clazz)
             throws DatabaseException {
-        return DiscordGuild.load(guild.getIdLong(), clazz)
-                .set(guild)
-                .leave()
-                .save();
+        return dbWrapper.findApplyAndMerge(guild.getIdLong(), clazz, DiscordGuild::join);
     }
 
+    //leaves
+    public static <E extends DiscordGuild<E>> DiscordGuild<E> leave(@Nonnull final Guild guild,
+                                                                    @Nonnull final Class<E> clazz)
+            throws DatabaseException {
+        return leave(getDefaultSauce(), guild, clazz);
+    }
 
+    public static <E extends DiscordGuild<E>> DiscordGuild<E> leave(@Nonnull final DatabaseWrapper dbWrapper,
+                                                                    @Nonnull final Guild guild,
+                                                                    @Nonnull final Class<E> clazz)
+            throws DatabaseException {
+        return dbWrapper.findApplyAndMerge(guild.getIdLong(), clazz, DiscordGuild::leave);
+    }
+
+    //caching
     public static <E extends DiscordGuild<E>> DiscordGuild<E> cache(@Nonnull final Guild guild, @Nonnull final Class<E> clazz)
             throws DatabaseException {
         return cache(getDefaultSauce(), guild, clazz);
     }
 
     public static <E extends DiscordGuild<E>> DiscordGuild<E> cache(@Nonnull final DatabaseWrapper dbWrapper,
-                                                                    @Nonnull final Guild guild, @Nonnull final Class<E> clazz)
+                                                                    @Nonnull final Guild guild,
+                                                                    @Nonnull final Class<E> clazz)
             throws DatabaseException {
-        return DiscordGuild.load(dbWrapper, guild.getIdLong(), clazz)
-                .set(guild)
-                .save();
+        return dbWrapper.findApplyAndMerge(guild.getIdLong(), clazz, (discordGuild) -> discordGuild.set(guild));
     }
 
     //setters for cached values

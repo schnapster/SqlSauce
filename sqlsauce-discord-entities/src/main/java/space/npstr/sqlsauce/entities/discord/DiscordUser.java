@@ -147,30 +147,35 @@ public abstract class DiscordUser<Self extends SaucedEntity<Long, Self>> extends
 
     //convenience static setters for cached values
 
-    public static <E extends DiscordUser<E>> DiscordUser<E> cache(@Nonnull final User user, @Nonnull final Class<E> clazz)
+    @Nonnull
+    public static <E extends DiscordUser<E>> DiscordUser<E> cache(@Nonnull final User user,
+                                                                  @Nonnull final Class<E> clazz)
             throws DatabaseException {
         return cache(getDefaultSauce(), user, clazz);
     }
 
+    @Nonnull
     public static <E extends DiscordUser<E>> DiscordUser<E> cache(@Nonnull final DatabaseWrapper dbWrapper,
-                                                                  @Nonnull final User user, @Nonnull final Class<E> clazz)
+                                                                  @Nonnull final User user,
+                                                                  @Nonnull final Class<E> clazz)
             throws DatabaseException {
-        return DiscordUser.load(dbWrapper, user.getIdLong(), clazz)
-                .set(user)
-                .save();
+        return dbWrapper.findApplyAndMerge(user.getIdLong(), clazz, (discordUser) -> discordUser.set(user));
     }
 
-    public static <E extends DiscordUser<E>> DiscordUser<E> cache(@Nonnull final Member member, @Nonnull final Class<E> clazz)
+    @Nonnull
+    public static <E extends DiscordUser<E>> DiscordUser<E> cache(@Nonnull final Member member,
+                                                                  @Nonnull final Class<E> clazz)
             throws DatabaseException {
         return cache(getDefaultSauce(), member, clazz);
     }
 
+    @Nonnull
     public static <E extends DiscordUser<E>> DiscordUser<E> cache(@Nonnull final DatabaseWrapper dbWrapper,
-                                                                  @Nonnull final Member member, @Nonnull final Class<E> clazz)
+                                                                  @Nonnull final Member member,
+                                                                  @Nonnull final Class<E> clazz)
             throws DatabaseException {
-        return DiscordUser.load(dbWrapper, member.getUser().getIdLong(), clazz)
-                .set(member)
-                .save();
+        return dbWrapper.findApplyAndMerge(member.getUser().getIdLong(), clazz,
+                                           (discordUser) -> discordUser.set(member));
     }
 
 
