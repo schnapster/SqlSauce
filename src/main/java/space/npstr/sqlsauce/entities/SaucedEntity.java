@@ -34,6 +34,7 @@ import javax.persistence.Transient;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Created by napster on 10.10.17.
@@ -109,6 +110,53 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
     }
 
     //################################################################################
+    //                                  Locking
+    //################################################################################
+
+    private static final Map<Class, Object[]> entityLocks = new HashMap<>();
+    // How many partitions the hashed entity locks shall have
+    // The chosen, uncustomizable, value is considered good enough:tm: for the current implementation where locks are
+    // bound to classes (amount of hanging around locks is equal to implemented SaucedEntities * concurrencyLevel).
+    // Prime number to reduce possible collisions due to bad hashes.
+    // TODO implement customizable amount
+    private static final int concurrencyLevel = 17;
+
+
+    /**
+     * Abusing Hibernate with a lot of load/create entity -> detach -> save entity can lead to concurrent inserts
+     * if an entity is created two times and then merged simultaneously. Use one of the lock below for any writing
+     * operations, including lookup operations that will lead to writes (for example SaucedEntity#save()).
+     */
+    @Nonnull
+    @CheckReturnValue
+    public Object getEntityLock() {
+        return getEntityLock(getId(), getClass());
+    }
+
+
+    @Nonnull
+    @CheckReturnValue
+    public static Object getEntityLock(final SaucedEntity entity) {
+        return getEntityLock(entity.getId(), entity.getClass());
+    }
+
+    /**
+     * @return A hashed lock. Uses the Object#hashCode method of the provided id to determine the hash.
+     */
+    @Nonnull
+    @CheckReturnValue
+    public static Object getEntityLock(final Object id, final Class clazz) {
+        //double lock synchronizing to create new collections of hashed locks, wew
+        Object[] hashedClasslocks = entityLocks.get(clazz);
+        if (hashedClasslocks == null) {
+            synchronized (entityLocks) {
+                hashedClasslocks = entityLocks.computeIfAbsent(clazz, k -> createObjectArray(concurrencyLevel));
+            }
+        }
+        return hashedClasslocks[Objects.hash(id) % hashedClasslocks.length];
+    }
+
+    //################################################################################
     //                                  Internals
     //################################################################################
 
@@ -119,25 +167,14 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
         }
     }
 
-
-    private static final Map<Class, Object> entityLocks = new HashMap<>();
-
-    /**
-     * Abusing Hibernate with a lot of load/create entity -> detach -> save entity can lead to concurrent inserts
-     * if an entity is created two times and then merged simultaneously. For this case we provide an entity level
-     * lock to which the save() method will use to synchronize on
-     */
     @Nonnull
-    private Object getEntityLock() {
-        //double lock synchronizing to create new entity locks, wew
-        final Class c = getClass();
-        Object lock = entityLocks.get(c);
-        if (lock == null) {
-            synchronized (entityLocks) {
-                lock = entityLocks.computeIfAbsent(c, k -> new Object());
-            }
+    @CheckReturnValue
+    private static Object[] createObjectArray(final int size) {
+        final Object[] result = new Object[size];
+        for (int i = 0; i < size; i++) {
+            result[i] = new Object();
         }
-        return lock;
+        return result;
     }
 
 }
