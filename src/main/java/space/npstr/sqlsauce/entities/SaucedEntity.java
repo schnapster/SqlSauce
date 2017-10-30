@@ -153,7 +153,7 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
                 hashedClasslocks = entityLocks.computeIfAbsent(clazz, k -> createObjectArray(concurrencyLevel));
             }
         }
-        return hashedClasslocks[Objects.hash(id) % hashedClasslocks.length];
+        return hashedClasslocks[Math.floorMod(Objects.hash(id), hashedClasslocks.length)];
     }
 
     //################################################################################
