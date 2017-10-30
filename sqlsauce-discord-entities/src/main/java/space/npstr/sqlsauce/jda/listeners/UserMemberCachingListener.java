@@ -25,68 +25,72 @@
 package space.npstr.sqlsauce.jda.listeners;
 
 import net.dv8tion.jda.core.events.guild.member.GenericGuildMemberEvent;
+import net.dv8tion.jda.core.events.guild.member.GuildMemberJoinEvent;
+import net.dv8tion.jda.core.events.guild.member.GuildMemberLeaveEvent;
 import net.dv8tion.jda.core.events.guild.member.GuildMemberNickChangeEvent;
+import net.dv8tion.jda.core.events.user.GenericUserEvent;
 import net.dv8tion.jda.core.events.user.UserAvatarUpdateEvent;
 import net.dv8tion.jda.core.events.user.UserNameUpdateEvent;
-import net.dv8tion.jda.core.hooks.ListenerAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import space.npstr.sqlsauce.DatabaseException;
 import space.npstr.sqlsauce.entities.discord.DiscordUser;
 
 /**
  * Created by napster on 20.10.17.
  * <p>
  * Caches entities that extend DiscordUser
+ * <p>
+ * Limitation: Currently only events relevant for DiscordUser are listened to. Extending classes might be interested in
+ * more events.
  */
-public class UserMemberCachingListener<E extends DiscordUser<E>> extends ListenerAdapter {
+public class UserMemberCachingListener<E extends DiscordUser<E>> extends CachingListener<E, UserMemberCachingListener<E>> {
 
     private static final Logger log = LoggerFactory.getLogger(GuildCachingListener.class);
 
-    private final Class<E> entityClass;
-
     public UserMemberCachingListener(final Class<E> entityClass) {
-        this.entityClass = entityClass;
+        super(entityClass);
     }
 
 
+    //user events
+
     @Override
     public void onUserNameUpdate(final UserNameUpdateEvent event) {
-        try {
-            DiscordUser.cache(event.getUser(), this.entityClass);
-        } catch (final DatabaseException e) {
-            log.error("Failed to cache event {} for user {}",
-                    event.getClass().getSimpleName(), event.getUser().getIdLong(), e);
-        }
+        onUserEvent(event);
     }
 
     @Override
     public void onUserAvatarUpdate(final UserAvatarUpdateEvent event) {
-        try {
-            DiscordUser.cache(event.getUser(), this.entityClass);
-        } catch (final DatabaseException e) {
-            log.error("Failed to cache event {} for user {}",
-                    event.getClass().getSimpleName(), event.getUser().getIdLong(), e);
-        }
+        onUserEvent(event);
     }
+
+
+    //member events
 
     @Override
     public void onGuildMemberNickChange(final GuildMemberNickChangeEvent event) {
-        try {
-            DiscordUser.cache(event.getMember(), this.entityClass);
-        } catch (final DatabaseException e) {
-            log.error("Failed to cache event {} for user {}",
-                    event.getClass().getSimpleName(), event.getUser().getIdLong(), e);
-        }
+        onMemberEvent(event);
     }
 
     @Override
-    public void onGenericGuildMember(final GenericGuildMemberEvent event) {
-        try {
-            DiscordUser.cache(event.getMember(), this.entityClass);
-        } catch (final DatabaseException e) {
-            log.error("Failed to cache event {} for user {}",
-                    event.getClass().getSimpleName(), event.getUser().getIdLong(), e);
-        }
+    public void onGuildMemberJoin(final GuildMemberJoinEvent event) {
+        onMemberEvent(event);
+    }
+
+    @Override
+    public void onGuildMemberLeave(final GuildMemberLeaveEvent event) {
+        onMemberEvent(event);
+    }
+
+    private void onUserEvent(final GenericUserEvent event) {
+        submit(() -> DiscordUser.cache(event.getUser(), this.entityClass),
+                e -> log.error("Failed to cache event {} for user {}",
+                        event.getClass().getSimpleName(), event.getUser().getIdLong(), e));
+    }
+
+    private void onMemberEvent(final GenericGuildMemberEvent event) {
+        submit(() -> DiscordUser.cache(event.getMember(), this.entityClass),
+                e -> log.error("Failed to cache event {} for member {} of guild {}",
+                        event.getClass().getSimpleName(), event.getUser().getIdLong(), event.getGuild().getIdLong(), e));
     }
 }
