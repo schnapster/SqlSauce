@@ -1,6 +1,8 @@
 # SqlSauce
 
-[![Release](https://jitpack.io/v/space.npstr/SqlSauce.svg?style=flat-square)](https://jitpack.io/#space.npstr/SqlSauce)
+[![Release](https://jitpack.io/v/space.npstr/SqlSauce.svg?style=flat-square)](https://jitpack.io/#space.npstr/SqlSauce) release  
+[![Build Status Master Branch](https://img.shields.io/travis/napstr/SqlSauce/master.svg?style=flat-square)](https://travis-ci.org/napstr/SqlSauce/branches) master branch  
+[![Build Status Development Branch](https://img.shields.io/travis/napstr/SqlSauce/dev.svg?style=flat-square)](https://travis-ci.org/napstr/SqlSauce/branches) dev branch  
 
 
 SQL database stack I use between various projects.
