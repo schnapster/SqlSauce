@@ -24,17 +24,18 @@ allprojects {
     ext {
         gradleVers = '4.3'
 
-        spotbugsVersion = '3.1.0-RC7'
         postgresDriverVersion = '42.1.4'
         hibernateVersion = '5.2.12.Final'
         hikariVersion = '2.7.2'
         jschVersion = '0.1.54'
-        slf4jVersion = '1.7.25'
+
         jaxbApiVersion = '2.3.0'
+        slf4jApiVersion = '1.8.0-beta0'
+        spotbugsVersion = '3.1.0'
         prometheusVersion = '0.1.0'
 
         //discord entities module
-        jdaVersion = '3.3.1_295'
+        jdaVersion = '3.3.1_300'
     }
 
     publishing {
@@ -83,15 +84,15 @@ task wrapper(type: Wrapper) {
 }
 
 dependencies {
-    //database stuff
+    //database & connection stuff
     compile group: 'org.postgresql', name: 'postgresql', version: postgresDriverVersion //postgres jdbc driver
     compile group: 'org.hibernate', name: 'hibernate-core', version: hibernateVersion   //hibernate + JPA
     compile group: 'com.zaxxer', name: 'HikariCP', version: hikariVersion               //connection pool
+    compile group: 'com.jcraft', name: 'jsch', version: jschVersion                     //ssh tunnel
 
     //various/QA
-    compile group: 'com.jcraft', name: 'jsch', version: jschVersion           //ssh tunnel
-    compile group: 'org.slf4j', name: 'slf4j-api', version: slf4jVersion      //logging framework
-    compile group: 'javax.xml.bind', name: 'jaxb-api', version: jaxbApiVersion//required by hibernate for java 9
+    compile group: 'javax.xml.bind', name: 'jaxb-api', version: jaxbApiVersion    //required by hibernate for java 9
+    compileOnly group: 'org.slf4j', name: 'slf4j-api', version: slf4jApiVersion   //logging framework
     compileOnly group: 'com.github.spotbugs', name: 'spotbugs-annotations', version: spotbugsVersion //annotations
     compileOnly group: 'io.prometheus', name: 'simpleclient_hibernate', version: prometheusVersion   //db metrics
 }

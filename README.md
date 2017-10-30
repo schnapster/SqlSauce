@@ -180,3 +180,66 @@ The data about migrations that have been run is saved in an Hstore entity.
 - improve security of the ssh tunnels
 - make migrations part of the database creation instead of manually handling them
 - 2nd level cache support (ehcache?)
+- explore java 9 modularization
+
+
+## Roadmap
+
+_aka where is this going?_  
+The SaucedEntity concept looks decent. Splitting that off from the database connection stuff into a separate module 
+could become the foundation for a database agnostic convenience library for small to midsized projects.
+
+
+## Dependencies
+
+This project requires **Java 9**  
+Dependencies are managed automagically by Gradle, some of these are optional / need to be provided to take advantage of.
+See the respective `build.gradle` for details.
+
+- **PostgreSQL JDBC Driver**:
+  - [Website](https://jdbc.postgresql.org/)
+  - [GitHub](https://github.com/pgjdbc/pgjdbc)
+  - [The PostgreSQL License](http://www.postgresql.org/about/licence/) & [BSD 2-clause "Simplified" License](https://jdbc.postgresql.org/about/license.html)
+  - [Maven Repository](https://mvnrepository.com/artifact/org.postgresql/postgresql)
+
+- **Hibernate ORM**:
+  - [Website](http://hibernate.org/orm/)
+  - [GitHub](https://github.com/hibernate/hibernate-orm)
+  - [GNU Lesser General Public License](http://hibernate.org/community/license/)
+  - [Maven Repository](https://mvnrepository.com/artifact/org.hibernate/hibernate-core)
+
+- **Hikari CP**:
+  - [GitHub](https://github.com/brettwooldridge/HikariCP)
+  - [Apache License 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt)
+  - [Maven Repository](https://mvnrepository.com/artifact/com.zaxxer/HikariCP)
+
+- **Java Secure Channel**:
+  - [Website](http://www.jcraft.com/jsch/)
+  - [Revised BSD style license](http://www.jcraft.com/jsch/LICENSE.txt)
+  - [Maven Repository](https://mvnrepository.com/artifact/com.jcraft/jsch)
+
+- **Jaxb Api**:
+  - [CDDL 1.1 GPL2 w/ CPE](https://oss.oracle.com/licenses/CDDL+GPL-1.1)
+  - [Maven Repository](https://mvnrepository.com/artifact/javax.xml.bind/jaxb-api/)
+
+- **Simple Logging Facade for Java**:
+  - [Website](https://www.slf4j.org/)
+  - [MIT License](http://www.opensource.org/licenses/mit-license.php)
+  - [Maven Repository](https://mvnrepository.com/artifact/org.slf4j/slf4j-api/)
+
+- **SpotBugs Annotations**:
+  - [Website](https://spotbugs.github.io/)
+  - [GitHub](https://github.com/spotbugs/spotbugs)
+  - [GNU LESSER GENERAL PUBLIC LICENSE, Version 2.1](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html)
+  - [Maven Repository](https://mvnrepository.com/artifact/com.github.spotbugs/spotbugs-annotations)
+
+- **Prometheus Simpleclient Hibernate**:
+  - [Website](https://prometheus.io/)
+  - [GitHub](https://github.com/prometheus/client_java)
+  - [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt)
+  - [Maven Repository](https://mvnrepository.com/artifact/io.prometheus/simpleclient_hibernate)
+
+- **Java Discord API**
+  - [GitHub](https://github.com/DV8FromTheWorld/JDA)
+  - [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt)
+  - [JCenter](https://bintray.com/dv8fromtheworld/maven/JDA)
