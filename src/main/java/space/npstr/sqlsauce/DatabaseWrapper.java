@@ -316,6 +316,33 @@ public class DatabaseWrapper {
     }
 
     /**
+     * Use this for COUNT() and similar jpql queries which are guaranteed to return a result
+     */
+    @Nonnull
+    @CheckReturnValue
+    public <T> T selectJpqlQuerySingleResult(@Nonnull final String queryString,
+                                             @Nullable final Map<String, Object> parameters,
+                                             @Nonnull final Class<T> resultClass) throws DatabaseException {
+        final EntityManager em = this.databaseConnection.getEntityManager();
+        try {
+            final Query q = em.createQuery(queryString);
+            if (parameters != null) {
+                parameters.forEach(q::setParameter);
+            }
+            em.getTransaction().begin();
+            final T result = resultClass.cast(q.getSingleResult());
+            em.getTransaction().commit();
+            return setSauce(result);
+        } catch (final PersistenceException | ClassCastException e) {
+            final String message = String.format("Failed to select single result JPQL query %s with %s parameters for class %s on DB %s",
+                    queryString, parameters != null ? parameters.size() : "null", resultClass.getName(), this.databaseConnection.getName());
+            throw new DatabaseException(message, e);
+        } finally {
+            em.close();
+        }
+    }
+
+    /**
      * Results will be sauced if they are SaucedEntites
      *
      * @param queryString the raw JPQL query string
