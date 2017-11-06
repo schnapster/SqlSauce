@@ -99,7 +99,7 @@ public class DatabaseConnection {
      * @param poolName        optional name forht connection pool
      * @param driverClassName optional name of the driver class; occasionally needed when there are several drivers
      *                        present in the classpath and hikari has issues picking the correct one
-     * @param dialect     optional name of the dialect. sometimes autodetection is off
+     * @param dialect         optional name of the dialect. sometimes autodetection is off
      * @param sshDetails      optionally ssh tunnel the connection; highly recommended for all remote databases
      * @param hibernateStats  optional metrics for hibernate. make sure to register it after adding all connections to it
      * @param hikariStats     optional metrics for hikari
@@ -127,7 +127,7 @@ public class DatabaseConnection {
             this.hikariDs.setJdbcUrl(jdbcUrl);
             //more database connections don't help with performance, so use a default value based on available cores
             //http://www.dailymotion.com/video/x2s8uec_oltp-performance-concurrent-mid-tier-connections_tech
-            this.hikariDs.setMaximumPoolSize(Runtime.getRuntime().availableProcessors() * 2);
+            this.hikariDs.setMaximumPoolSize(Math.max(Runtime.getRuntime().availableProcessors(), 2));
             this.hikariDs.setPoolName(poolName != null && !poolName.isEmpty() ? poolName : "Default Pool");
             this.hikariDs.setValidationTimeout(1000);
             this.hikariDs.setConnectionTimeout(2000);
