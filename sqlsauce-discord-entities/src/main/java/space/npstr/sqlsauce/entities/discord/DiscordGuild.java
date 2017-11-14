@@ -30,7 +30,7 @@ import java.util.Objects;
 public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extends SaucedEntity<Long, Self> {
 
     @Transient
-    private static final String UNKNOWN_NAME = "Unknown Guild";
+    public static final String UNKNOWN_NAME = "Unknown Guild";
 
     @Id
     @NaturalId

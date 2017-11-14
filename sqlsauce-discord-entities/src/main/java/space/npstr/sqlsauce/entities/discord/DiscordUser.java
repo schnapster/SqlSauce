@@ -36,7 +36,7 @@ import java.util.Objects;
 public abstract class DiscordUser<Self extends SaucedEntity<Long, Self>> extends SaucedEntity<Long, Self> {
 
     @Transient
-    private static final String UNKNOWN_NAME = "Unknown User";
+    public static final String UNKNOWN_NAME = "Unknown User";
 
     @Id
     @NaturalId
