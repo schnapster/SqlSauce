@@ -37,6 +37,8 @@ import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -223,14 +225,15 @@ public class DatabaseWrapper {
      * on the entity.
      * Note that this will create a new instance of the entity if it does not exist yet.
      *
-     * @param transform Some function to apply to the entity while it is present in the persistence context. Usually this
-     *                  is some function to set or edit data of the entity, that returns the entity itself again.
+     * @param transformation Some function to apply to the entity while it is present in the persistence context.
+     *                       Usually this is some function to set or edit data of the entity, that returns the entity
+     *                       itself again. The transformantions will be applied in the order they are provided
      */
     @Nonnull
     @CheckReturnValue
     public <E extends SaucedEntity<I, E>, I extends Serializable> E findApplyAndMerge(@Nonnull final I id,
                                                                                       @Nonnull final Class<E> clazz,
-                                                                                      @Nonnull final Function<E, E> transform)
+                                                                                      @Nonnull final Collection<Function<E, E>> transformation)
             throws DatabaseException {
         final EntityManager em = this.databaseConnection.getEntityManager();
         try {
@@ -240,7 +243,9 @@ public class DatabaseWrapper {
                 if (entity == null) {
                     entity = newInstance(id, clazz);
                 }
-                entity = transform.apply(entity);
+                for (final Function<E, E> transform : transformation) {
+                    entity = transform.apply(entity);
+                }
                 entity = em.merge(entity);
                 em.getTransaction().commit();
                 return entity;
@@ -252,6 +257,18 @@ public class DatabaseWrapper {
         } finally {
             em.close();
         }
+    }
+
+    /**
+     * Convenience wrapper for single transformations. See the method this calls for more details.
+     */
+    @Nonnull
+    @CheckReturnValue
+    public <E extends SaucedEntity<I, E>, I extends Serializable> E findApplyAndMerge(@Nonnull final I id,
+                                                                                      @Nonnull final Class<E> clazz,
+                                                                                      @Nonnull final Function<E, E> transformation)
+            throws DatabaseException {
+        return findApplyAndMerge(id, clazz, Collections.singletonList(transformation));
     }
 
     //################################################################################

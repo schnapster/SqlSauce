@@ -181,6 +181,7 @@ The data about migrations that have been run is saved in an Hstore entity.
 - make migrations part of the database creation instead of manually handling them
 - 2nd level cache support (ehcache?)
 - explore java 9 modularization
+- DatabaseMethods should fail fast with a DatabaseException if the database is in a known state of not being connected
 
 
 ## Roadmap
