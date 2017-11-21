@@ -94,12 +94,12 @@ public class DatabaseConnection {
      * @param dbName          name for this database connection, also used as the persistence unit name
      * @param jdbcUrl         where to find the db, which user, which pw, etc
      * @param entityPackages  example: "space.npstr.wolfia.db.entity", the names of the packages containing your
-     *                        annotated entites. root package names are fine, they will pick up all children
+     *                        annotated entities. root package names are fine, they will pick up all children
      * @param appName         optional name that the connections will show up as in the db management tools
-     * @param poolName        optional name forht connection pool
+     * @param poolName        optional name for the connection pool
      * @param driverClassName optional name of the driver class; occasionally needed when there are several drivers
      *                        present in the classpath and hikari has issues picking the correct one
-     * @param dialect         optional name of the dialect. sometimes autodetection is off
+     * @param dialect         optional name of the dialect. sometimes auto detection is off
      * @param sshDetails      optionally ssh tunnel the connection; highly recommended for all remote databases
      * @param hibernateStats  optional metrics for hibernate. make sure to register it after adding all connections to it
      * @param hikariStats     optional metrics for hikari
@@ -171,7 +171,7 @@ public class DatabaseConnection {
             hibernateProps.put("hibernate.default_batch_fetch_size", 100);
             hibernateProps.put("hibernate.jdbc.batch_size", 100);
 
-            //disable autocommit, it is not recommended for our usecases, and interferes with some of them
+            //disable autocommit, it is not recommended for our use cases, and interferes with some of them
             // see https://vladmihalcea.com/2017/05/17/why-you-should-always-use-hibernate-connection-provider_disables_autocommit-for-resource-local-jpa-transactions/
             // this also means all EntityManager interactions need to be wrapped into em.getTransaction.begin() and
             // em.getTransaction.commit() to prevent a rollback spam at the database
@@ -239,7 +239,7 @@ public class DatabaseConnection {
         return this.state == DatabaseState.READY;
     }
 
-    //perform a healthcheck and try to reconnect if the health check fails
+    //perform a health check and try to reconnect if the health check fails
     private void healthCheck() {
         if (this.state == DatabaseState.SHUTDOWN) {
             return;
