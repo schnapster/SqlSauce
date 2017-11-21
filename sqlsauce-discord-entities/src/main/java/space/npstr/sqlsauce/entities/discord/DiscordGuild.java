@@ -119,27 +119,10 @@ public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extend
         return Objects.hashCode(this.guildId);
     }
 
-    // ################################################################################
-    // ##                               Loading
-    // ################################################################################
-
-    @Nonnull
-    public static <E extends DiscordGuild<E>> E load(@Nonnull final DatabaseWrapper dbWrapper, final long guildId,
-                                                     @Nonnull final Class<E> clazz) throws DatabaseException {
-        return dbWrapper.getOrCreate(guildId, clazz);
-    }
-
-    @Nonnull
-    public static <E extends DiscordGuild<E>> E load(final long guildId, @Nonnull final Class<E> clazz)
-            throws DatabaseException {
-        return load(getDefaultSauce(), guildId, clazz);
-    }
-
-
+    
     // ################################################################################
     // ##                               Caching
     // ################################################################################
-
 
     //Good idea to call this each time you are loading one of these before saving.
     @Nonnull

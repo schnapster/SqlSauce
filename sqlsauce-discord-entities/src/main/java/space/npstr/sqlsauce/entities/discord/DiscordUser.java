@@ -89,27 +89,10 @@ public abstract class DiscordUser<Self extends SaucedEntity<Long, Self>> extends
         return Objects.hashCode(this.userId);
     }
 
-    // ################################################################################
-    // ##                               Loading
-    // ################################################################################
-
-    @Nonnull
-    public static <E extends DiscordUser<E>> E load(@Nonnull final DatabaseWrapper dbWrapper, final long userId,
-                                                    @Nonnull final Class<E> clazz) throws DatabaseException {
-        return dbWrapper.getOrCreate(userId, clazz);
-    }
-
-    @Nonnull
-    public static <E extends DiscordUser<E>> E load(final long userId, @Nonnull final Class<E> clazz)
-            throws DatabaseException {
-        return load(getDefaultSauce(), userId, clazz);
-    }
-
 
     // ################################################################################
     // ##                               Caching
     // ################################################################################
-
 
     //Good idea to call this each time you are loading one of these before saving.
     @Nonnull

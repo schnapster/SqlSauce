@@ -29,6 +29,7 @@ import space.npstr.sqlsauce.DatabaseWrapper;
 
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.persistence.MappedSuperclass;
 import javax.persistence.Transient;
 import java.io.Serializable;
@@ -73,6 +74,7 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
 
 
     @SuppressWarnings("unchecked")
+    @Nonnull
     protected Self getThis() {
         return (Self) this;
     }
@@ -90,7 +92,11 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
     //                              Convenience stuff
     //################################################################################
 
-    //to merge an entity after touching it
+    /**
+     * Merge an entity into the database it came from. Call this after setting any values on a detached entity.
+     *
+     * @return the updated entity
+     */
     @Nonnull
     @CheckReturnValue
     public Self save() throws DatabaseException {
@@ -100,13 +106,62 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
         }
     }
 
-    //Attempts to load an entity through the default sauce. Consider this to be the global entry point for a single
-    //db connection app for all your SaucedEntity needs where you know the id of.
+    /**
+     * @param dbWrapper The database to load from
+     * @param id        Id I of the SaucedEntity to load
+     * @param clazz     Concrete implementation class E of the SaucedEntity to load
+     * @return The requested entity from the provided database, or a new instance of the requested class if no such
+     * entity is found
+     */
     @Nonnull
     @CheckReturnValue
-    public static <E extends SaucedEntity<I, E>, I extends Serializable> E load(final I id, final Class<E> clazz)
+    public static <E extends SaucedEntity<I, E>, I extends Serializable> E load(@Nonnull final DatabaseWrapper dbWrapper,
+                                                                                @Nonnull final I id,
+                                                                                @Nonnull final Class<E> clazz)
             throws DatabaseException {
-        return getDefaultSauce().getOrCreate(id, clazz);
+        return dbWrapper.getOrCreate(id, clazz);
+    }
+
+    /**
+     * @param id    Id I of the SaucedEntity to load
+     * @param clazz Concrete implementation class E of the SaucedEntity to load
+     * @return The requested entity from the default database, or a new instance of the requested class if no such
+     * entity is found
+     */
+    @Nonnull
+    @CheckReturnValue
+    public static <E extends SaucedEntity<I, E>, I extends Serializable> E load(@Nonnull final I id,
+                                                                                @Nonnull final Class<E> clazz)
+            throws DatabaseException {
+        return load(getDefaultSauce(), id, clazz);
+    }
+
+    /**
+     * @param dbWrapper The database to look up from
+     * @param id        Id I of the SaucedEntity to look up
+     * @param clazz     Concrete implementation class E of the SaucedEntity to look up
+     * @return The requested entity from the provided database, or null if no such entity is found
+     */
+    @Nullable
+    @CheckReturnValue
+    public static <E extends SaucedEntity<I, E>, I extends Serializable> E lookUp(@Nonnull final DatabaseWrapper dbWrapper,
+                                                                                  @Nonnull final I id,
+                                                                                  @Nonnull final Class<E> clazz)
+            throws DatabaseException {
+        return dbWrapper.getEntity(id, clazz);
+    }
+
+    /**
+     * @param id    Id I of the SaucedEntity to look up
+     * @param clazz Concrete implementation class E of the SaucedEntity to look up
+     * @return The requested entity from the default database, or null if no such entity is found
+     */
+    @Nullable
+    @CheckReturnValue
+    public static <E extends SaucedEntity<I, E>, I extends Serializable> E lookUp(@Nonnull final I id,
+                                                                                  @Nonnull final Class<E> clazz)
+            throws DatabaseException {
+        return lookUp(getDefaultSauce(), id, clazz);
     }
 
     //################################################################################
@@ -136,7 +191,7 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
 
     @Nonnull
     @CheckReturnValue
-    public static Object getEntityLock(final SaucedEntity entity) {
+    public static Object getEntityLock(@Nonnull final SaucedEntity entity) {
         return getEntityLock(entity.getId(), entity.getClass());
     }
 
@@ -145,7 +200,7 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
      */
     @Nonnull
     @CheckReturnValue
-    public static Object getEntityLock(final Object id, final Class clazz) {
+    public static Object getEntityLock(@Nonnull final Object id, @Nonnull final Class clazz) {
         //double lock synchronizing to create new collections of hashed locks, wew
         Object[] hashedClasslocks = entityLocks.get(clazz);
         if (hashedClasslocks == null) {
