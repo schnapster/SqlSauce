@@ -209,9 +209,11 @@ public class DatabaseConnection {
 
     @Nonnull
     @CheckReturnValue
-    public EntityManager getEntityManager() throws IllegalStateException {
+    public EntityManager getEntityManager() throws IllegalStateException, DatabaseException {
         if (this.state == DatabaseState.SHUTDOWN) {
-            throw new IllegalStateException("Database has been shutdown.");
+            throw new IllegalStateException("Database connection has been shutdown.");
+        } else if (this.state != DatabaseState.READY) {
+            throw new DatabaseException("Database connection is not available.");
         }
         return this.emf.createEntityManager();
     }
@@ -263,7 +265,7 @@ public class DatabaseConnection {
     //returns true if the test query was successful and false if not
     @CheckReturnValue
     private boolean runTestQuery() {
-        final EntityManager em = getEntityManager();
+        final EntityManager em = this.emf.createEntityManager();
         try {
             em.getTransaction().begin();
             em.createNativeQuery(TEST_QUERY).getResultList();
