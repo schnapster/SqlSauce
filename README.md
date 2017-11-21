@@ -52,13 +52,13 @@ Sure, you can also run raw SQL queries.
 Add through the [JitPack](https://jitpack.io/) repo to your project:
 
 ###### Gradle build.gradle
-```gradle
+```groovy
     repositories {
         maven { url 'https://jitpack.io' }
     }
 
     dependencies {
-        compile group: 'space.npstr', name: 'SqlSauce', version: '0.0.2'
+        compile group: 'space.npstr.SqlSauce', name: 'sqlsauce-core', version: '0.0.3-SNAPSHOT'
     }
 
 ```
@@ -73,9 +73,9 @@ Add through the [JitPack](https://jitpack.io/) repo to your project:
     </repositories>
 
     <dependency>
-        <groupId>space.npstr</groupId>
-        <artifactId>SqlSauce</artifactId>
-        <version>0.0.2</version>
+        <groupId>space.npstr.SqlSauce</groupId>
+        <artifactId>sqlsauce-core</artifactId>
+        <version>0.0.3-SNAPSHOT</version>
     </dependency>
 ```
 
@@ -152,7 +152,7 @@ The data about migrations that have been run is saved in an Hstore entity.
 
 ## Additional Modules
 
-[Discord Entities](https://github.com/napstr/SqlSauce/blob/master/sqlsauce-discord-entities/README.md)
+[Discord Entities](https://github.com/napstr/SqlSauce/blob/master/discord-entities/README.md)
 
 
 ## Changelog
@@ -238,8 +238,3 @@ See the respective `build.gradle` for details.
   - [GitHub](https://github.com/prometheus/client_java)
   - [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt)
   - [Maven Repository](https://mvnrepository.com/artifact/io.prometheus/simpleclient_hibernate)
-
-- **Java Discord API**
-  - [GitHub](https://github.com/DV8FromTheWorld/JDA)
-  - [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt)
-  - [JCenter](https://bintray.com/dv8fromtheworld/maven/JDA)
