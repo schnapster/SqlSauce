@@ -21,23 +21,6 @@ allprojects {
     group 'space.npstr.SqlSauce'
     version '0.0.3-SNAPSHOT'
 
-    ext {
-        gradleVers = '4.3'
-
-        postgresDriverVersion = '42.1.4'
-        hibernateVersion = '5.2.12.Final'
-        hikariVersion = '2.7.2'
-        jschVersion = '0.1.54'
-
-        jaxbApiVersion = '2.3.0'
-        slf4jApiVersion = '1.8.0-beta0'
-        spotbugsVersion = '3.1.0'
-        prometheusVersion = '0.1.0'
-
-        //discord entities module
-        jdaVersion = '3.3.1_300'
-    }
-
     publishing {
         publications {
             mavenJava(MavenPublication) {
@@ -64,6 +47,23 @@ allprojects {
     task sourceJar(type: Jar) {
         from sourceSets.main.allJava
     }
+
+    ext {
+        gradleVers = '4.3.1'
+
+        postgresDriverVersion = '42.1.4'
+        hibernateVersion = '5.2.12.Final'
+        hikariVersion = '2.7.4'
+        jschVersion = '0.1.54'
+
+        jaxbApiVersion = '2.3.0'
+        slf4jApiVersion = '1.8.0-beta0'
+        spotbugsVersion = '3.1.0'
+        prometheusVersion = '0.1.0'
+
+        //discord entities module
+        jdaVersion = '3.3.1_307'
+    }
 }
 
 subprojects {
@@ -74,13 +74,6 @@ subprojects {
 
 ext {
     moduleName = 'sqlsauce-core'
-}
-
-import org.gradle.api.tasks.wrapper.Wrapper.DistributionType
-
-task wrapper(type: Wrapper) {
-    gradleVersion = gradleVers
-    distributionType = DistributionType.ALL
 }
 
 dependencies {
@@ -95,4 +88,11 @@ dependencies {
     compileOnly group: 'org.slf4j', name: 'slf4j-api', version: slf4jApiVersion   //logging framework
     compileOnly group: 'com.github.spotbugs', name: 'spotbugs-annotations', version: spotbugsVersion //annotations
     compileOnly group: 'io.prometheus', name: 'simpleclient_hibernate', version: prometheusVersion   //db metrics
+}
+
+import org.gradle.api.tasks.wrapper.Wrapper.DistributionType
+
+task wrapper(type: Wrapper) {
+    gradleVersion = gradleVers
+    distributionType = DistributionType.ALL
 }
