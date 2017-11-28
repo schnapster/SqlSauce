@@ -11,7 +11,7 @@ Setting up and configuring database and ORM stuff has been identified by me as a
 - Choose the best all-around tools and use them conveniently
 - Strip away crazy config stuff with sane defaults and zero xml files
 
-Bonus goal: Avoid using Spring cause I personally do not like it.
+Bonus goal: Avoid using Spring cause I personally do not like it for small projects.
 
 
 ## Tooling
@@ -178,7 +178,7 @@ The data about migrations that have been run is saved in an Hstore entity.
 
 - test whether this can actually run connections to more than one database at a time
 - improve security of the ssh tunnels
-- make migrations part of the database creation instead of manually handling them
+- make migrations part of the database creation instead of manually handling them; allow setting names / use class name as fallback
 - 2nd level cache support (ehcache?)
 - explore java 9 modularization
 

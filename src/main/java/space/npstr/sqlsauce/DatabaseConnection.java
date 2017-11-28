@@ -124,17 +124,19 @@ public class DatabaseConnection {
             }
 
             // hikari connection pool
-            this.hikariDs = new HikariDataSource(hikariConfig);
-            this.hikariDs.setJdbcUrl(jdbcUrl);
+            final HikariConfig hiConf = new HikariConfig();
+            hikariConfig.copyStateTo(hiConf); //dont touch the provided config, it might get reused outside, instead use a copy
+            hiConf.setJdbcUrl(jdbcUrl);
             if (poolName != null && !poolName.isEmpty()) {
-                this.hikariDs.setPoolName(poolName);
+                hiConf.setPoolName(poolName);
             } else {
-                this.hikariDs.setPoolName(dbName + "-DefaultPool");
+                hiConf.setPoolName(dbName + "-DefaultPool");
             }
             if (hikariStats != null) {
-                this.hikariDs.setMetricsTrackerFactory(hikariStats);
+                hiConf.setMetricsTrackerFactory(hikariStats);
             }
-            this.hikariDs.setDataSourceProperties(dataSourceProps);
+            hiConf.setDataSourceProperties(dataSourceProps);
+            this.hikariDs = new HikariDataSource(hiConf);
 
             //add entities provided by this lib
             entityPackages.add("space.npstr.sqlsauce.entities");
@@ -458,6 +460,7 @@ public class DatabaseConnection {
             //http://www.dailymotion.com/video/x2s8uec_oltp-performance-concurrent-mid-tier-connections_tech
             hikariConfig.setMaximumPoolSize(Math.max(Runtime.getRuntime().availableProcessors(), 4));
 
+            //timeout the validation query (will be done automatically through Connection.isValid())
             hikariConfig.setValidationTimeout(3000);
             hikariConfig.setConnectionTimeout(10000);
             hikariConfig.setConnectionTestQuery(TEST_QUERY);
