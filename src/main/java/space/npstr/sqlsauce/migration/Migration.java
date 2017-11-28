@@ -51,5 +51,5 @@ public abstract class Migration {
     //ready to use connection to the target database
     //keep in mind these migrations are meant to run after hibernate ddl set up new columns etc
     //throwing a DatabaseException is an acceptable way to indicate that the migration was not successful
-    abstract void up(DatabaseConnection databaseConnection) throws DatabaseException;
+    public abstract void up(DatabaseConnection databaseConnection) throws DatabaseException;
 }
