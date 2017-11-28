@@ -105,6 +105,8 @@ public class DatabaseConnection {
      * @param sshDetails       optionally ssh tunnel the connection; highly recommended for all remote databases
      * @param hibernateStats   optional metrics for hibernate. make sure to register it after adding all connections to it
      * @param hikariStats      optional metrics for hikari
+     * @param checkConnection  set to false to disable a periodic healthcheck and automatic reconnection of the connection.
+     *                         only recommended if you run your own healthcheck and reconnection logic
      */
     public DatabaseConnection(@Nonnull final String dbName,
                               @Nonnull final String jdbcUrl,
@@ -115,7 +117,8 @@ public class DatabaseConnection {
                               @Nullable final String poolName,
                               @Nullable final SshTunnel.SshDetails sshDetails,
                               @Nullable final MetricsTrackerFactory hikariStats,
-                              @Nullable final HibernateStatisticsCollector hibernateStats) throws DatabaseException {
+                              @Nullable final HibernateStatisticsCollector hibernateStats,
+                              final boolean checkConnection) throws DatabaseException {
         this.dbName = dbName;
         this.state = DatabaseState.INITIALIZING;
 
@@ -153,7 +156,9 @@ public class DatabaseConnection {
             }
 
             this.state = DatabaseState.READY;
-            this.connectionCheck.scheduleAtFixedRate(this::healthCheck, 5, 5, TimeUnit.SECONDS);
+            if (checkConnection) {
+                this.connectionCheck.scheduleAtFixedRate(this::healthCheck, 5, 5, TimeUnit.SECONDS);
+            }
             SaucedEntity.setDefaultSauce(new DatabaseWrapper(this));
         } catch (final Exception e) {
             this.state = DatabaseState.FAILED;
@@ -203,10 +208,18 @@ public class DatabaseConnection {
         return this.state == DatabaseState.READY;
     }
 
-    //perform a health check and try to reconnect if the health check fails
-    private void healthCheck() {
+    /**
+     * Perform a health check and try to reconnect in a blocking fashion if the health check fails
+     * <p>
+     * The healthcheck has to be called proactively, as the ssh tunnel does not provide any callback for detecting a
+     * disconnect. The default configuration of the database connection takes care of doing this every few seconds.
+     *
+     * @return true if the database is healthy, false otherwise. Will return false if the database is shutdown, but not
+     * attempt to restart/reconnect it.
+     */
+    public boolean healthCheck() {
         if (this.state == DatabaseState.SHUTDOWN) {
-            return;
+            return false;
         }
 
         //is the ssh connection still alive?
@@ -218,15 +231,18 @@ public class DatabaseConnection {
 
         if (runTestQuery()) {
             this.state = DatabaseState.READY;
+            return true;
         } else {
             this.state = DatabaseState.FAILED;
+            return false;
         }
-
     }
 
-    //returns true if the test query was successful and false if not
+    /**
+     * @return true if the test query was successful and false if not
+     */
     @CheckReturnValue
-    private boolean runTestQuery() {
+    public boolean runTestQuery() {
         final EntityManager em = this.emf.createEntityManager();
         try {
             em.getTransaction().begin();
@@ -526,6 +542,7 @@ public class DatabaseConnection {
         private MetricsTrackerFactory hikariStats;
         @Nonnull
         private Migrations migrations = new Migrations();
+        private boolean checkConnection = true;
 
 
         // absolute minimum needed config
@@ -709,6 +726,15 @@ public class DatabaseConnection {
             return this;
         }
 
+
+        //misc
+        @Nonnull
+        @CheckReturnValue
+        public Builder setCheckConnection(final boolean checkConnection) {
+            this.checkConnection = checkConnection;
+            return this;
+        }
+
         @Nonnull
         @CheckReturnValue
         public DatabaseConnection build() throws DatabaseException {
@@ -722,7 +748,8 @@ public class DatabaseConnection {
                     this.poolName,
                     this.sshDetails,
                     this.hikariStats,
-                    this.hibernateStats
+                    this.hibernateStats,
+                    this.checkConnection
             );
 
             this.migrations.runMigrations(databaseConnection);
