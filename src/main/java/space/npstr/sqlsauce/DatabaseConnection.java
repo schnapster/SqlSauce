@@ -33,6 +33,8 @@ import org.hibernate.jpa.HibernatePersistenceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import space.npstr.sqlsauce.entities.SaucedEntity;
+import space.npstr.sqlsauce.migration.Migration;
+import space.npstr.sqlsauce.migration.Migrations;
 import space.npstr.sqlsauce.ssh.SshTunnel;
 
 import javax.annotation.CheckReturnValue;
@@ -522,6 +524,8 @@ public class DatabaseConnection {
         private HibernateStatisticsCollector hibernateStats;
         @Nullable
         private MetricsTrackerFactory hikariStats;
+        @Nonnull
+        private Migrations migrations = new Migrations();
 
 
         // absolute minimum needed config
@@ -687,10 +691,28 @@ public class DatabaseConnection {
             return this;
         }
 
+
+        //migrations
+        //will automatically be run before returning the created connection
+
+        @Nonnull
+        @CheckReturnValue
+        public Builder setMigrations(@Nonnull final Migrations migrations) {
+            this.migrations = migrations;
+            return this;
+        }
+
+        @Nonnull
+        @CheckReturnValue
+        public Builder addMigration(@Nonnull final Migration migration) {
+            this.migrations.registerMigration(migration);
+            return this;
+        }
+
         @Nonnull
         @CheckReturnValue
         public DatabaseConnection build() throws DatabaseException {
-            return new DatabaseConnection(
+            final DatabaseConnection databaseConnection = new DatabaseConnection(
                     this.dbName,
                     this.jdbcUrl,
                     this.dataSourceProps,
@@ -702,6 +724,9 @@ public class DatabaseConnection {
                     this.hikariStats,
                     this.hibernateStats
             );
+
+            this.migrations.runMigrations(databaseConnection);
+            return databaseConnection;
         }
     }
 }
