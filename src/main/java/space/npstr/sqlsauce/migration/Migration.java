@@ -32,11 +32,24 @@ import space.npstr.sqlsauce.DatabaseException;
  * <p>
  * Whatever you do, never rename any migrations you are registering. The simple class name is used to identify them.
  */
-public interface Migration {
+public abstract class Migration {
+
+    private final String name;
+
+    public Migration(final String name) {
+        this.name = name;
+    }
+
+    public Migration() {
+        this.name = this.getClass().getSimpleName();
+    }
+
+    public String getName() {
+        return this.name;
+    }
 
     //ready to use connection to the target database
     //keep in mind these migrations are meant to run after hibernate ddl set up new columns etc
     //throwing a DatabaseException is an acceptable way to indicate that the migration was not successful
-    void up(DatabaseConnection databaseConnection) throws DatabaseException;
-
+    abstract void up(DatabaseConnection databaseConnection) throws DatabaseException;
 }
