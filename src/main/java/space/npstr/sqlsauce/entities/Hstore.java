@@ -179,14 +179,14 @@ public class Hstore extends SaucedEntity<String, Hstore> {
      *
      * @return the object for chaining calls; dont forget to merge() the changes
      * <p>
-     * @deprecated This method provides no real value over Hstore.load().set() and instead invites to forget to call save()
+     * @deprecated since 0.0.3 This method provides no real value over Hstore.load().set() and instead invites to forget to call save()
      * This gets especially visible comparing Hstore.loadAndSet().save() vs the much more sensible Hstore.load().setAndSave()
      * Use Hstore.loadSetAndSave() instead if really only one value needs to be set, or Hstore.loadApplyAndSave() to do
      * bulk operations
      */
     @Nonnull
     @CheckReturnValue
-    @Deprecated(since = "0.0.3")
+    @Deprecated
     public static Hstore loadAndSet(@Nonnull final String name, @Nonnull final String key, @Nonnull final String value)
             throws DatabaseException {
         return Hstore.loadAndSet(getDefaultSauce(), name, key, value);
@@ -197,11 +197,11 @@ public class Hstore extends SaucedEntity<String, Hstore> {
      *
      * @return the object for chaining calls; dont forget to save() the changes
      * <p>
-     * @deprecated See method above.
+     * @deprecated since 0.0.3 See method above.
      */
     @Nonnull
     @CheckReturnValue
-    @Deprecated(since = "0.0.3")
+    @Deprecated
     public static Hstore loadAndSet(@Nonnull final String key, @Nonnull final String value) throws DatabaseException {
         return Hstore.loadAndSet(getDefaultSauce(), DEFAULT_HSTORE_NAME, key, value);
     }
@@ -293,11 +293,11 @@ public class Hstore extends SaucedEntity<String, Hstore> {
      *
      * @return the object for chaining calls; dont forget to save() the changes
      * <p>
-     * @deprecated See equally named method single connection convenience method above.
+     * @deprecated since 0.0.3 See equally named method single connection convenience method above.
      */
     @Nonnull
     @CheckReturnValue
-    @Deprecated(since = "0.0.3")
+    @Deprecated
     public static Hstore loadAndSet(@Nonnull final DatabaseWrapper databaseWrapper, @Nonnull final String name,
                                     @Nonnull final String key, @Nonnull final String value) throws DatabaseException {
         return load(databaseWrapper, name)
@@ -309,12 +309,11 @@ public class Hstore extends SaucedEntity<String, Hstore> {
      *
      * @return the object for chaining calls; dont forget to save() the changes
      * <p>
-     * @deprecated See equally named method single connection convenience method above.
+     * @deprecated since 0.0.3 See equally named method single connection convenience method above.
      */
     @Nonnull
     @CheckReturnValue
-    @Deprecated(since = "0.0.3")
-
+    @Deprecated
     public static Hstore loadAndSet(@Nonnull final DatabaseWrapper databaseWrapper, @Nonnull final String key,
                                     @Nonnull final String value) throws DatabaseException {
         return loadAndSet(databaseWrapper, DEFAULT_HSTORE_NAME, key, value);

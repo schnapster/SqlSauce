@@ -190,7 +190,7 @@ could become the foundation for a database agnostic convenience library for smal
 
 ## Dependencies
 
-This project requires **Java 9**  
+This project requires **Java 8**  
 Dependencies are managed automagically by Gradle, some of these are optional / need to be provided to take advantage of.
 See the respective `build.gradle` for details.
 
