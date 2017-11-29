@@ -180,8 +180,7 @@ public abstract class DiscordUser<Self extends SaucedEntity<Long, Self>> extends
 
     @Nonnull
     public static <E extends DiscordUser<E>> Collection<DatabaseException> cacheAll(@Nonnull final Stream<Member> members,
-                                                                                    @Nonnull final Class<E> clazz)
-            throws DatabaseException {
+                                                                                    @Nonnull final Class<E> clazz) {
         return cacheAll(getDefaultSauce(), members, clazz);
     }
 
@@ -197,8 +196,7 @@ public abstract class DiscordUser<Self extends SaucedEntity<Long, Self>> extends
     @Nonnull
     public static <E extends DiscordUser<E>> Collection<DatabaseException> cacheAll(@Nonnull final DatabaseWrapper dbWrapper,
                                                                                     @Nonnull final Stream<Member> members,
-                                                                                    @Nonnull final Class<E> clazz)
-            throws DatabaseException {
+                                                                                    @Nonnull final Class<E> clazz) {
         final long started = System.currentTimeMillis();
         final Function<Member, Function<E, E>> cache = (member) -> (discorduser) -> discorduser.set(member);
         final List<DatabaseException> exceptions = new ArrayList<>();
