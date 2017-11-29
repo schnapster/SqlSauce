@@ -25,6 +25,8 @@
 package space.npstr.sqlsauce;
 
 import org.hibernate.Session;
+import org.hibernate.internal.SessionImpl;
+import org.hibernate.query.spi.QueryImplementor;
 import space.npstr.sqlsauce.entities.IEntity;
 import space.npstr.sqlsauce.entities.SaucedEntity;
 
@@ -41,6 +43,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -223,7 +226,8 @@ public class DatabaseWrapper {
      * context and without bothering with the EntityManager?
      * Look no further! Functional programming to the rescue, just pass a function that does the required transformation
      * on the entity.
-     * Note that this will create a new instance of the entity if it does not exist yet.
+     *
+     * NOTE that this will create a new instance of the entity if it does not exist yet.
      *
      * @param transformation Some function to apply to the entity while it is present in the persistence context.
      *                       Usually this is some function to set or edit data of the entity, that returns the entity
@@ -269,6 +273,71 @@ public class DatabaseWrapper {
                                                                                       @Nonnull final Function<E, E> transformation)
             throws DatabaseException {
         return findApplyAndMerge(id, clazz, Collections.singletonList(transformation));
+    }
+
+    /**
+     * Apply a transformation to all entities of a class
+     */
+    public <E extends SaucedEntity<I, E>, I extends Serializable> int applyAndMergeAll(@Nonnull final Class<E> clazz,
+                                                                                       @Nonnull final Function<E, E> transformation)
+            throws DatabaseException {
+        return applyAndMergeAll(clazz, Collections.singletonList(transformation));
+    }
+
+    /**
+     * Apply a transformation to all entities of a class
+     */
+    public <E extends SaucedEntity<I, E>, I extends Serializable> int applyAndMergeAll(@Nonnull final Class<E> clazz,
+                                                                                       @Nonnull final Collection<Function<E, E>> transformation)
+            throws DatabaseException {
+        return applyAndMergeAll("SELECT c FROM " + clazz.getSimpleName() + " c", false, clazz, transformation);
+    }
+
+    /**
+     * Apply a transformation to all entities returned from a query
+     * <p>
+     * This is somewhat memory/resources efficient as it uses the stream api to retrieve and apply the transformation to
+     * results
+     *
+     * @return the amount of entities that were transformed
+     */
+    public <E> int applyAndMergeAll(@Nonnull final String query,
+                                    final boolean isNative,
+                                    @Nonnull final Class<E> clazz,
+                                    @Nonnull final Collection<Function<E, E>> transformation)
+            throws DatabaseException {
+        final EntityManager em = this.databaseConnection.getEntityManager();
+        final AtomicInteger i = new AtomicInteger(0);
+        try {
+            //take advantage of stream API for results which is part of Hibernate 5.2, and will come to JPA with 2.2
+            final SessionImpl session = em.unwrap(SessionImpl.class);
+            session.getTransaction().begin();
+
+            final QueryImplementor<E> q;
+            if (isNative) {
+                //noinspection unchecked
+                q = session.createNativeQuery(query, clazz);
+            } else {
+                q = session.createQuery(query, clazz);
+            }
+            q.stream().forEach((entity) -> {
+                E e = entity;
+                for (final Function<E, E> transform : transformation) {
+                    e = transform.apply(e);
+                }
+                session.merge(e);
+                i.incrementAndGet();
+            });
+
+            session.getTransaction().commit();
+            return i.get();
+        } catch (final PersistenceException e) {
+            final String message = String.format("Failed to transform entities of clazz %s from query %s on DB %s",
+                    clazz.getName(), query, this.databaseConnection.getName());
+            throw new DatabaseException(message, e);
+        } finally {
+            em.close();
+        }
     }
 
     //################################################################################
