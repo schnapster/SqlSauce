@@ -37,8 +37,6 @@ import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
 import javax.persistence.Transient;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
@@ -226,18 +224,18 @@ public class Hstore extends SaucedEntity<String, Hstore> {
      */
     @Nonnull
     public static Hstore loadApplyAndSave(@Nonnull final String name,
-                                          @Nonnull final Collection<Function<Hstore, Hstore>> transformations)
+                                          @Nonnull final Function<Hstore, Hstore> transformation)
             throws DatabaseException {
-        return loadApplyAndSave(getDefaultSauce(), name, transformations);
+        return loadApplyAndSave(getDefaultSauce(), name, transformation);
     }
 
     /**
      * Apply some functions to the default Hstore of the default database and save it
      */
     @Nonnull
-    public static Hstore loadApplyAndSave(@Nonnull final Collection<Function<Hstore, Hstore>> transformations)
+    public static Hstore loadApplyAndSave(@Nonnull final Function<Hstore, Hstore> transformation)
             throws DatabaseException {
-        return loadApplyAndSave(DEFAULT_HSTORE_NAME, transformations);
+        return loadApplyAndSave(DEFAULT_HSTORE_NAME, transformation);
     }
 
     //################################################################################
@@ -323,7 +321,7 @@ public class Hstore extends SaucedEntity<String, Hstore> {
     public static Hstore loadSetAndSave(@Nonnull final DatabaseWrapper databaseWrapper, @Nonnull final String name,
                                         @Nonnull final String key, @Nonnull final String value)
             throws DatabaseException {
-        return loadApplyAndSave(databaseWrapper, name, Collections.singletonList(setTransformation(key, value)));
+        return loadApplyAndSave(databaseWrapper, name, setTransformation(key, value));
     }
 
     /**
@@ -332,7 +330,7 @@ public class Hstore extends SaucedEntity<String, Hstore> {
     @Nonnull
     public static Hstore loadSetAndSave(@Nonnull final DatabaseWrapper databaseWrapper, @Nonnull final String key,
                                         @Nonnull final String value) throws DatabaseException {
-        return loadApplyAndSave(databaseWrapper, Collections.singletonList(setTransformation(key, value)));
+        return loadApplyAndSave(databaseWrapper, setTransformation(key, value));
     }
 
 
@@ -341,9 +339,9 @@ public class Hstore extends SaucedEntity<String, Hstore> {
      */
     @Nonnull
     public static Hstore loadApplyAndSave(@Nonnull final DatabaseWrapper databaseWrapper, @Nonnull final String name,
-                                          @Nonnull final Collection<Function<Hstore, Hstore>> transformations)
+                                          @Nonnull final Function<Hstore, Hstore> transformation)
             throws DatabaseException {
-        return databaseWrapper.findApplyAndMerge(name, Hstore.class, transformations);
+        return databaseWrapper.findApplyAndMerge(name, Hstore.class, transformation);
     }
 
     /**
@@ -351,9 +349,9 @@ public class Hstore extends SaucedEntity<String, Hstore> {
      */
     @Nonnull
     public static Hstore loadApplyAndSave(@Nonnull final DatabaseWrapper databaseWrapper,
-                                          @Nonnull final Collection<Function<Hstore, Hstore>> transformations)
+                                          @Nonnull final Function<Hstore, Hstore> transformation)
             throws DatabaseException {
-        return loadApplyAndSave(databaseWrapper, DEFAULT_HSTORE_NAME, transformations);
+        return loadApplyAndSave(databaseWrapper, DEFAULT_HSTORE_NAME, transformation);
     }
 
 

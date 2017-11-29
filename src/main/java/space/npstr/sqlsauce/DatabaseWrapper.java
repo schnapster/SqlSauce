@@ -39,8 +39,6 @@ import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -237,7 +235,7 @@ public class DatabaseWrapper {
     @CheckReturnValue
     public <E extends SaucedEntity<I, E>, I extends Serializable> E findApplyAndMerge(@Nonnull final I id,
                                                                                       @Nonnull final Class<E> clazz,
-                                                                                      @Nonnull final Collection<Function<E, E>> transformation)
+                                                                                      @Nonnull final Function<E, E> transformation)
             throws DatabaseException {
         final EntityManager em = this.databaseConnection.getEntityManager();
         try {
@@ -247,9 +245,7 @@ public class DatabaseWrapper {
                 if (entity == null) {
                     entity = newInstance(id, clazz);
                 }
-                for (final Function<E, E> transform : transformation) {
-                    entity = transform.apply(entity);
-                }
+                entity = transformation.apply(entity);
                 entity = em.merge(entity);
                 em.getTransaction().commit();
                 return entity;
@@ -264,31 +260,10 @@ public class DatabaseWrapper {
     }
 
     /**
-     * Convenience wrapper for single transformations. See the method this calls for more details.
-     */
-    @Nonnull
-    @CheckReturnValue
-    public <E extends SaucedEntity<I, E>, I extends Serializable> E findApplyAndMerge(@Nonnull final I id,
-                                                                                      @Nonnull final Class<E> clazz,
-                                                                                      @Nonnull final Function<E, E> transformation)
-            throws DatabaseException {
-        return findApplyAndMerge(id, clazz, Collections.singletonList(transformation));
-    }
-
-    /**
      * Apply a transformation to all entities of a class
      */
     public <E extends SaucedEntity<I, E>, I extends Serializable> int applyAndMergeAll(@Nonnull final Class<E> clazz,
                                                                                        @Nonnull final Function<E, E> transformation)
-            throws DatabaseException {
-        return applyAndMergeAll(clazz, Collections.singletonList(transformation));
-    }
-
-    /**
-     * Apply a transformation to all entities of a class
-     */
-    public <E extends SaucedEntity<I, E>, I extends Serializable> int applyAndMergeAll(@Nonnull final Class<E> clazz,
-                                                                                       @Nonnull final Collection<Function<E, E>> transformation)
             throws DatabaseException {
         return applyAndMergeAll("SELECT c FROM " + clazz.getSimpleName() + " c", false, clazz, transformation);
     }
@@ -304,7 +279,7 @@ public class DatabaseWrapper {
     public <E> int applyAndMergeAll(@Nonnull final String query,
                                     final boolean isNative,
                                     @Nonnull final Class<E> clazz,
-                                    @Nonnull final Collection<Function<E, E>> transformation)
+                                    @Nonnull final Function<E, E> transformation)
             throws DatabaseException {
         final EntityManager em = this.databaseConnection.getEntityManager();
         final AtomicInteger i = new AtomicInteger(0);
@@ -322,9 +297,7 @@ public class DatabaseWrapper {
             }
             q.stream().forEach((entity) -> {
                 E e = entity;
-                for (final Function<E, E> transform : transformation) {
-                    e = transform.apply(e);
-                }
+                e = transformation.apply(e);
                 session.merge(e);
                 i.incrementAndGet();
             });
