@@ -260,7 +260,7 @@ public class DatabaseConnection {
     //copy pasta'd this from somewhere on stackoverflow, seems to work with slight adjustments
     @CheckReturnValue
     private PersistenceUnitInfo defaultPersistenceUnitInfo(final DataSource ds,
-                                                           @SuppressWarnings("SameParameterValue") final Collection<String> entityPackages,
+                                                           final Collection<String> entityPackages,
                                                            final String persistenceUnitName) {
         return new PersistenceUnitInfo() {
             @Override

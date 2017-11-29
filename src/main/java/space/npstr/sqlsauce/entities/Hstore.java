@@ -62,9 +62,6 @@ public class Hstore extends SaucedEntity<String, Hstore> {
     @Transient
     public static final String DEFAULT_HSTORE_NAME = "default";
 
-    @Transient
-    public static final Object hstoreLock = new Object();
-
     //you are responsible for using unique names when you want to access unique hstores
     @Id
     @Column(name = "name", columnDefinition = "text")

@@ -4,12 +4,14 @@ import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.User;
 import net.dv8tion.jda.core.entities.impl.UserImpl;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.NaturalId;
 import space.npstr.sqlsauce.DatabaseException;
 import space.npstr.sqlsauce.DatabaseWrapper;
 import space.npstr.sqlsauce.converters.PostgresHStoreConverter;
 import space.npstr.sqlsauce.entities.SaucedEntity;
 
+import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.persistence.Column;
@@ -45,15 +47,18 @@ public abstract class DiscordUser<Self extends SaucedEntity<Long, Self>> extends
 
 
     @Column(name = "name", nullable = false, columnDefinition = "text")
+    @ColumnDefault(value = UNKNOWN_NAME)
     protected String name = UNKNOWN_NAME;
 
     @Column(name = "discriminator", nullable = false)
+    @ColumnDefault(value = "-1")
     protected short discriminator;
 
     @Column(name = "avatar_id", nullable = true, columnDefinition = "text")
     protected String avatarId;
 
     @Column(name = "bot", nullable = false)
+    @ColumnDefault(value = "false")
     protected boolean bot;
 
     @Column(name = "nicks", columnDefinition = "hstore")
@@ -68,6 +73,7 @@ public abstract class DiscordUser<Self extends SaucedEntity<Long, Self>> extends
 
     @Nonnull
     @Override
+    @CheckReturnValue
     public Self setId(final Long userId) {
         this.userId = userId;
         return getThis();

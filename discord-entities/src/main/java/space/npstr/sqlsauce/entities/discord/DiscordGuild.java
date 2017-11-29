@@ -2,6 +2,7 @@ package space.npstr.sqlsauce.entities.discord;
 
 import net.dv8tion.jda.core.Region;
 import net.dv8tion.jda.core.entities.Guild;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.NaturalId;
 import space.npstr.sqlsauce.DatabaseException;
 import space.npstr.sqlsauce.DatabaseWrapper;
@@ -42,23 +43,28 @@ public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extend
 
     //when did we join this
     @Column(name = "joined_timestamp", nullable = false)
+    @ColumnDefault(value = "-1")
     protected long joined = -1;
 
     //when did we leave this
     @Column(name = "left_timestamp", nullable = false)
+    @ColumnDefault(value = "-1")
     protected long left = -1;
 
     //are we currently in there or not?
     @Column(name = "present", nullable = false)
+    @ColumnDefault(value = "false")
     protected boolean present = false;
 
 
     // cached values
 
     @Column(nullable = false, name = "name", columnDefinition = "text")
+    @ColumnDefault(value = UNKNOWN_NAME)
     protected String name = UNKNOWN_NAME;
 
     @Column(nullable = false, name = "owner_id")
+    @ColumnDefault(value = "-1")
     protected long ownerId;
 
     @Column(nullable = true, name = "icon_id", columnDefinition = "text")
@@ -68,6 +74,7 @@ public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extend
     protected String splashId;
 
     @Column(nullable = false, name = "region", columnDefinition = "text")
+    @ColumnDefault(value = "") //key of the unknown region
     protected String region = Region.UNKNOWN.getKey();      //Region enum key
 
     @Column(nullable = true, name = "afk_channel_id")
@@ -77,18 +84,23 @@ public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extend
     protected Long systemChannelId;            //TextChannel id
 
     @Column(nullable = false, name = "verification_level")
+    @ColumnDefault(value = "-1") //key of the unknown enum
     protected int verificationLevel;         //Guild.VerificationLevel enum key
 
     @Column(nullable = false, name = "notification_level")
+    @ColumnDefault(value = "-1") //key of the unknown enum
     protected int notificationLevel;         //Guild.NotificationLevel enum key
 
     @Column(nullable = false, name = "mfa_level")
+    @ColumnDefault(value = "-1") //key of the unknown enum
     protected int mfaLevel;                  //Guild.MFALevel enum key
 
     @Column(nullable = false, name = "explicit_content_level")
+    @ColumnDefault(value = "-1") //key of the unknown enum
     protected int explicitContentLevel;      //Guild.ExplicitContentLevel enum key
 
     @Column(nullable = false, name = "afk_timeout_seconds")
+    @ColumnDefault(value = "300") //default value according to JDA docs
     protected int afkTimeoutSeconds;
 
 
@@ -98,6 +110,7 @@ public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extend
 
     @Nonnull
     @Override
+    @CheckReturnValue
     public Self setId(final Long guildId) {
         this.guildId = guildId;
         return getThis();
