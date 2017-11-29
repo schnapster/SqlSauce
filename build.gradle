@@ -1,3 +1,6 @@
+import com.github.spotbugs.SpotBugsTask
+import org.gradle.api.tasks.wrapper.Wrapper.DistributionType
+
 plugins {
     id 'com.github.spotbugs' version '1.6.0'
 }
@@ -64,6 +67,14 @@ allprojects {
         //discord entities module
         jdaVersion = '3.3.1_307'
     }
+
+    // To generate an HTML report instead of XML
+    tasks.withType(SpotBugsTask) {
+        reports {
+            xml.enabled = false
+            html.enabled = true
+        }
+    }
 }
 
 subprojects {
@@ -89,7 +100,6 @@ dependencies {
     compileOnly group: 'io.prometheus', name: 'simpleclient_hibernate', version: prometheusVersion   //db metrics
 }
 
-import org.gradle.api.tasks.wrapper.Wrapper.DistributionType
 
 task wrapper(type: Wrapper) {
     gradleVersion = gradleVers

@@ -276,7 +276,6 @@ public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extend
         // ids, which would consume the stream, but we would also need the guilds themselves to apply them one by one
         guilds.forEach(guild -> {
             try {
-                //noinspection ResultOfMethodCallIgnored
                 dbWrapper.findApplyAndMerge(guild.getIdLong(), clazz, cacheAndJoin.apply(guild));
                 streamed.incrementAndGet();
             } catch (final DatabaseException e) {

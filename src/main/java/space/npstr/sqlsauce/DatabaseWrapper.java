@@ -232,7 +232,6 @@ public class DatabaseWrapper {
      *                       itself again. The transformantions will be applied in the order they are provided
      */
     @Nonnull
-    @CheckReturnValue
     public <E extends SaucedEntity<I, E>, I extends Serializable> E findApplyAndMerge(@Nonnull final I id,
                                                                                       @Nonnull final Class<E> clazz,
                                                                                       @Nonnull final Function<E, E> transformation)
@@ -290,8 +289,8 @@ public class DatabaseWrapper {
 
             final QueryImplementor<E> q;
             if (isNative) {
-                //noinspection unchecked
-                q = session.createNativeQuery(query, clazz);
+                @SuppressWarnings("unchecked") final QueryImplementor<E> nq = session.createNativeQuery(query, clazz);
+                q = nq;
             } else {
                 q = session.createQuery(query, clazz);
             }
