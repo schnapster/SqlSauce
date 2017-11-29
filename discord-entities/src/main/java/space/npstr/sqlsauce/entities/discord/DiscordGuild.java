@@ -4,6 +4,8 @@ import net.dv8tion.jda.core.Region;
 import net.dv8tion.jda.core.entities.Guild;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.NaturalId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import space.npstr.sqlsauce.DatabaseException;
 import space.npstr.sqlsauce.DatabaseWrapper;
 import space.npstr.sqlsauce.entities.SaucedEntity;
@@ -15,7 +17,13 @@ import javax.persistence.Column;
 import javax.persistence.Id;
 import javax.persistence.MappedSuperclass;
 import javax.persistence.Transient;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
+import java.util.stream.Stream;
 
 /**
  * Created by napster on 17.10.17.
@@ -29,6 +37,9 @@ import java.util.Objects;
  */
 @MappedSuperclass
 public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extends SaucedEntity<Long, Self> {
+
+    @Transient
+    private static final Logger log = LoggerFactory.getLogger(DiscordGuild.class);
 
     @Transient
     public static final String UNKNOWN_NAME = "Unknown Guild";
@@ -137,7 +148,6 @@ public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extend
     // ##                               Caching
     // ################################################################################
 
-    //Good idea to call this each time you are loading one of these before saving.
     @Nonnull
     public Self set(@Nullable final Guild guild) {
         if (guild == null) {
@@ -161,12 +171,14 @@ public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extend
     //convenience static setters for cached values
 
     //joins
+    @Nonnull
     public static <E extends DiscordGuild<E>> DiscordGuild<E> join(@Nonnull final Guild guild,
                                                                    @Nonnull final Class<E> clazz)
             throws DatabaseException {
         return join(getDefaultSauce(), guild, clazz);
     }
 
+    @Nonnull
     public static <E extends DiscordGuild<E>> DiscordGuild<E> join(@Nonnull final DatabaseWrapper dbWrapper,
                                                                    @Nonnull final Guild guild,
                                                                    @Nonnull final Class<E> clazz)
@@ -175,12 +187,14 @@ public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extend
     }
 
     //leaves
+    @Nonnull
     public static <E extends DiscordGuild<E>> DiscordGuild<E> leave(@Nonnull final Guild guild,
                                                                     @Nonnull final Class<E> clazz)
             throws DatabaseException {
         return leave(getDefaultSauce(), guild, clazz);
     }
 
+    @Nonnull
     public static <E extends DiscordGuild<E>> DiscordGuild<E> leave(@Nonnull final DatabaseWrapper dbWrapper,
                                                                     @Nonnull final Guild guild,
                                                                     @Nonnull final Class<E> clazz)
@@ -189,16 +203,86 @@ public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extend
     }
 
     //caching
+    @Nonnull
     public static <E extends DiscordGuild<E>> DiscordGuild<E> cache(@Nonnull final Guild guild, @Nonnull final Class<E> clazz)
             throws DatabaseException {
         return cache(getDefaultSauce(), guild, clazz);
     }
 
+    @Nonnull
     public static <E extends DiscordGuild<E>> DiscordGuild<E> cache(@Nonnull final DatabaseWrapper dbWrapper,
                                                                     @Nonnull final Guild guild,
                                                                     @Nonnull final Class<E> clazz)
             throws DatabaseException {
         return dbWrapper.findApplyAndMerge(guild.getIdLong(), clazz, (discordGuild) -> discordGuild.set(guild));
+    }
+
+    //syncing
+    @Nonnull
+    public static <E extends DiscordGuild<E>> Collection<DatabaseException> sync(@Nonnull final Stream<Guild> guilds,
+                                                                                 @Nonnull final Function<Long, Boolean> isPresent,
+                                                                                 @Nonnull final Class<E> clazz)
+            throws DatabaseException {
+        return sync(getDefaultSauce(), guilds, isPresent, clazz);
+    }
+
+    /**
+     * Sync the data in the database with the "real time" data in JDA / Discord
+     * Useful to keep data meaningful even after downtime (restarting or other reasons)
+     *
+     * @param dbWrapper The database to run the sync on
+     * @param guilds    Stream over all guilds to be cached and set to be present
+     * @param isPresent Returns true if we are present in a guild (by guildId), used to sync guilds that we left
+     * @param clazz     Class of the actual DiscordGuild entity
+     * @return DatabaseExceptions that happened while doing processing the stream (so we didnt throw/return)
+     */
+    @Nonnull
+    public static <E extends DiscordGuild<E>> Collection<DatabaseException> sync(@Nonnull final DatabaseWrapper dbWrapper,
+                                                                                 @Nonnull final Stream<Guild> guilds,
+                                                                                 @Nonnull final Function<Long, Boolean> isPresent,
+                                                                                 @Nonnull final Class<E> clazz)
+            throws DatabaseException {
+
+        final AtomicInteger left = new AtomicInteger(0);
+        final AtomicInteger joined = new AtomicInteger(0);
+        final long started = System.currentTimeMillis();
+
+        //leave guilds that we arent part of first
+        final Function<E, E> leaveIfNotPresent = (discordguild) -> {
+            if (discordguild.isPresent() && !isPresent.apply(discordguild.guildId)) {
+                left.incrementAndGet();
+                return discordguild.leave();
+            }
+            return discordguild;
+        };
+        dbWrapper.applyAndMergeAll(clazz, leaveIfNotPresent);
+
+
+        //then update existing guilds
+        final Function<Guild, Function<E, E>> cacheAndJoin = (guild) -> (discordguild) -> {
+            E result = discordguild.set(guild);
+            if (!result.present) {
+                joined.incrementAndGet();
+                result = result.join();
+            }
+            return result;
+        };
+        //IDEA: use a stream inside a single transaction like the leaving above?
+        // probably impossible because we cant create a query to retrieve all relevant guilds without having all guild
+        // ids, which would consume the stream, but we would also need the guilds themselves to apply them one by one
+        final List<DatabaseException> exceptions = new ArrayList<>();
+        guilds.forEach(guild -> {
+            try {
+                //noinspection ResultOfMethodCallIgnored
+                dbWrapper.findApplyAndMerge(guild.getIdLong(), clazz, cacheAndJoin.apply(guild));
+            } catch (final DatabaseException e) {
+                exceptions.add(e);
+                log.error("Db blew up while caching guild {} during sync", guild, e);
+            }
+        });
+        log.info("Synced DiscordGuilds of class {} in {}ms with {} exceptions: {} left, {} joined",
+                clazz.getSimpleName(), System.currentTimeMillis() - started, exceptions.size(), left.get(), joined.get());
+        return exceptions;
     }
 
     //setters for cached values

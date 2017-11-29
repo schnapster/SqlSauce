@@ -6,6 +6,8 @@ import net.dv8tion.jda.core.entities.User;
 import net.dv8tion.jda.core.entities.impl.UserImpl;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.NaturalId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import space.npstr.sqlsauce.DatabaseException;
 import space.npstr.sqlsauce.DatabaseWrapper;
 import space.npstr.sqlsauce.converters.PostgresHStoreConverter;
@@ -19,9 +21,14 @@ import javax.persistence.Convert;
 import javax.persistence.Id;
 import javax.persistence.MappedSuperclass;
 import javax.persistence.Transient;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Stream;
 
 /**
  * Created by napster on 17.10.17.
@@ -36,6 +43,10 @@ import java.util.Objects;
  */
 @MappedSuperclass
 public abstract class DiscordUser<Self extends SaucedEntity<Long, Self>> extends SaucedEntity<Long, Self> {
+
+    @Transient
+    private static final Logger log = LoggerFactory.getLogger(DiscordUser.class);
+
 
     @Transient
     public static final String UNKNOWN_NAME = "Unknown User";
@@ -165,6 +176,44 @@ public abstract class DiscordUser<Self extends SaucedEntity<Long, Self>> extends
             throws DatabaseException {
         return dbWrapper.findApplyAndMerge(member.getUser().getIdLong(), clazz,
                                            (discordUser) -> discordUser.set(member));
+    }
+
+    @Nonnull
+    public static <E extends DiscordUser<E>> Collection<DatabaseException> cacheAll(@Nonnull final Stream<Member> members,
+                                                                                    @Nonnull final Class<E> clazz)
+            throws DatabaseException {
+        return cacheAll(getDefaultSauce(), members, clazz);
+    }
+
+    /**
+     * Sync the data in the database with the "real time" data in JDA / Discord
+     * Useful to keep data meaningful even after downtime (restarting or other reasons)
+     *
+     * @param dbWrapper The database to run the sync on
+     * @param members   Stream over all members to be cached
+     * @param clazz     Class of the actual DiscordUser entity
+     * @return DatabaseExceptions that happened while doing processing the stream (so we didnt throw/return)
+     */
+    @Nonnull
+    public static <E extends DiscordUser<E>> Collection<DatabaseException> cacheAll(@Nonnull final DatabaseWrapper dbWrapper,
+                                                                                    @Nonnull final Stream<Member> members,
+                                                                                    @Nonnull final Class<E> clazz)
+            throws DatabaseException {
+        final long started = System.currentTimeMillis();
+        final Function<Member, Function<E, E>> cache = (member) -> (discorduser) -> discorduser.set(member);
+        final List<DatabaseException> exceptions = new ArrayList<>();
+        members.forEach(member -> {
+            try {
+                //noinspection ResultOfMethodCallIgnored
+                dbWrapper.findApplyAndMerge(member.getUser().getIdLong(), clazz, cache.apply(member));
+            } catch (final DatabaseException e) {
+                exceptions.add(e);
+                log.error("Db blew up while caching member {} during sync", member, e);
+            }
+        });
+        log.info("Synced DiscordUsers of class {} in {}ms with {} exceptions.",
+                clazz.getSimpleName(), System.currentTimeMillis() - started, exceptions.size());
+        return exceptions;
     }
 
 
