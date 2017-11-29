@@ -221,8 +221,7 @@ public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extend
     @Nonnull
     public static <E extends DiscordGuild<E>> Collection<DatabaseException> sync(@Nonnull final Stream<Guild> guilds,
                                                                                  @Nonnull final Function<Long, Boolean> isPresent,
-                                                                                 @Nonnull final Class<E> clazz)
-            throws DatabaseException {
+                                                                                 @Nonnull final Class<E> clazz) {
         return sync(getDefaultSauce(), guilds, isPresent, clazz);
     }
 
@@ -234,20 +233,17 @@ public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extend
      * @param guilds    Stream over all guilds to be cached and set to be present
      * @param isPresent Returns true if we are present in a guild (by guildId), used to sync guilds that we left
      * @param clazz     Class of the actual DiscordGuild entity
-     * @return DatabaseExceptions that happened while doing processing the stream (so we didnt throw/return)
+     * @return DatabaseExceptions caused by the execution of this method
      */
     @Nonnull
     public static <E extends DiscordGuild<E>> Collection<DatabaseException> sync(@Nonnull final DatabaseWrapper dbWrapper,
                                                                                  @Nonnull final Stream<Guild> guilds,
                                                                                  @Nonnull final Function<Long, Boolean> isPresent,
-                                                                                 @Nonnull final Class<E> clazz)
-            throws DatabaseException {
-
-        final AtomicInteger left = new AtomicInteger(0);
-        final AtomicInteger joined = new AtomicInteger(0);
-        final long started = System.currentTimeMillis();
-
+                                                                                 @Nonnull final Class<E> clazz) {
+        final List<DatabaseException> exceptions = new ArrayList<>();
         //leave guilds that we arent part of first
+        final AtomicInteger left = new AtomicInteger(0);
+        long started = System.currentTimeMillis();
         final Function<E, E> leaveIfNotPresent = (discordguild) -> {
             if (discordguild.isPresent() && !isPresent.apply(discordguild.guildId)) {
                 left.incrementAndGet();
@@ -255,10 +251,18 @@ public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extend
             }
             return discordguild;
         };
-        dbWrapper.applyAndMergeAll(clazz, leaveIfNotPresent);
-
+        try {
+            final int transformed = dbWrapper.applyAndMergeAll(clazz, leaveIfNotPresent);
+            log.debug("Synced {} DiscordGuild entities of class {} in {}ms, left {}",
+                    transformed, clazz.getSimpleName(), System.currentTimeMillis() - started, left.get());
+        } catch (final DatabaseException e) {
+            exceptions.add(e);
+        }
 
         //then update existing guilds
+        final AtomicInteger joined = new AtomicInteger(0);
+        final AtomicInteger streamed = new AtomicInteger(0);
+        started = System.currentTimeMillis();
         final Function<Guild, Function<E, E>> cacheAndJoin = (guild) -> (discordguild) -> {
             E result = discordguild.set(guild);
             if (!result.present) {
@@ -270,18 +274,17 @@ public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extend
         //IDEA: use a stream inside a single transaction like the leaving above?
         // probably impossible because we cant create a query to retrieve all relevant guilds without having all guild
         // ids, which would consume the stream, but we would also need the guilds themselves to apply them one by one
-        final List<DatabaseException> exceptions = new ArrayList<>();
         guilds.forEach(guild -> {
             try {
                 //noinspection ResultOfMethodCallIgnored
                 dbWrapper.findApplyAndMerge(guild.getIdLong(), clazz, cacheAndJoin.apply(guild));
+                streamed.incrementAndGet();
             } catch (final DatabaseException e) {
                 exceptions.add(e);
-                log.error("Db blew up while caching guild {} during sync", guild, e);
             }
         });
-        log.info("Synced DiscordGuilds of class {} in {}ms with {} exceptions: {} left, {} joined",
-                clazz.getSimpleName(), System.currentTimeMillis() - started, exceptions.size(), left.get(), joined.get());
+        log.debug("Synced {} DiscordGuild entities of class {} in {}ms with {} exceptions, joined {}",
+                streamed.get(), clazz.getSimpleName(), System.currentTimeMillis() - started, exceptions.size(), joined.get());
         return exceptions;
     }
 

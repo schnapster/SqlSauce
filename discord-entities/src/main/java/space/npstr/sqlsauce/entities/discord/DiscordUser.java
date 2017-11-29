@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -191,7 +192,7 @@ public abstract class DiscordUser<Self extends SaucedEntity<Long, Self>> extends
      * @param dbWrapper The database to run the sync on
      * @param members   Stream over all members to be cached
      * @param clazz     Class of the actual DiscordUser entity
-     * @return DatabaseExceptions that happened while doing processing the stream (so we didnt throw/return)
+     * @return DatabaseExceptions caused by the execution of this method
      */
     @Nonnull
     public static <E extends DiscordUser<E>> Collection<DatabaseException> cacheAll(@Nonnull final DatabaseWrapper dbWrapper,
@@ -200,17 +201,18 @@ public abstract class DiscordUser<Self extends SaucedEntity<Long, Self>> extends
         final long started = System.currentTimeMillis();
         final Function<Member, Function<E, E>> cache = (member) -> (discorduser) -> discorduser.set(member);
         final List<DatabaseException> exceptions = new ArrayList<>();
+        final AtomicInteger streamed = new AtomicInteger(0);
         members.forEach(member -> {
             try {
                 //noinspection ResultOfMethodCallIgnored
                 dbWrapper.findApplyAndMerge(member.getUser().getIdLong(), clazz, cache.apply(member));
+                streamed.incrementAndGet();
             } catch (final DatabaseException e) {
                 exceptions.add(e);
-                log.error("Db blew up while caching member {} during sync", member, e);
             }
         });
-        log.info("Synced DiscordUsers of class {} in {}ms with {} exceptions.",
-                clazz.getSimpleName(), System.currentTimeMillis() - started, exceptions.size());
+        log.debug("Synced {} DiscordUsers of class {} in {}ms with {} exceptions.",
+                streamed.get(), clazz.getSimpleName(), System.currentTimeMillis() - started, exceptions.size());
         return exceptions;
     }
 
