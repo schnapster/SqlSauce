@@ -30,6 +30,7 @@ import space.npstr.sqlsauce.DatabaseConnection;
 import space.npstr.sqlsauce.DatabaseException;
 import space.npstr.sqlsauce.DatabaseWrapper;
 import space.npstr.sqlsauce.entities.Hstore;
+import space.npstr.sqlsauce.entities.SaucedEntity;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
@@ -46,7 +47,7 @@ import java.util.List;
 public class Migrations {
 
     private static final Logger log = LoggerFactory.getLogger(Migrations.class);
-    private static final String MIGRATIONS_HSTORE = "migrations";
+    private static final Hstore.HstoreKey MIGRATIONS_HSTORE = Hstore.HstoreKey.of("migrations");
 
 
     private final List<Migration> registeredMigrations = new ArrayList<>();
@@ -69,7 +70,7 @@ public class Migrations {
         // psql -d template1 -c 'create extension hstore;'
         final String createHstore = "CREATE EXTENSION IF NOT EXISTS hstore SCHEMA public;";
         dbWrapper.executeSqlQuery(createHstore, null);
-        Hstore.load(dbWrapper, "test").setAndSave("test", "test"); //test it
+        Hstore.load(dbWrapper, Hstore.HstoreKey.of("test")).setAndSave("test", "test"); //test it
 
         //run the registered migrations
         for (final Migration migration : this.registeredMigrations) {
@@ -81,7 +82,7 @@ public class Migrations {
     private static void doMigrations(@Nonnull final DatabaseConnection dbConnection, @Nonnull final Migration migration)
             throws DatabaseException {
 
-        final Hstore migrationInfo = Hstore.load(new DatabaseWrapper(dbConnection), MIGRATIONS_HSTORE);
+        final Hstore migrationInfo = SaucedEntity.load(new DatabaseWrapper(dbConnection), MIGRATIONS_HSTORE);
         final String migrationName = migration.getClass().getSimpleName();
 
         if (!migrationInfo.get(migrationName, "").equals("done")) {

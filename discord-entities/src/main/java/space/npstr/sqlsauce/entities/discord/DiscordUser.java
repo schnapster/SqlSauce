@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import space.npstr.sqlsauce.DatabaseException;
 import space.npstr.sqlsauce.DatabaseWrapper;
+import space.npstr.sqlsauce.EntityKey;
 import space.npstr.sqlsauce.converters.PostgresHStoreConverter;
 import space.npstr.sqlsauce.entities.SaucedEntity;
 
@@ -18,6 +19,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.persistence.Column;
 import javax.persistence.Convert;
+import javax.persistence.EntityManager;
 import javax.persistence.Id;
 import javax.persistence.MappedSuperclass;
 import javax.persistence.Transient;
@@ -28,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -160,7 +163,8 @@ public abstract class DiscordUser<Self extends SaucedEntity<Long, Self>> extends
                                                                   @Nonnull final User user,
                                                                   @Nonnull final Class<E> clazz)
             throws DatabaseException {
-        return dbWrapper.findApplyAndMerge(user.getIdLong(), clazz, (discordUser) -> discordUser.set(user));
+        return dbWrapper.findApplyAndMerge(EntityKey.of(user.getIdLong(), clazz),
+                (discordUser) -> discordUser.set(user));
     }
 
     @Nonnull
@@ -175,7 +179,7 @@ public abstract class DiscordUser<Self extends SaucedEntity<Long, Self>> extends
                                                                   @Nonnull final Member member,
                                                                   @Nonnull final Class<E> clazz)
             throws DatabaseException {
-        return dbWrapper.findApplyAndMerge(member.getUser().getIdLong(), clazz,
+        return dbWrapper.findApplyAndMerge(EntityKey.of(member.getUser().getIdLong(), clazz),
                                            (discordUser) -> discordUser.set(member));
     }
 
@@ -199,19 +203,34 @@ public abstract class DiscordUser<Self extends SaucedEntity<Long, Self>> extends
                                                                                     @Nonnull final Stream<Member> members,
                                                                                     @Nonnull final Class<E> clazz) {
         final long started = System.currentTimeMillis();
-        final Function<Member, Function<E, E>> cache = (member) -> (discorduser) -> discorduser.set(member);
         final List<DatabaseException> exceptions = new ArrayList<>();
         final AtomicInteger streamed = new AtomicInteger(0);
-        members.forEach(member -> {
+
+        final Function<Member, Function<E, E>> cache = (member) -> (discorduser) -> discorduser.set(member);
+
+        final Function<EntityManager, Consumer<Member>> action = (entityManager) -> (member) -> {
             try {
-                //noinspection ResultOfMethodCallIgnored
-                dbWrapper.findApplyAndMerge(member.getUser().getIdLong(), clazz, cache.apply(member));
+                final Function<EntityManager, E> performCaching = dbWrapper.lockedTransformFunc(
+                        EntityKey.of(member.getUser().getIdLong(), clazz),
+                        cache.apply(member)
+                );
+                performCaching.apply(entityManager);
                 streamed.incrementAndGet();
             } catch (final DatabaseException e) {
                 exceptions.add(e);
             }
-        });
-        log.debug("Synced {} DiscordUsers of class {} in {}ms with {} exceptions.",
+        };
+
+        try {
+            dbWrapper.transact(((entityManager) -> {
+                members.forEach(member -> action.apply(entityManager).accept(member));
+                return true;
+            }));
+        } catch (final DatabaseException e) {
+            exceptions.add(e);
+        }
+
+        log.debug("Cached {} DiscordUsers of class {} in {}ms with {} exceptions.",
                 streamed.get(), clazz.getSimpleName(), System.currentTimeMillis() - started, exceptions.size());
         return exceptions;
     }

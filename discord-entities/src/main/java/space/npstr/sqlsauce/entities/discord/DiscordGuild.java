@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import space.npstr.sqlsauce.DatabaseException;
 import space.npstr.sqlsauce.DatabaseWrapper;
+import space.npstr.sqlsauce.EntityKey;
 import space.npstr.sqlsauce.entities.SaucedEntity;
 
 import javax.annotation.CheckReturnValue;
@@ -183,7 +184,7 @@ public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extend
                                                                    @Nonnull final Guild guild,
                                                                    @Nonnull final Class<E> clazz)
             throws DatabaseException {
-        return dbWrapper.findApplyAndMerge(guild.getIdLong(), clazz, DiscordGuild::join);
+        return dbWrapper.findApplyAndMerge(EntityKey.of(guild.getIdLong(), clazz), DiscordGuild::join);
     }
 
     //leaves
@@ -199,7 +200,7 @@ public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extend
                                                                     @Nonnull final Guild guild,
                                                                     @Nonnull final Class<E> clazz)
             throws DatabaseException {
-        return dbWrapper.findApplyAndMerge(guild.getIdLong(), clazz, DiscordGuild::leave);
+        return dbWrapper.findApplyAndMerge(EntityKey.of(guild.getIdLong(), clazz), DiscordGuild::leave);
     }
 
     //caching
@@ -214,7 +215,7 @@ public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extend
                                                                     @Nonnull final Guild guild,
                                                                     @Nonnull final Class<E> clazz)
             throws DatabaseException {
-        return dbWrapper.findApplyAndMerge(guild.getIdLong(), clazz, (discordGuild) -> discordGuild.set(guild));
+        return dbWrapper.findApplyAndMerge(EntityKey.of(guild.getIdLong(), clazz), (discordGuild) -> discordGuild.set(guild));
     }
 
     //syncing
@@ -276,7 +277,7 @@ public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extend
         // ids, which would consume the stream, but we would also need the guilds themselves to apply them one by one
         guilds.forEach(guild -> {
             try {
-                dbWrapper.findApplyAndMerge(guild.getIdLong(), clazz, cacheAndJoin.apply(guild));
+                dbWrapper.findApplyAndMerge(EntityKey.of(guild.getIdLong(), clazz), cacheAndJoin.apply(guild));
                 streamed.incrementAndGet();
             } catch (final DatabaseException e) {
                 exceptions.add(e);

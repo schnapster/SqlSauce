@@ -44,6 +44,9 @@ public interface IEntity<I extends Serializable, Self extends IEntity<I, Self>> 
     Self setId(I id);
 
     @Nonnull
-    @CheckReturnValue
     I getId();
+
+    @Nonnull
+    @CheckReturnValue
+    Class<Self> getClazz();
 }

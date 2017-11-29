@@ -38,7 +38,7 @@ import javax.persistence.PersistenceException;
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import java.io.Serializable;
-import java.lang.reflect.InvocationTargetException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -72,30 +72,28 @@ public class DatabaseWrapper {
      */
     @Nonnull
     @CheckReturnValue
-    public <E extends SaucedEntity<I, E>, I extends Serializable> E getOrCreate(@Nonnull final I id,
-                                                                                @Nonnull final Class<E> clazz)
+    public <E extends SaucedEntity<I, E>, I extends Serializable> E getOrCreate(@Nonnull final EntityKey<I, E> entityKey)
             throws DatabaseException {
-        final E entity = getEntity(id, clazz);
+        final E entity = getEntity(entityKey);
         //return a fresh object if we didn't find the one we were looking for
         // no need to set the sauce as either getEntity or newInstance do that already
-        return entity != null ? entity : newInstance(id, clazz);
+        return entity != null ? entity : newInstance(entityKey);
     }
 
     @Nullable
     @CheckReturnValue
     //returns a sauced entity or null
-    public <E extends SaucedEntity<I, E>, I extends Serializable> E getEntity(@Nonnull final I id,
-                                                                              @Nonnull final Class<E> clazz)
+    public <E extends SaucedEntity<I, E>, I extends Serializable> E getEntity(@Nonnull final EntityKey<I, E> entityKey)
             throws DatabaseException {
         final EntityManager em = this.databaseConnection.getEntityManager();
         try {
             em.getTransaction().begin();
-            @Nullable final E result = em.find(clazz, id);
+            @Nullable final E result = em.find(entityKey.clazz, entityKey.id);
             em.getTransaction().commit();
             return result != null ? result.setSauce(this) : null;
         } catch (final PersistenceException e) {
             final String message = String.format("Failed to find entity of class %s for id %s on DB %s",
-                    clazz.getName(), id.toString(), this.databaseConnection.getName());
+                    entityKey.clazz.getName(), entityKey.id.toString(), this.databaseConnection.getName());
             throw new DatabaseException(message, e);
         } finally {
             em.close();
@@ -142,12 +140,30 @@ public class DatabaseWrapper {
     public <E extends SaucedEntity<I, E>, I extends Serializable> List<E> getEntities(@Nonnull final List<I> ids,
                                                                                       @Nonnull final Class<E> clazz)
             throws DatabaseException {
+        return getEntities(ids.stream()
+                .map(id -> EntityKey.of(id, clazz))
+                .collect(Collectors.toList()));
+    }
+
+    /**
+     * @return The result list will be ordered by the order of the provided id list, but may contain null for unknown
+     * entities
+     */
+    @Nonnull
+    @CheckReturnValue
+    //returns a list of sauced entities that may contain null elements
+    public <E extends SaucedEntity<I, E>, I extends Serializable> List<E> getEntities(@Nonnull final List<EntityKey<I, E>> entityKeys)
+            throws DatabaseException {
+        if (entityKeys.isEmpty()) {
+            return Collections.emptyList();
+        }
+        final Class<E> clazz = entityKeys.get(0).clazz;
         final EntityManager em = this.databaseConnection.getEntityManager();
         try {
             em.getTransaction().begin();
             final List<E> results = em.unwrap(Session.class)
-                                      .byMultipleIds(clazz)
-                                      .multiLoad(ids);
+                    .byMultipleIds(clazz)
+                    .multiLoad(entityKeys.stream().map(key -> key.id).collect(Collectors.toList()));
             em.getTransaction().commit();
             return results
                     .stream()
@@ -155,7 +171,7 @@ public class DatabaseWrapper {
                     .collect(Collectors.toList());
         } catch (final PersistenceException e) {
             final String message = String.format("Failed to bulk load %s entities of class %s on DB %s",
-                    ids.size(), clazz.getName(), this.databaseConnection.getName());
+                    entityKeys.size(), clazz.getName(), this.databaseConnection.getName());
             throw new DatabaseException(message, e);
         } finally {
             em.close();
@@ -232,30 +248,112 @@ public class DatabaseWrapper {
      *                       itself again. The transformantions will be applied in the order they are provided
      */
     @Nonnull
-    public <E extends SaucedEntity<I, E>, I extends Serializable> E findApplyAndMerge(@Nonnull final I id,
-                                                                                      @Nonnull final Class<E> clazz,
+    public <E extends SaucedEntity<I, E>, I extends Serializable> E findApplyAndMerge(@Nonnull final EntityKey<I, E> entityKey,
                                                                                       @Nonnull final Function<E, E> transformation)
             throws DatabaseException {
         final EntityManager em = this.databaseConnection.getEntityManager();
         try {
-            synchronized (SaucedEntity.getEntityLock(id, clazz)) {
-                em.getTransaction().begin();
-                E entity = em.find(clazz, id);
-                if (entity == null) {
-                    entity = newInstance(id, clazz);
-                }
-                entity = transformation.apply(entity);
-                entity = em.merge(entity);
-                em.getTransaction().commit();
-                return entity;
-            }
+            em.getTransaction().begin();
+            final E entity = this.lockedTransformFunc(entityKey, transformation).apply(em);
+            em.getTransaction().commit();
+            return entity;
         } catch (final PersistenceException e) {
             final String message = String.format("Failed to find, apply and merge entity id %s of class %s on DB %s",
-                    id.toString(), clazz.getName(), this.databaseConnection.getName());
+                    entityKey.id.toString(), entityKey.clazz.getName(), this.databaseConnection.getName());
             throw new DatabaseException(message, e);
         } finally {
             em.close();
         }
+    }
+
+
+    /**
+     * Perform a transaction. This method takes care of opening, commit and closing the transaction and entity manager,
+     * and catching exceptions.
+     *
+     * @param transaction to be performed
+     * @return whatever the provided transaction function returns
+     */
+    @Nullable
+    public <R> R transact(@Nonnull final Function<EntityManager, R> transaction) throws DatabaseException {
+        final EntityManager entityManager = this.databaseConnection.getEntityManager();
+        try {
+            entityManager.getTransaction().begin();
+            final R result = transaction.apply(entityManager);
+            entityManager.getTransaction().commit();
+            return result;
+        } catch (final PersistenceException e) {
+            final String message = String.format("Failed to execute transaction on DB %s", this.databaseConnection.getName());
+            throw new DatabaseException(message, e);
+        } finally {
+            entityManager.close();
+        }
+    }
+
+    /**
+     * Transform the entity described by the provided entity key with the provided transformation. The provided
+     * Entitymanager needs an open transaction, that should be commited sometime afterwards
+     * <p>
+     * When executing the function PersistenceExceptions may be thrown
+     */
+    @Nonnull
+    @CheckReturnValue
+    public <E extends SaucedEntity<I, E>, I extends Serializable> Function<EntityManager, E> lockedTransformFunc(
+            @Nonnull final EntityKey<I, E> entityKey,
+            @Nonnull final Function<E, E> transformation)
+            throws DatabaseException {
+
+        return (entityManager) -> {
+            synchronized (SaucedEntity.getEntityLock(entityKey)) {
+                return transformFunc(entityKey, transformation).apply(entityManager);
+            }
+        };
+    }
+
+    /**
+     * Creates a transform function for the entity described by the provided key and the provided transformation.
+     * When executing the function PersistenceExceptions may be thrown
+     *
+     * @param entityKey      Key of the entity to transform
+     * @param transformation Transformation to apply to the entity before saving it back
+     * @return A function that will find an entity, apply the provided transformation, and merge it back.
+     */
+    @Nonnull
+    @CheckReturnValue
+    public <E extends SaucedEntity<I, E>, I extends Serializable> Function<EntityManager, E> transformFunc(
+            @Nonnull final EntityKey<I, E> entityKey,
+            @Nonnull final Function<E, E> transformation) {
+
+        return (entityManager) -> findOrCreateFunc(entityKey)
+                .andThen(transformation)
+                .andThen(mergeFunc(entityKey.clazz).apply(entityManager))
+                .apply(entityManager);
+    }
+
+    /**
+     * @return A function to find or create the entity described by the key.
+     * The applied EntityManager needs to have an open transaction, and commit it some time afterwards.
+     */
+    @Nonnull
+    @CheckReturnValue
+    private <E extends SaucedEntity<I, E>, I extends Serializable> Function<EntityManager, E> findOrCreateFunc(@Nonnull final EntityKey<I, E> entityKey) {
+        return (entityManager) -> {
+            E entity = entityManager.find(entityKey.clazz, entityKey.id);
+            if (entity == null) {
+                entity = this.newInstance(entityKey);
+            }
+            return entity;
+        };
+    }
+
+    /**
+     * @return A merge function.
+     * The applied EntityManager needs to have an open transaction, and commit it some time afterwards.
+     */
+    @Nonnull
+    @CheckReturnValue
+    private static <E> Function<EntityManager, Function<E, E>> mergeFunc(@SuppressWarnings("unused") final Class<E> clazz) {
+        return (entityManager) -> entityManager::merge;
     }
 
     /**
@@ -273,7 +371,7 @@ public class DatabaseWrapper {
      * This is somewhat memory/resources efficient as it uses the stream api to retrieve and apply the transformation to
      * results
      *
-     * @return the amount of entities that were transformed
+     * @return the amount of entities that were returned by the query and the transformation applied to
      */
     public <E> int applyAndMergeAll(@Nonnull final String query,
                                     final boolean isNative,
@@ -284,6 +382,8 @@ public class DatabaseWrapper {
         final AtomicInteger i = new AtomicInteger(0);
         try {
             //take advantage of stream API for results which is part of Hibernate 5.2, and will come to JPA with 2.2
+            //the disadvantage is that I havent come up with a correct way to use locks for this yet, as the stream
+            //serves the entities without their ids, and doing an additional lookup afterwards sucks
             final SessionImpl session = em.unwrap(SessionImpl.class);
             session.getTransaction().begin();
 
@@ -319,23 +419,22 @@ public class DatabaseWrapper {
     @SuppressWarnings("unchecked")
     public <E extends IEntity<I, E>, I extends Serializable> void deleteEntity(@Nonnull final E entity)
             throws DatabaseException {
-        deleteEntity(entity.getId(), entity.getClass());
+        deleteEntity(EntityKey.of(entity));
     }
 
-    public <E extends IEntity<I, E>, I extends Serializable> void deleteEntity(@Nonnull final I id,
-                                                                               @Nonnull final Class<E> clazz)
+    public <E extends IEntity<I, E>, I extends Serializable> void deleteEntity(@Nonnull final EntityKey<I, E> entityKey)
             throws DatabaseException {
         final EntityManager em = this.databaseConnection.getEntityManager();
         try {
             em.getTransaction().begin();
-            final IEntity entity = em.find(clazz, id);
+            final IEntity entity = em.find(entityKey.clazz, entityKey.id);
             if (entity != null) {
                 em.remove(entity);
             }
             em.getTransaction().commit();
         } catch (final PersistenceException e) {
             final String message = String.format("Failed to delete entity id %s of class %s on DB %s",
-                    id.toString(), clazz.getName(), this.databaseConnection.getName());
+                    entityKey.id.toString(), entityKey.clazz.getName(), this.databaseConnection.getName());
             throw new DatabaseException(message, e);
         } finally {
             em.close();
@@ -601,17 +700,22 @@ public class DatabaseWrapper {
     @Nonnull
     @CheckReturnValue
     //returns a sauced entity
-    private <E extends SaucedEntity<I, E>, I extends Serializable> E newInstance(@Nonnull final I id,
-                                                                                 @Nonnull final Class<E> clazz)
-            throws DatabaseException {
+    private <E extends SaucedEntity<I, E>, I extends Serializable> E newInstance(@Nonnull final EntityKey<I, E> id) {
+        return newInstance(this, id);
+    }
+
+    @Nonnull
+    @CheckReturnValue
+    private static <E extends SaucedEntity<I, E>, I extends Serializable> E newInstance(@Nonnull final DatabaseWrapper dbWrapper,
+                                                                                        @Nonnull final EntityKey<I, E> id) {
         try {
-            final E entity = clazz.getConstructor().newInstance();
-            return entity.setId(id)
-                         .setSauce(this);
-        } catch (NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
+            final E entity = id.clazz.getConstructor().newInstance();
+            return entity.setId(id.id)
+                    .setSauce(dbWrapper);
+        } catch (final ReflectiveOperationException e) {
             final String message = String.format("Could not construct an entity of class %s with id %s",
-                    clazz.getName(), id.toString());
-            throw new DatabaseException(message, e);
+                    id.clazz.getName(), id.toString());
+            throw new RuntimeException(message, e);
         }
     }
 
