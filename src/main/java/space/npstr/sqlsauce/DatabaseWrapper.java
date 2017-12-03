@@ -29,6 +29,8 @@ import org.hibernate.internal.SessionImpl;
 import org.hibernate.query.spi.QueryImplementor;
 import space.npstr.sqlsauce.entities.IEntity;
 import space.npstr.sqlsauce.entities.SaucedEntity;
+import space.npstr.sqlsauce.fp.types.EntityKey;
+import space.npstr.sqlsauce.fp.types.Transfiguration;
 
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
@@ -38,12 +40,14 @@ import javax.persistence.PersistenceException;
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Created by napster on 30.05.17.
@@ -240,73 +244,95 @@ public class DatabaseWrapper {
      * context and without bothering with the EntityManager?
      * Look no further! Functional programming to the rescue, just pass a function that does the required transformation
      * on the entity.
-     *
+     * <p>
      * NOTE that this will create a new instance of the entity if it does not exist yet.
      *
-     * @param transformation Some function to apply to the entity while it is present in the persistence context.
-     *                       Usually this is some function to set or edit data of the entity, that returns the entity
-     *                       itself again. The transformantions will be applied in the order they are provided
      */
     @Nonnull
-    public <E extends SaucedEntity<I, E>, I extends Serializable> E findApplyAndMerge(@Nonnull final EntityKey<I, E> entityKey,
-                                                                                      @Nonnull final Function<E, E> transformation)
+    public <E extends SaucedEntity<I, E>, I extends Serializable> E findApplyAndMerge(@Nonnull final Transfiguration<I, E> transfiguration)
             throws DatabaseException {
         final EntityManager em = this.databaseConnection.getEntityManager();
         try {
-            em.getTransaction().begin();
-            final E entity = this.lockedTransformFunc(entityKey, transformation).apply(em);
-            em.getTransaction().commit();
-            return entity;
+            return this.lockedWrappedTransformFunc(transfiguration).apply(em);
         } catch (final PersistenceException e) {
             final String message = String.format("Failed to find, apply and merge entity id %s of class %s on DB %s",
-                    entityKey.id.toString(), entityKey.clazz.getName(), this.databaseConnection.getName());
+                    transfiguration.key.id.toString(), transfiguration.key.clazz.getName(),
+                    this.databaseConnection.getName());
             throw new DatabaseException(message, e);
         } finally {
             em.close();
         }
     }
 
+    //key + transformation -> transfiguration
+    public <E extends SaucedEntity<I, E>, I extends Serializable> E findApplyAndMerge(@Nonnull final EntityKey<I, E> entityKey,
+                                                                                      @Nonnull final Function<E, E> transformation)
+            throws DatabaseException {
+        return findApplyAndMerge(Transfiguration.of(entityKey, transformation));
+    }
+
+
 
     /**
-     * Perform a transaction. This method takes care of opening, commit and closing the transaction and entity manager,
-     * and catching exceptions.
-     *
-     * @param transaction to be performed
-     * @return whatever the provided transaction function returns
+     * A bulk method for applying transformations to a stream of data.
+     * @return Exceptions thrown while processing the input stream
      */
-    @Nullable
-    public <R> R transact(@Nonnull final Function<EntityManager, R> transaction) throws DatabaseException {
-        final EntityManager entityManager = this.databaseConnection.getEntityManager();
-        try {
-            entityManager.getTransaction().begin();
-            final R result = transaction.apply(entityManager);
-            entityManager.getTransaction().commit();
-            return result;
-        } catch (final PersistenceException e) {
-            final String message = String.format("Failed to execute transaction on DB %s", this.databaseConnection.getName());
-            throw new DatabaseException(message, e);
-        } finally {
-            entityManager.close();
-        }
+    @Nonnull
+    public <E extends SaucedEntity<I, E>, I extends Serializable> List<DatabaseException> findApplyAndMergeAll(
+            @Nonnull final Stream<Transfiguration<I, E>> transfigurations) {
+        final List<DatabaseException> exceptions = new ArrayList<>();
+
+        transfigurations.forEach(transfiguration -> {
+            try {
+                final EntityManager em = this.databaseConnection.getEntityManager();
+                try {
+                    this.lockedWrappedTransformFunc(transfiguration).apply(em);
+                } catch (final PersistenceException e) {
+                    final String message = String.format("Failed to find, apply and merge entity id %s of class %s on DB %s",
+                            transfiguration.key.id.toString(), transfiguration.key.clazz.getName(),
+                            this.databaseConnection.getName());
+                    exceptions.add(new DatabaseException(message, e));
+                } finally {
+                    em.close();
+                }
+            } catch (final DatabaseException e) {
+                exceptions.add(e);
+            }
+        });
+
+        return exceptions;
     }
 
     /**
-     * Transform the entity described by the provided entity key with the provided transformation. The provided
-     * Entitymanager needs an open transaction, that should be commited sometime afterwards
+     * Transform the entity described by the provided entity key with the provided transformation. The returned
+     * transaction is wrapped in begin() commit().
      * <p>
      * When executing the function PersistenceExceptions may be thrown
      */
     @Nonnull
     @CheckReturnValue
-    public <E extends SaucedEntity<I, E>, I extends Serializable> Function<EntityManager, E> lockedTransformFunc(
-            @Nonnull final EntityKey<I, E> entityKey,
-            @Nonnull final Function<E, E> transformation)
-            throws DatabaseException {
+    public <E extends SaucedEntity<I, E>, I extends Serializable> Function<EntityManager, E> lockedWrappedTransformFunc(
+            @Nonnull final Transfiguration<I, E> transfiguration) {
 
         return (entityManager) -> {
-            synchronized (SaucedEntity.getEntityLock(entityKey)) {
-                return transformFunc(entityKey, transformation).apply(entityManager);
+            synchronized (SaucedEntity.getEntityLock(transfiguration.key)) {
+                return wrapTransaction(transformFunc(transfiguration))
+                        .apply(entityManager);
             }
+        };
+    }
+
+    /**
+     * Wrap a transaction into begin and commit
+     */
+    @Nonnull
+    @CheckReturnValue
+    public static <E> Function<EntityManager, E> wrapTransaction(@Nonnull final Function<EntityManager, E> transaction) {
+        return (entityManager) -> {
+            entityManager.getTransaction().begin();
+            final E result = transaction.apply(entityManager);
+            entityManager.getTransaction().commit();
+            return result;
         };
     }
 
@@ -314,19 +340,17 @@ public class DatabaseWrapper {
      * Creates a transform function for the entity described by the provided key and the provided transformation.
      * When executing the function PersistenceExceptions may be thrown
      *
-     * @param entityKey      Key of the entity to transform
-     * @param transformation Transformation to apply to the entity before saving it back
+     * @param transfiguration Key of the entity to transform and Transformation to apply to the entity before saving it back
      * @return A function that will find an entity, apply the provided transformation, and merge it back.
      */
     @Nonnull
     @CheckReturnValue
     public <E extends SaucedEntity<I, E>, I extends Serializable> Function<EntityManager, E> transformFunc(
-            @Nonnull final EntityKey<I, E> entityKey,
-            @Nonnull final Function<E, E> transformation) {
+            @Nonnull final Transfiguration<I, E> transfiguration) {
 
-        return (entityManager) -> findOrCreateFunc(entityKey)
-                .andThen(transformation)
-                .andThen(mergeFunc(entityKey.clazz).apply(entityManager))
+        return (entityManager) -> findOrCreateFunc(transfiguration.key)
+                .andThen(transfiguration.tf)
+                .andThen(mergeFunc(transfiguration.key.clazz).apply(entityManager))
                 .apply(entityManager);
     }
 

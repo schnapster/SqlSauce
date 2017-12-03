@@ -26,7 +26,8 @@ package space.npstr.sqlsauce.entities;
 
 import space.npstr.sqlsauce.DatabaseException;
 import space.npstr.sqlsauce.DatabaseWrapper;
-import space.npstr.sqlsauce.EntityKey;
+import space.npstr.sqlsauce.fp.types.EntityKey;
+import space.npstr.sqlsauce.fp.types.Transfiguration;
 
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;

@@ -10,16 +10,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import space.npstr.sqlsauce.DatabaseException;
 import space.npstr.sqlsauce.DatabaseWrapper;
-import space.npstr.sqlsauce.EntityKey;
 import space.npstr.sqlsauce.converters.PostgresHStoreConverter;
 import space.npstr.sqlsauce.entities.SaucedEntity;
+import space.npstr.sqlsauce.fp.types.EntityKey;
+import space.npstr.sqlsauce.fp.types.Transfiguration;
 
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.persistence.Column;
 import javax.persistence.Convert;
-import javax.persistence.EntityManager;
 import javax.persistence.Id;
 import javax.persistence.MappedSuperclass;
 import javax.persistence.Transient;
@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -208,29 +207,17 @@ public abstract class DiscordUser<Self extends SaucedEntity<Long, Self>> extends
 
         final Function<Member, Function<E, E>> cache = (member) -> (discorduser) -> discorduser.set(member);
 
-        final Function<EntityManager, Consumer<Member>> action = (entityManager) -> (member) -> {
-            try {
-                final Function<EntityManager, E> performCaching = dbWrapper.lockedTransformFunc(
-                        EntityKey.of(member.getUser().getIdLong(), clazz),
-                        cache.apply(member)
-                );
-                performCaching.apply(entityManager);
-                streamed.incrementAndGet();
-            } catch (final DatabaseException e) {
-                exceptions.add(e);
-            }
-        };
 
-        try {
-            dbWrapper.transact(((entityManager) -> {
-                members.forEach(member -> action.apply(entityManager).accept(member));
-                return true;
-            }));
-        } catch (final DatabaseException e) {
-            exceptions.add(e);
-        }
+        final Stream<Transfiguration<Long, E>> transfigurations = members.map(
+                member -> {
+                    streamed.incrementAndGet();
+                    return Transfiguration.of(EntityKey.of(member.getUser().getIdLong(), clazz), cache.apply(member));
+                }
+        );
 
-        log.debug("Cached {} DiscordUsers of class {} in {}ms with {} exceptions.",
+        exceptions.addAll(dbWrapper.findApplyAndMergeAll(transfigurations));
+
+        log.debug("Cached {} DiscordUser entities of class {} in {}ms with {} exceptions.",
                 streamed.get(), clazz.getSimpleName(), System.currentTimeMillis() - started, exceptions.size());
         return exceptions;
     }

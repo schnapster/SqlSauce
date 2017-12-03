@@ -24,6 +24,7 @@
 
 package space.npstr.sqlsauce.jda.listeners;
 
+import net.dv8tion.jda.core.events.guild.GuildJoinEvent;
 import net.dv8tion.jda.core.events.guild.member.GenericGuildMemberEvent;
 import net.dv8tion.jda.core.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.core.events.guild.member.GuildMemberLeaveEvent;
@@ -93,4 +94,15 @@ public class UserMemberCachingListener<E extends DiscordUser<E>> extends Caching
                 e -> log.error("Failed to cache event {} for member {} of guild {}",
                         event.getClass().getSimpleName(), event.getUser().getIdLong(), event.getGuild().getIdLong(), e));
     }
+
+
+    //batch events
+
+    @Override
+    public void onGuildJoin(final GuildJoinEvent event) {
+        submit(() -> DiscordUser.cacheAll(event.getGuild().getMemberCache().stream(), this.entityClass),
+                e -> log.error("Failed to mass cache members on event {} for guild {}",
+                        event.getClass().getSimpleName(), event.getGuild().getIdLong()));
+    }
+
 }
