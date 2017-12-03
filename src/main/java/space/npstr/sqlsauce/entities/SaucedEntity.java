@@ -38,6 +38,7 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 
 /**
  * Created by napster on 10.10.17.
@@ -170,6 +171,22 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
     public static <E extends SaucedEntity<I, E>, I extends Serializable> E lookUp(@Nonnull final EntityKey<I, E> entityKey)
             throws DatabaseException {
         return lookUp(getDefaultSauce(), entityKey);
+    }
+
+    /**
+     * Apply some functions to an entity (creating it if nonexistent) of the provided database and save it back
+     *
+     * @param databaseWrapper database to use for this
+     * @param entityKey       the entity to load, transform, and save
+     * @param transformation  the transformation to apply to the entity
+     * @return the detached entity after saving it
+     */
+    @Nonnull
+    public static <E extends SaucedEntity<I, E>, I extends Serializable> E loadApplyAndSave(@Nonnull final DatabaseWrapper databaseWrapper,
+                                                                                            @Nonnull final EntityKey<I, E> entityKey,
+                                                                                            @Nonnull final Function<E, E> transformation)
+            throws DatabaseException {
+        return databaseWrapper.findApplyAndMerge(Transfiguration.of(entityKey, transformation));
     }
 
     //################################################################################

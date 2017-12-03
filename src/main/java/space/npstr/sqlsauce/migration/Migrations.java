@@ -70,7 +70,7 @@ public class Migrations {
         // psql -d template1 -c 'create extension hstore;'
         final String createHstore = "CREATE EXTENSION IF NOT EXISTS hstore SCHEMA public;";
         dbWrapper.executeSqlQuery(createHstore, null);
-        Hstore.load(dbWrapper, Hstore.HstoreKey.of("test")).setAndSave("test", "test"); //test it
+        SaucedEntity.load(dbWrapper, Hstore.HstoreKey.of("test")).setAndSave("test", "test"); //test it
 
         //run the registered migrations
         for (final Migration migration : this.registeredMigrations) {
