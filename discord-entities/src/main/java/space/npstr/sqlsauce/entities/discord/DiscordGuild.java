@@ -156,7 +156,12 @@ public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extend
             return getThis();//gracefully ignore null guilds
         }
         this.name = guild.getName();
-        this.ownerId = guild.getOwner().getUser().getIdLong();
+        try { //yeah this actually happened, despite JDA and Discord docs saying that guilds always have an owner
+            this.ownerId = guild.getOwner().getUser().getIdLong();
+        } catch (NullPointerException e) {
+            log.error("Guild {} seems to have a null owner", guild.getIdLong(), e);
+            throw e;
+        }
         this.iconId = guild.getIconId();
         this.splashId = guild.getSplashId();
         this.region = guild.getRegion().getKey();
