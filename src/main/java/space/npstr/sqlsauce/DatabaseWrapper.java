@@ -605,9 +605,11 @@ public class DatabaseWrapper {
 
     /**
      * Run a good old SQL query
+     *
+     * @return the number of entities updated or deleted
      */
-    public void executeSqlQuery(@Nonnull final String queryString,
-                                @Nullable final Map<String, Object> parameters) throws DatabaseException {
+    public int executeSqlQuery(@Nonnull final String queryString,
+                               @Nullable final Map<String, Object> parameters) throws DatabaseException {
         final EntityManager em = this.databaseConnection.getEntityManager();
         try {
             final Query q = em.createNativeQuery(queryString);
@@ -615,8 +617,9 @@ public class DatabaseWrapper {
                 parameters.forEach(q::setParameter);
             }
             em.getTransaction().begin();
-            q.executeUpdate();
+            int updated = q.executeUpdate();
             em.getTransaction().commit();
+            return updated;
         } catch (final PersistenceException e) {
             final String message = String.format("Failed to execute plain SQL query %s with %s parameters on DB %s",
                     queryString, parameters != null ? parameters.size() : "null", this.databaseConnection.getName());
@@ -628,47 +631,77 @@ public class DatabaseWrapper {
 
     /**
      * Results will be sauced if they are SaucedEntites
+     *
+     * @param resultEntityClass The result class needs to be an entity class, not a single property value like
+     *                            java.lang.String for example. Use {@link DatabaseWrapper#selectSqlQuery(String, Map)}
+     *                            for that instead.
      */
     @Nonnull
     @CheckReturnValue
     public <T> List<T> selectSqlQuery(@Nonnull final String queryString,
                                       @Nullable final Map<String, Object> parameters,
-                                      @Nonnull final Class<T> resultClass) throws DatabaseException {
-        final EntityManager em = this.databaseConnection.getEntityManager();
+                                      @Nonnull final Class<T> resultEntityClass) throws DatabaseException {
         try {
-            final Query q = em.createNativeQuery(queryString, resultClass);
-            if (parameters != null) {
-                parameters.forEach(q::setParameter);
-            }
-            return selectNativeSqlQuery(em, q);
+            return selectSqlQuery((em) -> em.createNativeQuery(queryString, resultEntityClass), parameters);
         } catch (final PersistenceException | ClassCastException e) {
             final String message = String.format("Failed to select list result plain SQL query %s with %s parameters for class %s on DB %s",
-                    queryString, parameters != null ? parameters.size() : "null", resultClass.getName(), this.databaseConnection.getName());
+                    queryString, parameters != null ? parameters.size() : "null", resultEntityClass.getName(), this.databaseConnection.getName());
             throw new DatabaseException(message, e);
-        } finally {
-            em.close();
         }
     }
 
     /**
      * Results will be sauced if they are SaucedEntites
+     *
+     * @param resultEntityMapping The result mapping needs to be for an entity class, not a single property value like
+     *                            java.lang.String for example. Use {@link DatabaseWrapper#selectSqlQuery(String, Map)}
+     *                            for that instead.
      */
     @Nonnull
     @CheckReturnValue
     public <T> List<T> selectSqlQuery(@Nonnull final String queryString,
                                       @Nullable final Map<String, Object> parameters,
-                                      @Nonnull final String resultMapping) throws DatabaseException {
+                                      @Nonnull final String resultEntityMapping) throws DatabaseException {
+        try {
+            return selectSqlQuery((em) -> em.createNativeQuery(queryString, resultEntityMapping), parameters);
+        } catch (final PersistenceException | ClassCastException e) {
+            final String message = String.format("Failed to select list result plain SQL query %s with %s parameters for result mapping %s on DB %s",
+                    queryString, parameters != null ? parameters.size() : "null", resultEntityMapping, this.databaseConnection.getName());
+            throw new DatabaseException(message, e);
+        }
+    }
+
+    /**
+     * Results will be sauced if they are SaucedEntites
+     * <p>
+     * This method doesnt set any kind of result class so it can be used to retrieve Strings or Longs for example.
+     */
+    @Nonnull
+    @CheckReturnValue
+    public <T> List<T> selectSqlQuery(@Nonnull final String queryString,
+                                      @Nullable final Map<String, Object> parameters) throws DatabaseException {
+        try {
+            return selectSqlQuery((em) -> em.createNativeQuery(queryString), parameters);
+        } catch (final PersistenceException | ClassCastException e) {
+            final String message = String.format("Failed to select list result plain SQL query %s with %s parameters on DB %s",
+                    queryString, parameters != null ? parameters.size() : "null", this.databaseConnection.getName());
+            throw new DatabaseException(message, e);
+        }
+    }
+
+    //callers of this should catch PersistenceExceptions and ClassCastExceptions and rethrow them as DatabaseExceptions
+    @Nonnull
+    @CheckReturnValue
+    private <T> List<T> selectSqlQuery(@Nonnull final Function<EntityManager, Query> queryFunc,
+                                       @Nullable final Map<String, Object> parameters)
+            throws DatabaseException, PersistenceException, ClassCastException {
         final EntityManager em = this.databaseConnection.getEntityManager();
         try {
-            final Query q = em.createNativeQuery(queryString, resultMapping);
+            final Query q = queryFunc.apply(em);
             if (parameters != null) {
                 parameters.forEach(q::setParameter);
             }
             return selectNativeSqlQuery(em, q);
-        } catch (final PersistenceException | ClassCastException e) {
-            final String message = String.format("Failed to select list result plain SQL query %s with %s parameters for result mapping %s on DB %s",
-                    queryString, parameters != null ? parameters.size() : "null", resultMapping, this.databaseConnection.getName());
-            throw new DatabaseException(message, e);
         } finally {
             em.close();
         }
