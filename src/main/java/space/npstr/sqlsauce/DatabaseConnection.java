@@ -150,6 +150,9 @@ public class DatabaseConnection {
             final PersistenceUnitInfo puInfo = defaultPersistenceUnitInfo(this.hikariDs, entityPackages, dbName);
 
             // hibernate
+            if (hibernateStats != null) {
+                hibernateProps.put("hibernate.generate_statistics", "true");
+            }
             this.emf = new HibernatePersistenceProvider().createContainerEntityManagerFactory(puInfo, hibernateProps);
             if (hibernateStats != null) {
                 hibernateStats.add(this.emf.unwrap(SessionFactoryImpl.class), dbName);
@@ -499,10 +502,9 @@ public class DatabaseConnection {
 
             //pl0x no log spam
             hibernateProps.put("hibernate.show_sql", "false");
-
-            //generate statistics but dont spam log them
-            hibernateProps.put("hibernate.generate_statistics", "true");
             hibernateProps.put("hibernate.session.events.log", "false");
+            //dont generate statistics; this will be overridden to true if a HibernateStatisticsCollector is provided
+            hibernateProps.put("hibernate.generate_statistics", "false");
 
             //sane batch sizes
             hibernateProps.put("hibernate.default_batch_fetch_size", 100);
@@ -701,6 +703,13 @@ public class DatabaseConnection {
             return this;
         }
 
+        /**
+         * Providing a HibernateStatisticsCollector will also enable Hibernate statistics equivalent to
+         * <p>
+         * hibernateProps.put("hibernate.generate_statistics", "true");
+         * <p>
+         * for the resulting DatabaseConnection.
+         */
         @Nonnull
         @CheckReturnValue
         public Builder setHibernateStats(@Nullable final HibernateStatisticsCollector hibernateStats) {
