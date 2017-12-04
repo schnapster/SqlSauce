@@ -189,7 +189,7 @@ public abstract class DiscordUser<Self extends SaucedEntity<Long, Self>> extends
     }
 
     /**
-     * Sync the data in the database with the "real time" data in JDA / Discord
+     * Cache a bunch of users.
      * Useful to keep data meaningful even after downtime (restarting or other reasons)
      *
      * @param dbWrapper The database to run the sync on

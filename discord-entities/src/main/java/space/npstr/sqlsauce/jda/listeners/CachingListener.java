@@ -1,7 +1,6 @@
 package space.npstr.sqlsauce.jda.listeners;
 
 import net.dv8tion.jda.core.hooks.ListenerAdapter;
-import space.npstr.sqlsauce.DatabaseException;
 import space.npstr.sqlsauce.DatabaseTask;
 
 import javax.annotation.CheckReturnValue;
@@ -37,11 +36,18 @@ public abstract class CachingListener<E, Self extends CachingListener<E, Self>> 
         return getThis();
     }
 
-    protected void submit(@Nonnull final DatabaseTask task, @Nonnull final Consumer<DatabaseException> onFail) {
+    /**
+     * @return amount of tasks queued up for execution
+     */
+    public int getQueueSize() {
+        return cachePump.getQueue().size();
+    }
+
+    protected void submit(@Nonnull final DatabaseTask task, @Nonnull final Consumer<Exception> onFail) {
         this.cachePump.execute(() -> {
             try {
                 task.run();
-            } catch (final DatabaseException e) {
+            } catch (final Exception e) {
                 onFail.accept(e);
             }
         });

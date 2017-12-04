@@ -10,6 +10,7 @@ import space.npstr.sqlsauce.DatabaseException;
 import space.npstr.sqlsauce.DatabaseWrapper;
 import space.npstr.sqlsauce.entities.SaucedEntity;
 import space.npstr.sqlsauce.fp.types.EntityKey;
+import space.npstr.sqlsauce.fp.types.Transfiguration;
 
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
@@ -259,32 +260,56 @@ public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extend
         } catch (final DatabaseException e) {
             exceptions.add(e);
         }
-
         //then update existing guilds
+        exceptions.addAll(cacheAll(dbWrapper, guilds, clazz));
+        return exceptions;
+    }
+
+    @Nonnull
+    public static <E extends DiscordGuild<E>> Collection<DatabaseException> cacheAll(@Nonnull final Stream<Guild> members,
+                                                                                     @Nonnull final Class<E> clazz) {
+        return cacheAll(getDefaultSauce(), members, clazz);
+    }
+
+    /**
+     * Cache a bunch of guilds
+     * Difference to the sync method is that this won't double check the saved DiscordGuilds against their presence in
+     * the bot. This method is fine to call to cache only a subset of all guilds
+     *
+     * @param dbWrapper The database to run the sync on
+     * @param guilds    Stream over all guilds to be cached
+     * @param clazz     Class of the actual DiscordGuild entity
+     * @return DatabaseExceptions caused by the execution of this method
+     */
+    @Nonnull
+    public static <E extends DiscordGuild<E>> Collection<DatabaseException> cacheAll(@Nonnull final DatabaseWrapper dbWrapper,
+                                                                                     @Nonnull final Stream<Guild> guilds,
+                                                                                     @Nonnull final Class<E> clazz) {
+        long started = System.currentTimeMillis();
+        final List<DatabaseException> exceptions = new ArrayList<>();
         final AtomicInteger joined = new AtomicInteger(0);
         final AtomicInteger streamed = new AtomicInteger(0);
-        started = System.currentTimeMillis();
         final Function<Guild, Function<E, E>> cacheAndJoin = (guild) -> (discordguild) -> {
             E result = discordguild.set(guild);
             if (!result.present) {
-                joined.incrementAndGet();
                 result = result.join();
+                joined.incrementAndGet();
             }
             return result;
         };
-        //IDEA: use a stream inside a single transaction like the leaving above?
-        // probably impossible because we cant create a query to retrieve all relevant guilds without having all guild
-        // ids, which would consume the stream, but we would also need the guilds themselves to apply them one by one
-        guilds.forEach(guild -> {
-            try {
-                dbWrapper.findApplyAndMerge(EntityKey.of(guild.getIdLong(), clazz), cacheAndJoin.apply(guild));
-                streamed.incrementAndGet();
-            } catch (final DatabaseException e) {
-                exceptions.add(e);
-            }
-        });
-        log.debug("Synced {} DiscordGuild entities of class {} in {}ms with {} exceptions, joined {}",
-                streamed.get(), clazz.getSimpleName(), System.currentTimeMillis() - started, exceptions.size(), joined.get());
+        final Stream<Transfiguration<Long, E>> transfigurations = guilds.map(
+                guild -> {
+                    if (streamed.incrementAndGet() % 100 == 0) {
+                        log.debug("{} guilds processed while caching", streamed.get());
+                    }
+                    return Transfiguration.of(EntityKey.of(guild.getIdLong(), clazz), cacheAndJoin.apply(guild));
+                }
+        );
+
+        exceptions.addAll(dbWrapper.findApplyAndMergeAll(transfigurations));
+
+        log.debug("Cached {} DiscordUser entities of class {} in {}ms with {} exceptions.",
+                streamed.get(), clazz.getSimpleName(), System.currentTimeMillis() - started, exceptions.size());
         return exceptions;
     }
 

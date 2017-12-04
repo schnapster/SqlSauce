@@ -24,6 +24,7 @@
 
 package space.npstr.sqlsauce.jda.listeners;
 
+import net.dv8tion.jda.core.events.ReconnectedEvent;
 import net.dv8tion.jda.core.events.guild.GuildJoinEvent;
 import net.dv8tion.jda.core.events.guild.member.GenericGuildMemberEvent;
 import net.dv8tion.jda.core.events.guild.member.GuildMemberJoinEvent;
@@ -105,4 +106,8 @@ public class UserMemberCachingListener<E extends DiscordUser<E>> extends Caching
                         event.getClass().getSimpleName(), event.getGuild().getIdLong()));
     }
 
+    @Override
+    public void onReconnect(ReconnectedEvent event) {
+        //not doing anything here. the load would be way too high with the current DiscordUser#cacheAll code
+    }
 }
