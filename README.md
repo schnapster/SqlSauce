@@ -149,6 +149,23 @@ Create a package where you are going to drop your migration classes. It is impor
 Run this code before proceeding with the start of your app.
 The data about migrations that have been run is saved in an Hstore entity.
 
+### Logging
+Turn off Hibernate logging (at least the debug logs) to improve performance. I noticed a 3x higher throughput after
+disabling the debug logs. This depends on the slf4j implementation you are using, for logback adding 
+```xml
+    <logger name="org.hibernate" level="DEBUG" additivity="false">
+    </logger>
+```
+will completely shut up Hibernate logs. You probably still want to receive Info level or even more important, Warning and 
+Error level logs, so you should add your respective appenders there, example:
+```xml
+    <logger name="org.hibernate" level="DEBUG" additivity="false">
+        <appender-ref ref="INFOFILE"/>
+        <appender-ref ref="ERRORFILE"/>
+        <appender-ref ref="SENTRY"/>
+    </logger>
+```
+
 
 ## Additional Modules
 
@@ -179,6 +196,7 @@ The data about migrations that have been run is saved in an Hstore entity.
 - test whether this can actually run connections to more than one database at a time
 - improve security of the ssh tunnels
 - explore java 9 modularization
+- add hibernate enhancer plugin to documentation
 
 
 ## Roadmap

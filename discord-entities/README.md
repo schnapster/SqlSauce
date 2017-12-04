@@ -89,7 +89,6 @@ Setting the entity up to be automatically cached with [JDA](https://github.com/D
 ## TODOs
 
 - static getters should not load the entity and instead look up the field by a direct query
-- provide better support for mass syncing data on shard creation. this would allow this to be used as a full cache of discord entities
 - indices?
 
 

@@ -501,6 +501,8 @@ public class DatabaseConnection {
             hibernateProps.put("hibernate.hbm2ddl.auto", "update");
 
             //pl0x no log spam
+            //NOTE: despite those logs turned off, hibernate still spams tons of debug logs, so you really want to turn
+            // those completely off in the slf4j implementation you are using
             hibernateProps.put("hibernate.show_sql", "false");
             hibernateProps.put("hibernate.session.events.log", "false");
             //dont generate statistics; this will be overridden to true if a HibernateStatisticsCollector is provided

@@ -210,7 +210,9 @@ public abstract class DiscordUser<Self extends SaucedEntity<Long, Self>> extends
 
         final Stream<Transfiguration<Long, E>> transfigurations = members.map(
                 member -> {
-                    streamed.incrementAndGet();
+                    if (streamed.incrementAndGet() % 1000 == 0) {
+                        log.debug("{} users processed while caching", streamed.get());
+                    }
                     return Transfiguration.of(EntityKey.of(member.getUser().getIdLong(), clazz), cache.apply(member));
                 }
         );
