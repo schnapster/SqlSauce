@@ -86,7 +86,7 @@ public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extend
     protected String splashId;
 
     @Column(nullable = false, name = "region", columnDefinition = "text")
-    @ColumnDefault(value = "") //key of the unknown region
+    @ColumnDefault(value = "''") //key of the unknown region is an emptry string
     protected String region = Region.UNKNOWN.getKey();      //Region enum key
 
     @Column(nullable = true, name = "afk_channel_id")
