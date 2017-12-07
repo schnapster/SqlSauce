@@ -313,8 +313,8 @@ public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extend
 
         exceptions.addAll(dbWrapper.findApplyAndMergeAll(transfigurations));
 
-        log.debug("Cached {} DiscordUser entities of class {} in {}ms with {} exceptions.",
-                streamed.get(), clazz.getSimpleName(), System.currentTimeMillis() - started, exceptions.size());
+        log.debug("Cached {} DiscordGuild entities of class {} in {}ms with {} exceptions, joined {}",
+                streamed.get(), clazz.getSimpleName(), System.currentTimeMillis() - started, exceptions.size(), joined.get());
         return exceptions;
     }
 
