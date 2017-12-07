@@ -176,6 +176,10 @@ public class DatabaseConnection {
     public String getName() {
         return this.dbName;
     }
+    
+    public int getMaxPoolSize() {
+        return hikariDs.getMaximumPoolSize();
+    }
 
     @Nonnull
     @CheckReturnValue
