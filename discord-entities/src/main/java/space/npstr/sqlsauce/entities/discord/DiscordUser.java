@@ -280,10 +280,12 @@ public abstract class DiscordUser<Self extends SaucedEntity<Long, Self>> extends
     // 1. nickname in provided guild
     // 2. cached nickname in provided guild
     // 3. name of the existing user in the JDA object of the provided guild
+    // 3a. name of the existing user in the provided global user lookup
     // 4. cached username
     // 5. UNKNOWN_NAME
+    //this is a complete method to find a users name from all possible sources in a clear order of preference for the sources
     @Nonnull
-    public String getEffectiveName(@Nullable final Guild guild) {
+    public String getEffectiveName(@Nullable final Guild guild, @Nullable Function<Long, User> globalUserLookup) {
         if (guild != null) {
             final Member member = guild.getMemberById(this.userId);
             if (member != null) {
@@ -296,13 +298,31 @@ public abstract class DiscordUser<Self extends SaucedEntity<Long, Self>> extends
                 return cachedNick;
             }
 
-            final User user = guild.getJDA().getUserById(this.userId);
+            User user = guild.getJDA().getUserById(this.userId);
             if (user != null) {
                 //3
                 return user.getName();
             }
+            if (globalUserLookup != null) {
+                user = globalUserLookup.apply(this.userId);
+                if (user != null) {
+                    //3a
+                    return user.getName();
+                }
+            }
         }
         //4 & 5
         return getName();
+    }
+
+    //effective name of a user from the cache, similar to JDAs Member#getEffectiveName
+    @Nonnull
+    public String getEffectiveName(long guildId) {
+        String nick = getNick(guildId);
+        if (nick != null) {
+            return nick;
+        } else {
+            return getName();
+        }
     }
 }
