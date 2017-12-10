@@ -84,17 +84,20 @@ public class DatabaseWrapper {
         return entity != null ? entity : newInstance(entityKey);
     }
 
+    /**
+     * @return An entity if it exists in the database or null if it doesn't exist. If the entity is a SaucedEntity the
+     * sauce will be set.
+     */
     @Nullable
     @CheckReturnValue
-    //returns a sauced entity or null
-    public <E extends SaucedEntity<I, E>, I extends Serializable> E getEntity(@Nonnull final EntityKey<I, E> entityKey)
+    public <E extends IEntity<I, E>, I extends Serializable> E getEntity(@Nonnull final EntityKey<I, E> entityKey)
             throws DatabaseException {
         final EntityManager em = this.databaseConnection.getEntityManager();
         try {
             em.getTransaction().begin();
             @Nullable final E result = em.find(entityKey.clazz, entityKey.id);
             em.getTransaction().commit();
-            return result != null ? result.setSauce(this) : null;
+            return setSauce(result);
         } catch (final PersistenceException e) {
             final String message = String.format("Failed to find entity of class %s for id %s on DB %s",
                     entityKey.clazz.getName(), entityKey.id.toString(), this.databaseConnection.getName());
@@ -776,7 +779,7 @@ public class DatabaseWrapper {
         }
     }
 
-    private <T> T setSauce(final T t) {
+    private <T> T setSauce(@Nullable final T t) {
         if (t instanceof SaucedEntity) {
             ((SaucedEntity) t).setSauce(this);
         }
