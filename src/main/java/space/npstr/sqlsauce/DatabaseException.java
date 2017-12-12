@@ -29,7 +29,7 @@ package space.npstr.sqlsauce;
  * <p>
  * Thrown by our database connection
  */
-public class DatabaseException extends Exception {
+public class DatabaseException extends RuntimeException {
 
 
     private static final long serialVersionUID = 4421127305934584766L;
