@@ -35,9 +35,9 @@ import javax.annotation.Nullable;
 import javax.persistence.MappedSuperclass;
 import javax.persistence.Transient;
 import java.io.Serializable;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 /**
@@ -193,7 +193,7 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
     //                                  Locking
     //################################################################################
 
-    private static final Map<Class, Object[]> entityLocks = new HashMap<>();
+    private static final Map<Class, Object[]> entityLocks = new ConcurrentHashMap<>();
     // How many partitions the hashed entity locks shall have
     // The chosen, uncustomizable, value is considered good enough:tm: for the current implementation where locks are
     // bound to classes (amount of hanging around locks is equal to implemented SaucedEntities * concurrencyLevel).
@@ -226,13 +226,7 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
     @Nonnull
     @CheckReturnValue
     public static Object getEntityLock(@Nonnull final EntityKey id) {
-        //double lock synchronizing to create new collections of hashed locks, wew
-        Object[] hashedClasslocks = entityLocks.get(id.clazz);
-        if (hashedClasslocks == null) {
-            synchronized (entityLocks) {
-                hashedClasslocks = entityLocks.computeIfAbsent(id.clazz, k -> createObjectArray(concurrencyLevel));
-            }
-        }
+        Object[] hashedClasslocks = entityLocks.computeIfAbsent(id.clazz, k -> createObjectArray(concurrencyLevel));
         return hashedClasslocks[Math.floorMod(Objects.hash(id), hashedClasslocks.length)];
     }
 
