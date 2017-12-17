@@ -58,7 +58,7 @@ Add through the [JitPack](https://jitpack.io/) repo to your project:
     }
 
     dependencies {
-        compile group: 'space.npstr.SqlSauce', name: 'sqlsauce-core', version: '0.0.3'
+        compile group: 'space.npstr.SqlSauce', name: 'sqlsauce-core', version: '0.0.4-SNAPSHOT'
     }
 
 ```
@@ -75,7 +75,7 @@ Add through the [JitPack](https://jitpack.io/) repo to your project:
     <dependency>
         <groupId>space.npstr.SqlSauce</groupId>
         <artifactId>sqlsauce-core</artifactId>
-        <version>0.0.3</version>
+        <version>0.0.4-SNAPSHOT</version>
     </dependency>
 ```
 

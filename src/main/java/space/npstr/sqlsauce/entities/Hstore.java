@@ -152,55 +152,12 @@ public class Hstore extends SaucedEntity<String, Hstore> {
     }
 
     /**
-     * @return the requested Hstore object
-     * @deprecated since 0.0.3 use {@link SaucedEntity#load(EntityKey)} instead
-     */
-    @Nonnull
-    @CheckReturnValue
-    @Deprecated
-    public static Hstore load(@Nonnull final HstoreKey entityKey) throws DatabaseException {
-        return Hstore.load(getDefaultSauce(), entityKey);
-    }
-
-    /**
      * @return the default Hstore object
      */
     @Nonnull
     @CheckReturnValue
     public static Hstore load() throws DatabaseException {
         return SaucedEntity.load(getDefaultSauce(), HstoreKey.DEFAULT);
-    }
-
-    /**
-     * Load an Hstore object
-     *
-     * @return the object for chaining calls; dont forget to merge() the changes
-     * <p>
-     * @deprecated since 0.0.3 This method provides no real value over Hstore.load().set() and instead invites to forget to call save()
-     * This gets especially visible comparing Hstore.loadAndSet().save() vs the much more sensible Hstore.load().setAndSave()
-     * Use Hstore.loadSetAndSave() instead if really only one value needs to be set, or Hstore.loadApplyAndSave() to do
-     * bulk operations
-     */
-    @Nonnull
-    @CheckReturnValue
-    @Deprecated
-    public static Hstore loadAndSet(@Nonnull final HstoreKey entityKey, @Nonnull final String key, @Nonnull final String value)
-            throws DatabaseException {
-        return Hstore.loadAndSet(getDefaultSauce(), entityKey, key, value);
-    }
-
-    /**
-     * Uses the default hstore
-     *
-     * @return the object for chaining calls; dont forget to save() the changes
-     * <p>
-     * @deprecated since 0.0.3 See method above.
-     */
-    @Nonnull
-    @CheckReturnValue
-    @Deprecated
-    public static Hstore loadAndSet(@Nonnull final String key, @Nonnull final String value) throws DatabaseException {
-        return Hstore.loadAndSet(getDefaultSauce(), HstoreKey.DEFAULT, key, value);
     }
 
     /**
@@ -266,17 +223,6 @@ public class Hstore extends SaucedEntity<String, Hstore> {
         return loadAndGet(databaseWrapper, HstoreKey.DEFAULT, key, defaultValue);
     }
 
-    /**
-     * @return the requested Hstore object
-     * @deprecated since 0.0.3 use {@link SaucedEntity#load(DatabaseWrapper, EntityKey)} instead
-     */
-    @Nonnull
-    @CheckReturnValue
-    @Deprecated
-    public static Hstore load(@Nonnull final DatabaseWrapper databaseWrapper, @Nonnull final HstoreKey entityKey)
-            throws DatabaseException {
-        return databaseWrapper.getOrCreate(entityKey);
-    }
 
     /**
      * @return the default Hstore object from the provided database
@@ -285,37 +231,6 @@ public class Hstore extends SaucedEntity<String, Hstore> {
     @CheckReturnValue
     public static Hstore load(@Nonnull final DatabaseWrapper databaseWrapper) throws DatabaseException {
         return SaucedEntity.load(databaseWrapper, HstoreKey.DEFAULT);
-    }
-
-    /**
-     * Load an Hstore object
-     *
-     * @return the object for chaining calls; dont forget to save() the changes
-     * <p>
-     * @deprecated since 0.0.3 See equally named method single connection convenience method above.
-     */
-    @Nonnull
-    @CheckReturnValue
-    @Deprecated
-    public static Hstore loadAndSet(@Nonnull final DatabaseWrapper databaseWrapper, @Nonnull final HstoreKey entityKey,
-                                    @Nonnull final String key, @Nonnull final String value) throws DatabaseException {
-        return load(databaseWrapper, entityKey)
-                .set(key, value);
-    }
-
-    /**
-     * Uses the default hstore
-     *
-     * @return the object for chaining calls; dont forget to save() the changes
-     * <p>
-     * @deprecated since 0.0.3 See equally named method single connection convenience method above.
-     */
-    @Nonnull
-    @CheckReturnValue
-    @Deprecated
-    public static Hstore loadAndSet(@Nonnull final DatabaseWrapper databaseWrapper, @Nonnull final String key,
-                                    @Nonnull final String value) throws DatabaseException {
-        return loadAndSet(databaseWrapper, HstoreKey.DEFAULT, key, value);
     }
 
     /**

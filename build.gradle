@@ -22,7 +22,7 @@ allprojects {
     targetCompatibility = 8
 
     group 'space.npstr.SqlSauce'
-    version '0.0.3'
+    version '0.0.4-SNAPSHOT'
 
     publishing {
         publications {
@@ -52,7 +52,7 @@ allprojects {
     }
 
     ext {
-        gradleVers = '4.3.1'
+        gradleVers = '4.4'
 
         postgresDriverVersion = '42.1.4'
         hibernateVersion = '5.2.12.Final'
@@ -61,11 +61,11 @@ allprojects {
 
         jaxbApiVersion = '2.3.0'
         slf4jApiVersion = '1.8.0-beta0'
-        spotbugsVersion = '3.1.0'
+        spotbugsVersion = '3.1.1'
         prometheusVersion = '0.1.0'
 
         //discord entities module
-        jdaVersion = '3.3.1_307'
+        jdaVersion = '3.3.1_316'
     }
 
     // To generate an HTML report instead of XML
