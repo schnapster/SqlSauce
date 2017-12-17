@@ -26,14 +26,19 @@ package space.npstr.sqlsauce.entities;
 
 import space.npstr.sqlsauce.DatabaseException;
 import space.npstr.sqlsauce.DatabaseWrapper;
+import space.npstr.sqlsauce.fp.types.EntityKey;
+import space.npstr.sqlsauce.fp.types.Transfiguration;
 
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.persistence.MappedSuperclass;
 import javax.persistence.Transient;
 import java.io.Serializable;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 /**
  * Created by napster on 10.10.17.
@@ -65,15 +70,22 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
     }
 
 
-
     //the sauce of this entity
     @Transient
     protected DatabaseWrapper dbWrapper;
 
 
     @SuppressWarnings("unchecked")
+    @Nonnull
     protected Self getThis() {
         return (Self) this;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Nonnull
+    @Override
+    public Class<Self> getClazz() {
+        return (Class<Self>) this.getClass();
     }
 
     //when loading / creating with the DatabaseWrapper class, it will make sure to set this so that the convenience
@@ -89,7 +101,11 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
     //                              Convenience stuff
     //################################################################################
 
-    //to merge an entity after touching it
+    /**
+     * Merge an entity into the database it came from. Call this after setting any values on a detached entity.
+     *
+     * @return the updated entity
+     */
     @Nonnull
     @CheckReturnValue
     public Self save() throws DatabaseException {
@@ -99,13 +115,119 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
         }
     }
 
-    //Attempts to load an entity through the default sauce. Consider this to be the global entry point for a single
-    //db connection app for all your SaucedEntity needs where you know the id of.
+    /**
+     * @param dbWrapper The database to load from
+     * @param entityKey Key of the entity to load
+     * @param <I>       Id I of the SaucedEntity to load
+     * @param <E>       Concrete implementation class E of the SaucedEntity to load
+     * @return The requested entity from the provided database, or a new instance of the requested class if no such
+     * entity is found
+     */
     @Nonnull
     @CheckReturnValue
-    public static <E extends SaucedEntity<I, E>, I extends Serializable> E load(final I id, final Class<E> clazz)
+    public static <E extends SaucedEntity<I, E>, I extends Serializable> E load(@Nonnull final DatabaseWrapper dbWrapper,
+                                                                                @Nonnull final EntityKey<I, E> entityKey)
             throws DatabaseException {
-        return getDefaultSauce().getOrCreate(id, clazz);
+        return dbWrapper.getOrCreate(entityKey);
+    }
+
+    /**
+     * @param entityKey Key of the entity to load
+     * @param <I>       Id I of the SaucedEntity to load
+     * @param <E>       Concrete implementation class E of the SaucedEntity to load
+     * @return The requested entity from the default database, or a new instance of the requested class if no such
+     * entity is found
+     */
+    @Nonnull
+    @CheckReturnValue
+    public static <E extends SaucedEntity<I, E>, I extends Serializable> E load(@Nonnull final EntityKey<I, E> entityKey)
+            throws DatabaseException {
+        return load(getDefaultSauce(), entityKey);
+    }
+
+    /**
+     * @param dbWrapper The database to look up from
+     * @param entityKey Key of the entity to load
+     * @param <I>       Id I of the SaucedEntity to look up
+     * @param <E>       Concrete implementation class E of the SaucedEntity to look up
+     * @return The requested entity from the provided database, or null if no such entity is found
+     */
+    @Nullable
+    @CheckReturnValue
+    public static <E extends SaucedEntity<I, E>, I extends Serializable> E lookUp(@Nonnull final DatabaseWrapper dbWrapper,
+                                                                                  @Nonnull final EntityKey<I, E> entityKey)
+            throws DatabaseException {
+        return dbWrapper.getEntity(entityKey);
+    }
+
+    /**
+     * @param entityKey Key of the entity to load
+     * @param <I>       Id I of the SaucedEntity to look up
+     * @param <E>       Concrete implementation class E of the SaucedEntity to look up
+     * @return The requested entity from the default database, or null if no such entity is found
+     */
+    @Nullable
+    @CheckReturnValue
+    public static <E extends SaucedEntity<I, E>, I extends Serializable> E lookUp(@Nonnull final EntityKey<I, E> entityKey)
+            throws DatabaseException {
+        return lookUp(getDefaultSauce(), entityKey);
+    }
+
+    /**
+     * Apply some functions to an entity (creating it if nonexistent) of the provided database and save it back
+     *
+     * @param databaseWrapper database to use for this
+     * @param entityKey       the entity to load, transform, and save
+     * @param transformation  the transformation to apply to the entity
+     * @return the detached entity after saving it
+     */
+    @Nonnull
+    public static <E extends SaucedEntity<I, E>, I extends Serializable> E loadApplyAndSave(@Nonnull final DatabaseWrapper databaseWrapper,
+                                                                                            @Nonnull final EntityKey<I, E> entityKey,
+                                                                                            @Nonnull final Function<E, E> transformation)
+            throws DatabaseException {
+        return databaseWrapper.findApplyAndMerge(Transfiguration.of(entityKey, transformation));
+    }
+
+    //################################################################################
+    //                                  Locking
+    //################################################################################
+
+    private static final Map<Class, Object[]> entityLocks = new ConcurrentHashMap<>();
+    // How many partitions the hashed entity locks shall have
+    // The chosen, uncustomizable, value is considered good enough:tm: for the current implementation where locks are
+    // bound to classes (amount of hanging around locks is equal to implemented SaucedEntities * concurrencyLevel).
+    // Prime number to reduce possible collisions due to bad hashes.
+    // TODO implement customizable amount
+    private static final int concurrencyLevel = 17;
+
+
+    /**
+     * Abusing Hibernate with a lot of load/create entity -> detach -> save entity can lead to concurrent inserts
+     * if an entity is created two times and then merged simultaneously. Use one of the lock below for any writing
+     * operations, including lookup operations that will lead to writes (for example SaucedEntity#save()).
+     */
+    @Nonnull
+    @CheckReturnValue
+    public Object getEntityLock() {
+        return getEntityLock(EntityKey.of(this));
+    }
+
+
+    @Nonnull
+    @CheckReturnValue
+    public static <E extends SaucedEntity<I, E>, I extends Serializable> Object getEntityLock(@Nonnull final SaucedEntity<I, E> entity) {
+        return getEntityLock(EntityKey.of(entity));
+    }
+
+    /**
+     * @return A hashed lock. Uses the Object#hashCode method of the provided id to determine the hash.
+     */
+    @Nonnull
+    @CheckReturnValue
+    public static Object getEntityLock(@Nonnull final EntityKey id) {
+        Object[] hashedClasslocks = entityLocks.computeIfAbsent(id.clazz, k -> createObjectArray(concurrencyLevel));
+        return hashedClasslocks[Math.floorMod(Objects.hash(id), hashedClasslocks.length)];
     }
 
     //################################################################################
@@ -119,25 +241,14 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
         }
     }
 
-
-    private static final Map<Class, Object> entityLocks = new HashMap<>();
-
-    /**
-     * Abusing Hibernate with a lot of load/create entity -> detach -> save entity can lead to concurrent inserts
-     * if an entity is created two times and then merged simultaneously. For this case we provide an entity level
-     * lock to which the save() method will use to synchronize on
-     */
     @Nonnull
-    private Object getEntityLock() {
-        //double lock synchronizing to create new entity locks, wew
-        final Class c = getClass();
-        Object lock = entityLocks.get(c);
-        if (lock == null) {
-            synchronized (entityLocks) {
-                lock = entityLocks.computeIfAbsent(c, k -> new Object());
-            }
+    @CheckReturnValue
+    private static Object[] createObjectArray(final int size) {
+        final Object[] result = new Object[size];
+        for (int i = 0; i < size; i++) {
+            result[i] = new Object();
         }
-        return lock;
+        return result;
     }
 
 }

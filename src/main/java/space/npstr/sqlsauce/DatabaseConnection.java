@@ -24,6 +24,7 @@
 
 package space.npstr.sqlsauce;
 
+import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.metrics.MetricsTrackerFactory;
 import io.prometheus.client.hibernate.HibernateStatisticsCollector;
@@ -32,6 +33,8 @@ import org.hibernate.jpa.HibernatePersistenceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import space.npstr.sqlsauce.entities.SaucedEntity;
+import space.npstr.sqlsauce.migration.Migration;
+import space.npstr.sqlsauce.migration.Migrations;
 import space.npstr.sqlsauce.ssh.SshTunnel;
 
 import javax.annotation.CheckReturnValue;
@@ -91,107 +94,74 @@ public class DatabaseConnection {
     private final ScheduledExecutorService connectionCheck = Executors.newSingleThreadScheduledExecutor();
 
     /**
-     * @param dbName          name for this database connection, also used as the persistence unit name
-     * @param jdbcUrl         where to find the db, which user, which pw, etc
-     * @param entityPackages  example: "space.npstr.wolfia.db.entity", the names of the packages containing your
-     *                        annotated entites. root package names are fine, they will pick up all children
-     * @param appName         optional name that the connections will show up as in the db management tools
-     * @param poolName        optional name forht connection pool
-     * @param driverClassName optional name of the driver class; occasionally needed when there are several drivers
-     *                        present in the classpath and hikari has issues picking the correct one
-     * @param dialect     optional name of the dialect. sometimes autodetection is off
-     * @param sshDetails      optionally ssh tunnel the connection; highly recommended for all remote databases
-     * @param hibernateStats  optional metrics for hibernate. make sure to register it after adding all connections to it
-     * @param hikariStats     optional metrics for hikari
+     * @param dbName           name for this database connection, also used as the persistence unit name
+     * @param jdbcUrl          where to find the db, which user, which pw, etc; see easy to find jdbc url docs on the web
+     * @param dataSourceProps  properties for the underlying data source. see {@link Builder#getDefaultDataSourceProps()} for a start
+     * @param hikariConfig     config for hikari. see {@link Builder#getDefaultHikariConfig()} ()} for a start
+     * @param hibernateProps   properties for hibernate. see {@link Builder#getDefaultHibernateProps()} ()} for a start
+     * @param entityPackages   example: "space.npstr.wolfia.db.entity", the names of the packages containing your
+     *                         annotated entities. root package names are fine, they will pick up all children
+     * @param poolName         optional name for the connection pool; if null, a default name based on the db name will be picked
+     * @param sshDetails       optionally ssh tunnel the connection; highly recommended for all remote databases
+     * @param hibernateStats   optional metrics for hibernate. make sure to register it after adding all connections to it
+     * @param hikariStats      optional metrics for hikari
+     * @param checkConnection  set to false to disable a periodic healthcheck and automatic reconnection of the connection.
+     *                         only recommended if you run your own healthcheck and reconnection logic
      */
     public DatabaseConnection(@Nonnull final String dbName,
                               @Nonnull final String jdbcUrl,
+                              @Nonnull final Properties dataSourceProps,
+                              @Nonnull final HikariConfig hikariConfig,
+                              @Nonnull final Properties hibernateProps,
                               @Nonnull final Collection<String> entityPackages,
-                              @Nullable final String appName,
                               @Nullable final String poolName,
-                              @Nullable final String driverClassName,
-                              @Nullable final String dialect,
                               @Nullable final SshTunnel.SshDetails sshDetails,
+                              @Nullable final MetricsTrackerFactory hikariStats,
                               @Nullable final HibernateStatisticsCollector hibernateStats,
-                              @Nullable final MetricsTrackerFactory hikariStats) throws DatabaseException {
+                              final boolean checkConnection) throws DatabaseException {
         this.dbName = dbName;
         this.state = DatabaseState.INITIALIZING;
 
         try {
+            // create ssh tunnel
             if (sshDetails != null) {
                 this.sshTunnel = new SshTunnel(sshDetails).connect();
             }
 
             // hikari connection pool
-            this.hikariDs = new HikariDataSource();
-            this.hikariDs.setJdbcUrl(jdbcUrl);
-            //more database connections don't help with performance, so use a default value based on available cores
-            //http://www.dailymotion.com/video/x2s8uec_oltp-performance-concurrent-mid-tier-connections_tech
-            this.hikariDs.setMaximumPoolSize(Runtime.getRuntime().availableProcessors() * 2);
-            this.hikariDs.setPoolName(poolName != null && !poolName.isEmpty() ? poolName : "Default Pool");
-            this.hikariDs.setValidationTimeout(1000);
-            this.hikariDs.setConnectionTimeout(2000);
-            this.hikariDs.setConnectionTestQuery(TEST_QUERY);
-            this.hikariDs.setAutoCommit(false);
-            if (driverClassName != null && !driverClassName.isEmpty()) {
-                this.hikariDs.setDriverClassName(driverClassName);
+            final HikariConfig hiConf = new HikariConfig();
+            hikariConfig.copyStateTo(hiConf); //dont touch the provided config, it might get reused outside, instead use a copy
+            hiConf.setJdbcUrl(jdbcUrl);
+            if (poolName != null && !poolName.isEmpty()) {
+                hiConf.setPoolName(poolName);
+            } else {
+                hiConf.setPoolName(dbName + "-DefaultPool");
             }
-            if (hibernateStats != null) {
-                this.hikariDs.setMetricsTrackerFactory(hikariStats);
+            if (hikariStats != null) {
+                hiConf.setMetricsTrackerFactory(hikariStats);
             }
-            final Properties props = new Properties();
-            if (appName != null && !appName.isEmpty()) {
-                props.setProperty("ApplicationName", appName);
-            }
-            // allow postgres to cast strings (varchars) more freely to actual column types
-            // source https://jdbc.postgresql.org/documentation/head/connect.html
-            props.setProperty("stringtype", "unspecified");
-            this.hikariDs.setDataSourceProperties(props);
+            hiConf.setDataSourceProperties(dataSourceProps);
+            this.hikariDs = new HikariDataSource(hiConf);
 
-            //add provided entities
+            //add entities provided by this lib
             entityPackages.add("space.npstr.sqlsauce.entities");
+
             // jpa
             final PersistenceUnitInfo puInfo = defaultPersistenceUnitInfo(this.hikariDs, entityPackages, dbName);
 
             // hibernate
-            final Properties hibernateProps = new Properties();
-
-            //automatically update the tables we need
-            //caution: only add new columns, don't remove or alter old ones, otherwise manual db table migration needed
-            hibernateProps.put("hibernate.hbm2ddl.auto", "update");
-
-            //pl0x no log spam
-            hibernateProps.put("hibernate.show_sql", "false");
-
-            //generate statistics but dont spam log them
-            hibernateProps.put("hibernate.generate_statistics", "true");
-            hibernateProps.put("hibernate.session.events.log", "false");
-
-            //sane batch sizes
-            hibernateProps.put("hibernate.default_batch_fetch_size", 100);
-            hibernateProps.put("hibernate.jdbc.batch_size", 100);
-
-            //disable autocommit, it is not recommended for our usecases, and interferes with some of them
-            // see https://vladmihalcea.com/2017/05/17/why-you-should-always-use-hibernate-connection-provider_disables_autocommit-for-resource-local-jpa-transactions/
-            // this also means all EntityManager interactions need to be wrapped into em.getTransaction.begin() and
-            // em.getTransaction.commit() to prevent a rollback spam at the database
-            hibernateProps.put("hibernate.connection.autocommit", "false");
-            hibernateProps.put("hibernate.connection.provider_disables_autocommit", "true");
-
-            if (dialect != null) {
-                hibernateProps.put("hibernate.dialect", dialect);
+            if (hibernateStats != null) {
+                hibernateProps.put("hibernate.generate_statistics", "true");
             }
-
             this.emf = new HibernatePersistenceProvider().createContainerEntityManagerFactory(puInfo, hibernateProps);
-
             if (hibernateStats != null) {
                 hibernateStats.add(this.emf.unwrap(SessionFactoryImpl.class), dbName);
             }
 
-
             this.state = DatabaseState.READY;
-
-            this.connectionCheck.scheduleAtFixedRate(this::healthCheck, 5, 5, TimeUnit.SECONDS);
+            if (checkConnection) {
+                this.connectionCheck.scheduleAtFixedRate(this::healthCheck, 5, 5, TimeUnit.SECONDS);
+            }
             SaucedEntity.setDefaultSauce(new DatabaseWrapper(this));
         } catch (final Exception e) {
             this.state = DatabaseState.FAILED;
@@ -206,12 +176,18 @@ public class DatabaseConnection {
     public String getName() {
         return this.dbName;
     }
+    
+    public int getMaxPoolSize() {
+        return hikariDs.getMaximumPoolSize();
+    }
 
     @Nonnull
     @CheckReturnValue
-    public EntityManager getEntityManager() throws IllegalStateException {
+    public EntityManager getEntityManager() throws IllegalStateException, DatabaseException {
         if (this.state == DatabaseState.SHUTDOWN) {
-            throw new IllegalStateException("Database has been shutdown.");
+            throw new IllegalStateException("Database connection has been shutdown.");
+        } else if (this.state != DatabaseState.READY) {
+            throw new DatabaseException("Database connection is not available.");
         }
         return this.emf.createEntityManager();
     }
@@ -239,10 +215,18 @@ public class DatabaseConnection {
         return this.state == DatabaseState.READY;
     }
 
-    //perform a healthcheck and try to reconnect if the health check fails
-    private void healthCheck() {
+    /**
+     * Perform a health check and try to reconnect in a blocking fashion if the health check fails
+     * <p>
+     * The healthcheck has to be called proactively, as the ssh tunnel does not provide any callback for detecting a
+     * disconnect. The default configuration of the database connection takes care of doing this every few seconds.
+     *
+     * @return true if the database is healthy, false otherwise. Will return false if the database is shutdown, but not
+     * attempt to restart/reconnect it.
+     */
+    public boolean healthCheck() {
         if (this.state == DatabaseState.SHUTDOWN) {
-            return;
+            return false;
         }
 
         //is the ssh connection still alive?
@@ -254,16 +238,19 @@ public class DatabaseConnection {
 
         if (runTestQuery()) {
             this.state = DatabaseState.READY;
+            return true;
         } else {
             this.state = DatabaseState.FAILED;
+            return false;
         }
-
     }
 
-    //returns true if the test query was successful and false if not
+    /**
+     * @return true if the test query was successful and false if not
+     */
     @CheckReturnValue
-    private boolean runTestQuery() {
-        final EntityManager em = getEntityManager();
+    public boolean runTestQuery() {
+        final EntityManager em = this.emf.createEntityManager();
         try {
             em.getTransaction().begin();
             em.createNativeQuery(TEST_QUERY).getResultList();
@@ -280,7 +267,7 @@ public class DatabaseConnection {
     //copy pasta'd this from somewhere on stackoverflow, seems to work with slight adjustments
     @CheckReturnValue
     private PersistenceUnitInfo defaultPersistenceUnitInfo(final DataSource ds,
-                                                           @SuppressWarnings("SameParameterValue") final Collection<String> entityPackages,
+                                                           final Collection<String> entityPackages,
                                                            final String persistenceUnitName) {
         return new PersistenceUnitInfo() {
             @Override
@@ -478,26 +465,95 @@ public class DatabaseConnection {
 
     //builder pattern, duh
     public static class Builder {
+
+        @Nonnull
+        public static Properties getDefaultDataSourceProps() {
+            final Properties dataSourceProps = new Properties();
+
+            // allow postgres to cast strings (varchars) more freely to actual column types
+            // source https://jdbc.postgresql.org/documentation/head/connect.html
+            dataSourceProps.setProperty("stringtype", "unspecified");
+
+            return dataSourceProps;
+        }
+
+        @Nonnull
+        public static HikariConfig getDefaultHikariConfig() {
+            final HikariConfig hikariConfig = new HikariConfig();
+
+            //more database connections don't help with performance, so use a default value based on available cores
+            //http://www.dailymotion.com/video/x2s8uec_oltp-performance-concurrent-mid-tier-connections_tech
+            hikariConfig.setMaximumPoolSize(Math.max(Runtime.getRuntime().availableProcessors(), 4));
+
+            //timeout the validation query (will be done automatically through Connection.isValid())
+            hikariConfig.setValidationTimeout(3000);
+            hikariConfig.setConnectionTimeout(10000);
+            hikariConfig.setConnectionTestQuery(TEST_QUERY);
+            hikariConfig.setAutoCommit(false);
+
+            hikariConfig.setDriverClassName("org.postgresql.Driver");
+
+            return hikariConfig;
+        }
+
+        @Nonnull
+        public static Properties getDefaultHibernateProps() {
+            final Properties hibernateProps = new Properties();
+
+            //automatically update the tables we need
+            //caution: only add new columns, don't remove or alter old ones, otherwise manual db table migration needed
+            hibernateProps.put("hibernate.hbm2ddl.auto", "update");
+
+            //pl0x no log spam
+            //NOTE: despite those logs turned off, hibernate still spams tons of debug logs, so you really want to turn
+            // those completely off in the slf4j implementation you are using
+            hibernateProps.put("hibernate.show_sql", "false");
+            hibernateProps.put("hibernate.session.events.log", "false");
+            //dont generate statistics; this will be overridden to true if a HibernateStatisticsCollector is provided
+            hibernateProps.put("hibernate.generate_statistics", "false");
+
+            //sane batch sizes
+            hibernateProps.put("hibernate.default_batch_fetch_size", 100);
+            hibernateProps.put("hibernate.jdbc.batch_size", 100);
+
+            //disable autocommit, it is not recommended for our use cases, and interferes with some of them
+            // see https://vladmihalcea.com/2017/05/17/why-you-should-always-use-hibernate-connection-provider_disables_autocommit-for-resource-local-jpa-transactions/
+            // this also means all EntityManager interactions need to be wrapped into em.getTransaction.begin() and
+            // em.getTransaction.commit() to prevent a rollback spam at the database
+            hibernateProps.put("hibernate.connection.autocommit", "false");
+            hibernateProps.put("hibernate.connection.provider_disables_autocommit", "true");
+
+
+            return hibernateProps;
+        }
+
+
         @Nonnull
         private String dbName;
         @Nonnull
         private String jdbcUrl;
         @Nonnull
+        private Properties dataSourceProps = getDefaultDataSourceProps();
+        @Nonnull
+        private HikariConfig hikariConfig = getDefaultHikariConfig();
+        @Nonnull
+        private Properties hibernateProps = getDefaultHibernateProps();
+        @Nonnull
         private Collection<String> entityPackages = new ArrayList<>();
         @Nullable
-        private String appName;
-        @Nullable
         private String poolName;
-        @Nullable
-        private String driverClassName;
-        @Nullable
-        private String dialect;
         @Nullable
         private SshTunnel.SshDetails sshDetails;
         @Nullable
         private HibernateStatisticsCollector hibernateStats;
         @Nullable
         private MetricsTrackerFactory hikariStats;
+        @Nonnull
+        private Migrations migrations = new Migrations();
+        private boolean checkConnection = true;
+
+
+        // absolute minimum needed config
 
         @Nonnull
         @CheckReturnValue
@@ -506,17 +562,13 @@ public class DatabaseConnection {
             this.jdbcUrl = jdbcUrl;
         }
 
+        /**
+         * Give this database connection a name - preferably unique inside your application.
+         */
         @Nonnull
         @CheckReturnValue
         public Builder setDatabaseName(@Nonnull final String dbName) {
             this.dbName = dbName;
-            return this;
-        }
-
-        @Nonnull
-        @CheckReturnValue
-        public Builder setAppName(@Nullable final String appName) {
-            this.appName = appName;
             return this;
         }
 
@@ -527,18 +579,93 @@ public class DatabaseConnection {
             return this;
         }
 
+
+        // datasource stuff
+
+        /**
+         * Set your own DataSource props. By default, the builder populates the DataSource properties with
+         * {@link Builder#getDefaultDataSourceProps()}, which can be overriden using this method. Use
+         * {@link Builder#setDataSourceProperty(Object, Object)} if you want to add a single property.
+         */
         @Nonnull
         @CheckReturnValue
-        public Builder setDriverClassName(@Nonnull final String driverClassName) {
-            this.driverClassName = driverClassName;
+        public Builder setDataSourceProps(@Nonnull final Properties props) {
+            this.dataSourceProps = props;
             return this;
         }
 
         @Nonnull
         @CheckReturnValue
-        public Builder setDialect(@Nonnull final String dialect) {
-            this.dialect = dialect;
+        public Builder setDataSourceProperty(@Nonnull final Object key, @Nonnull final Object value) {
+            this.dataSourceProps.put(key, value);
             return this;
+        }
+
+        /**
+         * Name that the connections will show up with in db management tools
+         */
+        @Nonnull
+        @CheckReturnValue
+        public Builder setAppName(@Nonnull final String appName) {
+            this.dataSourceProps.setProperty("ApplicationName", appName);
+            return this;
+        }
+
+
+        //hikari stuff
+
+        /**
+         * Set your own HikariDataSource. By default, the builder populates the HikariDataSource properties with
+         * {@link Builder#getDefaultHikariConfig()} ()} ()}, which can be overriden using this method.
+         */
+        @Nonnull
+        @CheckReturnValue
+        public Builder setHikariConfig(@Nonnull final HikariConfig hikariConfig) {
+            this.hikariConfig = hikariConfig;
+            return this;
+        }
+
+        /**
+         * Name of the Hikari pool. Should be unique across your application. If you don't set one or set a null one
+         * a default pool name based on the database name will be picked.
+         */
+        @Nonnull
+        @CheckReturnValue
+        public Builder setPoolName(@Nullable final String poolName) {
+            this.poolName = poolName;
+            return this;
+        }
+
+
+        //hibernate stuff
+
+        /**
+         * Set your own Hibernate props. By default, the builder populates the Hibernate properties with
+         * {@link Builder#getDefaultHibernateProps()}, which can be overriden using this method. Use
+         * {@link Builder#setHibernateProperty(Object, Object)} if you want to add a single property.
+         */
+        @Nonnull
+        @CheckReturnValue
+        public Builder setHibernateProps(@Nonnull final Properties props) {
+            this.hibernateProps = props;
+            return this;
+        }
+
+        @Nonnull
+        @CheckReturnValue
+        public Builder setHibernateProperty(@Nonnull final Object key, @Nonnull final Object value) {
+            this.hibernateProps.put(key, value);
+            return this;
+        }
+
+        /**
+         * Set the name of the dialect to be used, as sometimes auto detection is off (or you want to use a custom one)
+         * Example: "org.hibernate.dialect.PostgreSQL95Dialect"
+         */
+        @Nonnull
+        @CheckReturnValue
+        public Builder setDialect(@Nonnull final String dialect) {
+            return setHibernateProperty("hibernate.dialect", dialect);
         }
 
         @Nonnull
@@ -548,6 +675,10 @@ public class DatabaseConnection {
             return this;
         }
 
+        /**
+         * Add all packages of your application that contain entities that you want to use with this connection.
+         * Example: "com.example.yourorg.yourproject.db.entities"
+         */
         @Nonnull
         @CheckReturnValue
         public Builder addEntityPackage(@Nonnull final String entityPackage) {
@@ -555,13 +686,12 @@ public class DatabaseConnection {
             return this;
         }
 
-        @Nonnull
-        @CheckReturnValue
-        public Builder setPoolName(@Nullable final String poolName) {
-            this.poolName = poolName;
-            return this;
-        }
 
+        // ssh stuff
+
+        /**
+         * Set this to tunnel the database connection through the configured SSH tunnel. Provide a null object to reset.
+         */
         @Nonnull
         @CheckReturnValue
         public Builder setSshDetails(@Nullable final SshTunnel.SshDetails sshDetails) {
@@ -569,12 +699,8 @@ public class DatabaseConnection {
             return this;
         }
 
-        @Nonnull
-        @CheckReturnValue
-        public Builder setHibernateStats(@Nullable final HibernateStatisticsCollector hibernateStats) {
-            this.hibernateStats = hibernateStats;
-            return this;
-        }
+
+        // metrics stuff
 
         @Nonnull
         @CheckReturnValue
@@ -583,21 +709,66 @@ public class DatabaseConnection {
             return this;
         }
 
+        /**
+         * Providing a HibernateStatisticsCollector will also enable Hibernate statistics equivalent to
+         * <p>
+         * hibernateProps.put("hibernate.generate_statistics", "true");
+         * <p>
+         * for the resulting DatabaseConnection.
+         */
+        @Nonnull
+        @CheckReturnValue
+        public Builder setHibernateStats(@Nullable final HibernateStatisticsCollector hibernateStats) {
+            this.hibernateStats = hibernateStats;
+            return this;
+        }
+
+
+        //migrations
+        //will automatically be run before returning the created connection
+
+        @Nonnull
+        @CheckReturnValue
+        public Builder setMigrations(@Nonnull final Migrations migrations) {
+            this.migrations = migrations;
+            return this;
+        }
+
+        @Nonnull
+        @CheckReturnValue
+        public Builder addMigration(@Nonnull final Migration migration) {
+            this.migrations.registerMigration(migration);
+            return this;
+        }
+
+
+        //misc
+        @Nonnull
+        @CheckReturnValue
+        public Builder setCheckConnection(final boolean checkConnection) {
+            this.checkConnection = checkConnection;
+            return this;
+        }
+
         @Nonnull
         @CheckReturnValue
         public DatabaseConnection build() throws DatabaseException {
-            return new DatabaseConnection(
+            final DatabaseConnection databaseConnection = new DatabaseConnection(
                     this.dbName,
                     this.jdbcUrl,
+                    this.dataSourceProps,
+                    this.hikariConfig,
+                    this.hibernateProps,
                     this.entityPackages,
-                    this.appName,
                     this.poolName,
-                    this.driverClassName,
-                    this.dialect,
                     this.sshDetails,
+                    this.hikariStats,
                     this.hibernateStats,
-                    this.hikariStats
+                    this.checkConnection
             );
+
+            this.migrations.runMigrations(databaseConnection);
+            return databaseConnection;
         }
     }
 }

@@ -1,6 +1,8 @@
 # SqlSauce
 
-[![Release](https://jitpack.io/v/space.npstr/SqlSauce.svg?style=flat-square)](https://jitpack.io/#space.npstr/SqlSauce)
+[![Release](https://jitpack.io/v/space.npstr/SqlSauce.svg?style=flat-square)](https://jitpack.io/#space.npstr/SqlSauce) release  
+[![Build Status Master Branch](https://img.shields.io/travis/napstr/SqlSauce/master.svg?style=flat-square)](https://travis-ci.org/napstr/SqlSauce/branches) master branch  
+[![Build Status Development Branch](https://img.shields.io/travis/napstr/SqlSauce/dev.svg?style=flat-square)](https://travis-ci.org/napstr/SqlSauce/branches) dev branch  
 
 
 SQL database stack I use between various projects.
@@ -9,7 +11,7 @@ Setting up and configuring database and ORM stuff has been identified by me as a
 - Choose the best all-around tools and use them conveniently
 - Strip away crazy config stuff with sane defaults and zero xml files
 
-Bonus goal: Avoid using Spring cause I personally do not like it.
+Bonus goal: Avoid using Spring cause I personally do not like it for small projects.
 
 
 ## Tooling
@@ -50,13 +52,13 @@ Sure, you can also run raw SQL queries.
 Add through the [JitPack](https://jitpack.io/) repo to your project:
 
 ###### Gradle build.gradle
-```gradle
+```groovy
     repositories {
         maven { url 'https://jitpack.io' }
     }
 
     dependencies {
-        compile group: 'space.npstr', name: 'SqlSauce', version: '0.0.2'
+        compile group: 'space.npstr.SqlSauce', name: 'sqlsauce-core', version: '0.0.3'
     }
 
 ```
@@ -71,9 +73,9 @@ Add through the [JitPack](https://jitpack.io/) repo to your project:
     </repositories>
 
     <dependency>
-        <groupId>space.npstr</groupId>
-        <artifactId>SqlSauce</artifactId>
-        <version>0.0.2</version>
+        <groupId>space.npstr.SqlSauce</groupId>
+        <artifactId>sqlsauce-core</artifactId>
+        <version>0.0.3</version>
     </dependency>
 ```
 
@@ -147,13 +149,61 @@ Create a package where you are going to drop your migration classes. It is impor
 Run this code before proceeding with the start of your app.
 The data about migrations that have been run is saved in an Hstore entity.
 
+### Logging
+Turn off Hibernate logging (at least the debug logs) to improve performance. I noticed a 3x higher throughput after
+disabling the debug logs. This depends on the slf4j implementation you are using, for logback adding 
+```xml
+    <logger name="org.hibernate" level="DEBUG" additivity="false">
+    </logger>
+```
+will completely shut up Hibernate logs. You probably still want to receive Info level or even more important, Warning and 
+Error level logs, so you should add your respective appenders there, example:
+```xml
+    <logger name="org.hibernate" level="DEBUG" additivity="false">
+        <appender-ref ref="INFOFILE"/>
+        <appender-ref ref="ERRORFILE"/>
+        <appender-ref ref="SENTRY"/>
+    </logger>
+```
+
 
 ## Additional Modules
 
-[Discord Entities](https://github.com/napstr/SqlSauce/blob/master/sqlsauce-discord-entities/README.md)
+[Discord Entities](https://github.com/napstr/SqlSauce/blob/master/discord-entities/README.md)
 
 
 ## Changelog
+
+### v0.0.3
+General:
+- Main module was renamed 'sqlsauce' -> 'sqlsauce-core'
+- Dependency bumps
+- DatabaseExceptions are unchecked now
+
+Sauced Entities:
+- Improved locking performance by using hashed locks
+- Make HStore static methods use functional wrapper methods (see below)
+- Using the correct column definition (text) for Hstore names
+- Add lookup methods with Nullable returns
+- EntityKey type to exactly describe an entity (class + id)
+
+Connection / Wrapper:
+- Better support for functional paradigms in the DatabaseWrapper. For example a Function<Entity, Entity> can be passed
+and will be applied to the specified entity, so you can modify entities without detaching them from the persistence context;
+- Add a method that handles a stream of entities from a query (coming with JPA2.2, already implemented in Hibernate) and applies a Function on them
+- Added single result JPQL query method
+- Default connection count lowered
+- Obtaining an EntityManager while a disconnect has been discovered and is being fixed will now failfast with a DatabaseException instead of timing out
+- Reworked the connection builder to allow full customization of hibernate and hikari properties/config, which also allows adding 2nd level cache
+- Connection check can be turned off / overridden by own implementation
+- Turn off hibernate logging, enable statistics only when metrics are used
+- Add method for native sql queries without any result class or mapping
+
+Migrations:
+- Add Migrations to the Builder, meaning they will be run after building the connection and before returning it
+- Migrations can be named (to prevent accidental changes of file names running them again)
+- Theres a SimpleMigration base class for running migrations with parameterless sql queries even easier
+
 
 ### v0.0.2
 - Initial release of Discord Entities module with Proof of Concept for Guilds and Users + JDA listeners to cache them
@@ -174,8 +224,64 @@ The data about migrations that have been run is saved in an Hstore entity.
 
 ## TODOs
 
-- test whether this can actually run more than one connection at a time
+- test whether this can actually run connections to more than one database at a time
 - improve security of the ssh tunnels
-- make migrations part of the database creation instead of manually handling them
-- 2nd level cache support (ehcache?)
-- make entity locks less of a hack and more of a feature
+- explore java 9 modularization
+- add hibernate enhancer plugin to documentation
+
+
+## Roadmap
+
+_aka where is this going?_  
+The SaucedEntity concept looks decent. Splitting that off from the database connection stuff into a separate module 
+could become the foundation for a database agnostic convenience library for small to midsized projects.
+
+
+## Dependencies
+
+This project requires **Java 8**  
+Dependencies are managed automagically by Gradle, some of these are optional / need to be provided to take advantage of.
+See the respective `build.gradle` for details.
+
+- **PostgreSQL JDBC Driver**:
+  - [Website](https://jdbc.postgresql.org/)
+  - [GitHub](https://github.com/pgjdbc/pgjdbc)
+  - [The PostgreSQL License](http://www.postgresql.org/about/licence/) & [BSD 2-clause "Simplified" License](https://jdbc.postgresql.org/about/license.html)
+  - [Maven Repository](https://mvnrepository.com/artifact/org.postgresql/postgresql)
+
+- **Hibernate ORM**:
+  - [Website](http://hibernate.org/orm/)
+  - [GitHub](https://github.com/hibernate/hibernate-orm)
+  - [GNU Lesser General Public License](http://hibernate.org/community/license/)
+  - [Maven Repository](https://mvnrepository.com/artifact/org.hibernate/hibernate-core)
+
+- **Hikari CP**:
+  - [GitHub](https://github.com/brettwooldridge/HikariCP)
+  - [Apache License 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt)
+  - [Maven Repository](https://mvnrepository.com/artifact/com.zaxxer/HikariCP)
+
+- **Java Secure Channel**:
+  - [Website](http://www.jcraft.com/jsch/)
+  - [Revised BSD style license](http://www.jcraft.com/jsch/LICENSE.txt)
+  - [Maven Repository](https://mvnrepository.com/artifact/com.jcraft/jsch)
+
+- **Jaxb Api**:
+  - [CDDL 1.1 GPL2 w/ CPE](https://oss.oracle.com/licenses/CDDL+GPL-1.1)
+  - [Maven Repository](https://mvnrepository.com/artifact/javax.xml.bind/jaxb-api/)
+
+- **Simple Logging Facade for Java**:
+  - [Website](https://www.slf4j.org/)
+  - [MIT License](http://www.opensource.org/licenses/mit-license.php)
+  - [Maven Repository](https://mvnrepository.com/artifact/org.slf4j/slf4j-api/)
+
+- **SpotBugs Annotations**:
+  - [Website](https://spotbugs.github.io/)
+  - [GitHub](https://github.com/spotbugs/spotbugs)
+  - [GNU LESSER GENERAL PUBLIC LICENSE, Version 2.1](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html)
+  - [Maven Repository](https://mvnrepository.com/artifact/com.github.spotbugs/spotbugs-annotations)
+
+- **Prometheus Simpleclient Hibernate**:
+  - [Website](https://prometheus.io/)
+  - [GitHub](https://github.com/prometheus/client_java)
+  - [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt)
+  - [Maven Repository](https://mvnrepository.com/artifact/io.prometheus/simpleclient_hibernate)

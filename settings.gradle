@@ -1,3 +1,3 @@
-rootProject.name = 'sqlsauce'
-include 'sqlsauce-discord-entities'
+rootProject.name = 'sqlsauce-core'
+include 'discord-entities'
 

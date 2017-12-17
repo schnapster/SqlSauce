@@ -27,16 +27,35 @@ package space.npstr.sqlsauce.migration;
 import space.npstr.sqlsauce.DatabaseConnection;
 import space.npstr.sqlsauce.DatabaseException;
 
+import javax.annotation.Nonnull;
+
 /**
  * Created by napster on 11.10.17.
  * <p>
  * Whatever you do, never rename any migrations you are registering. The simple class name is used to identify them.
  */
-public interface Migration {
+public abstract class Migration {
+
+    private final String name;
+
+    public Migration(@Nonnull final String name) {
+        if (name.isEmpty()) {
+            throw new IllegalArgumentException("Name for migration must not be empty");
+        }
+        this.name = name;
+    }
+
+    public Migration() {
+        this.name = this.getClass().getSimpleName();
+    }
+
+    @Nonnull
+    public String getName() {
+        return this.name;
+    }
 
     //ready to use connection to the target database
     //keep in mind these migrations are meant to run after hibernate ddl set up new columns etc
     //throwing a DatabaseException is an acceptable way to indicate that the migration was not successful
-    void up(DatabaseConnection databaseConnection) throws DatabaseException;
-
+    public abstract void up(@Nonnull DatabaseConnection databaseConnection) throws DatabaseException;
 }

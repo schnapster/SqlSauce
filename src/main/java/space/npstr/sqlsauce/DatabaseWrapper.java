@@ -25,8 +25,12 @@
 package space.npstr.sqlsauce;
 
 import org.hibernate.Session;
+import org.hibernate.internal.SessionImpl;
+import org.hibernate.query.spi.QueryImplementor;
 import space.npstr.sqlsauce.entities.IEntity;
 import space.npstr.sqlsauce.entities.SaucedEntity;
+import space.npstr.sqlsauce.fp.types.EntityKey;
+import space.npstr.sqlsauce.fp.types.Transfiguration;
 
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
@@ -36,9 +40,14 @@ import javax.persistence.PersistenceException;
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Created by napster on 30.05.17.
@@ -67,30 +76,31 @@ public class DatabaseWrapper {
      */
     @Nonnull
     @CheckReturnValue
-    public <E extends SaucedEntity<I, E>, I extends Serializable> E getOrCreate(@Nonnull final I id,
-                                                                                @Nonnull final Class<E> clazz)
+    public <E extends SaucedEntity<I, E>, I extends Serializable> E getOrCreate(@Nonnull final EntityKey<I, E> entityKey)
             throws DatabaseException {
-        final E entity = getEntity(id, clazz);
+        final E entity = getEntity(entityKey);
         //return a fresh object if we didn't find the one we were looking for
         // no need to set the sauce as either getEntity or newInstance do that already
-        return entity != null ? entity : newInstance(id, clazz);
+        return entity != null ? entity : newInstance(entityKey);
     }
 
+    /**
+     * @return An entity if it exists in the database or null if it doesn't exist. If the entity is a SaucedEntity the
+     * sauce will be set.
+     */
     @Nullable
     @CheckReturnValue
-    //returns a sauced entity or null
-    public <E extends SaucedEntity<I, E>, I extends Serializable> E getEntity(@Nonnull final I id,
-                                                                              @Nonnull final Class<E> clazz)
+    public <E extends IEntity<I, E>, I extends Serializable> E getEntity(@Nonnull final EntityKey<I, E> entityKey)
             throws DatabaseException {
         final EntityManager em = this.databaseConnection.getEntityManager();
         try {
             em.getTransaction().begin();
-            @Nullable final E result = em.find(clazz, id);
+            @Nullable final E result = em.find(entityKey.clazz, entityKey.id);
             em.getTransaction().commit();
-            return result != null ? result.setSauce(this) : null;
+            return setSauce(result);
         } catch (final PersistenceException e) {
             final String message = String.format("Failed to find entity of class %s for id %s on DB %s",
-                    clazz.getName(), id.toString(), this.databaseConnection.getName());
+                    entityKey.clazz.getName(), entityKey.id.toString(), this.databaseConnection.getName());
             throw new DatabaseException(message, e);
         } finally {
             em.close();
@@ -137,12 +147,30 @@ public class DatabaseWrapper {
     public <E extends SaucedEntity<I, E>, I extends Serializable> List<E> getEntities(@Nonnull final List<I> ids,
                                                                                       @Nonnull final Class<E> clazz)
             throws DatabaseException {
+        return getEntities(ids.stream()
+                .map(id -> EntityKey.of(id, clazz))
+                .collect(Collectors.toList()));
+    }
+
+    /**
+     * @return The result list will be ordered by the order of the provided id list, but may contain null for unknown
+     * entities
+     */
+    @Nonnull
+    @CheckReturnValue
+    //returns a list of sauced entities that may contain null elements
+    public <E extends SaucedEntity<I, E>, I extends Serializable> List<E> getEntities(@Nonnull final List<EntityKey<I, E>> entityKeys)
+            throws DatabaseException {
+        if (entityKeys.isEmpty()) {
+            return Collections.emptyList();
+        }
+        final Class<E> clazz = entityKeys.get(0).clazz;
         final EntityManager em = this.databaseConnection.getEntityManager();
         try {
             em.getTransaction().begin();
             final List<E> results = em.unwrap(Session.class)
                     .byMultipleIds(clazz)
-                    .multiLoad(ids);
+                    .multiLoad(entityKeys.stream().map(key -> key.id).collect(Collectors.toList()));
             em.getTransaction().commit();
             return results
                     .stream()
@@ -150,7 +178,7 @@ public class DatabaseWrapper {
                     .collect(Collectors.toList());
         } catch (final PersistenceException e) {
             final String message = String.format("Failed to bulk load %s entities of class %s on DB %s",
-                    ids.size(), clazz.getName(), this.databaseConnection.getName());
+                    entityKeys.size(), clazz.getName(), this.databaseConnection.getName());
             throw new DatabaseException(message, e);
         } finally {
             em.close();
@@ -168,7 +196,8 @@ public class DatabaseWrapper {
     @Nonnull
     @CheckReturnValue
     //returns a sauced entity
-    public <E extends SaucedEntity<I, E>, I extends Serializable> E merge(@Nonnull final E entity) throws DatabaseException {
+    public <E extends SaucedEntity<I, E>, I extends Serializable> E merge(@Nonnull final E entity)
+            throws DatabaseException {
         final EntityManager em = this.databaseConnection.getEntityManager();
         try {
             em.getTransaction().begin();
@@ -210,29 +239,229 @@ public class DatabaseWrapper {
     }
 
     //################################################################################
+    //                             Functional Magic
+    //################################################################################
+
+    /**
+     * So you want to load an entity, set some data, and save it again, without detaching it from the persistence
+     * context and without bothering with the EntityManager?
+     * Look no further! Functional programming to the rescue, just pass a function that does the required transformation
+     * on the entity.
+     * <p>
+     * NOTE that this will create a new instance of the entity if it does not exist yet.
+     *
+     */
+    @Nonnull
+    public <E extends SaucedEntity<I, E>, I extends Serializable> E findApplyAndMerge(@Nonnull final Transfiguration<I, E> transfiguration)
+            throws DatabaseException {
+        final EntityManager em = this.databaseConnection.getEntityManager();
+        try {
+            return this.lockedWrappedTransformFunc(transfiguration).apply(em);
+        } catch (final PersistenceException e) {
+            final String message = String.format("Failed to find, apply and merge entity id %s of class %s on DB %s",
+                    transfiguration.key.id.toString(), transfiguration.key.clazz.getName(),
+                    this.databaseConnection.getName());
+            throw new DatabaseException(message, e);
+        } finally {
+            em.close();
+        }
+    }
+
+    //key + transformation -> transfiguration
+    public <E extends SaucedEntity<I, E>, I extends Serializable> E findApplyAndMerge(@Nonnull final EntityKey<I, E> entityKey,
+                                                                                      @Nonnull final Function<E, E> transformation)
+            throws DatabaseException {
+        return findApplyAndMerge(Transfiguration.of(entityKey, transformation));
+    }
+
+
+
+    /**
+     * A bulk method for applying transformations to a stream of data.
+     * @return Exceptions thrown while processing the input stream
+     */
+    @Nonnull
+    public <E extends SaucedEntity<I, E>, I extends Serializable> List<DatabaseException> findApplyAndMergeAll(
+            @Nonnull final Stream<Transfiguration<I, E>> transfigurations) {
+        final List<DatabaseException> exceptions = new ArrayList<>();
+
+        transfigurations.forEach(transfiguration -> {
+            try {
+                final EntityManager em = this.databaseConnection.getEntityManager();
+                try {
+                    this.lockedWrappedTransformFunc(transfiguration).apply(em);
+                } catch (final PersistenceException e) {
+                    final String message = String.format("Failed to find, apply and merge entity id %s of class %s on DB %s",
+                            transfiguration.key.id.toString(), transfiguration.key.clazz.getName(),
+                            this.databaseConnection.getName());
+                    exceptions.add(new DatabaseException(message, e));
+                } finally {
+                    em.close();
+                }
+            } catch (final DatabaseException e) {
+                exceptions.add(e);
+            }
+        });
+
+        return exceptions;
+    }
+
+    /**
+     * Transform the entity described by the provided entity key with the provided transformation. The returned
+     * transaction is wrapped in begin() commit().
+     * <p>
+     * When executing the function PersistenceExceptions may be thrown
+     */
+    @Nonnull
+    @CheckReturnValue
+    public <E extends SaucedEntity<I, E>, I extends Serializable> Function<EntityManager, E> lockedWrappedTransformFunc(
+            @Nonnull final Transfiguration<I, E> transfiguration) {
+
+        return (entityManager) -> {
+            synchronized (SaucedEntity.getEntityLock(transfiguration.key)) {
+                return wrapTransaction(transformFunc(transfiguration))
+                        .apply(entityManager);
+            }
+        };
+    }
+
+    /**
+     * Wrap a transaction into begin and commit
+     */
+    @Nonnull
+    @CheckReturnValue
+    public static <E> Function<EntityManager, E> wrapTransaction(@Nonnull final Function<EntityManager, E> transaction) {
+        return (entityManager) -> {
+            entityManager.getTransaction().begin();
+            final E result = transaction.apply(entityManager);
+            entityManager.getTransaction().commit();
+            return result;
+        };
+    }
+
+    /**
+     * Creates a transform function for the entity described by the provided key and the provided transformation.
+     * When executing the function PersistenceExceptions may be thrown
+     *
+     * @param transfiguration Key of the entity to transform and Transformation to apply to the entity before saving it back
+     * @return A function that will find an entity, apply the provided transformation, and merge it back.
+     */
+    @Nonnull
+    @CheckReturnValue
+    public <E extends SaucedEntity<I, E>, I extends Serializable> Function<EntityManager, E> transformFunc(
+            @Nonnull final Transfiguration<I, E> transfiguration) {
+
+        return (entityManager) -> findOrCreateFunc(transfiguration.key)
+                .andThen(transfiguration.tf)
+                .andThen(mergeFunc(transfiguration.key.clazz).apply(entityManager))
+                .apply(entityManager);
+    }
+
+    /**
+     * @return A function to find or create the entity described by the key.
+     * The applied EntityManager needs to have an open transaction, and commit it some time afterwards.
+     */
+    @Nonnull
+    @CheckReturnValue
+    private <E extends SaucedEntity<I, E>, I extends Serializable> Function<EntityManager, E> findOrCreateFunc(@Nonnull final EntityKey<I, E> entityKey) {
+        return (entityManager) -> {
+            E entity = entityManager.find(entityKey.clazz, entityKey.id);
+            if (entity == null) {
+                entity = this.newInstance(entityKey);
+            }
+            return entity;
+        };
+    }
+
+    /**
+     * @return A merge function.
+     * The applied EntityManager needs to have an open transaction, and commit it some time afterwards.
+     */
+    @Nonnull
+    @CheckReturnValue
+    private static <E> Function<EntityManager, Function<E, E>> mergeFunc(@SuppressWarnings("unused") final Class<E> clazz) {
+        return (entityManager) -> entityManager::merge;
+    }
+
+    /**
+     * Apply a transformation to all entities of a class
+     */
+    public <E extends SaucedEntity<I, E>, I extends Serializable> int applyAndMergeAll(@Nonnull final Class<E> clazz,
+                                                                                       @Nonnull final Function<E, E> transformation)
+            throws DatabaseException {
+        return applyAndMergeAll("SELECT c FROM " + clazz.getSimpleName() + " c", false, clazz, transformation);
+    }
+
+    /**
+     * Apply a transformation to all entities returned from a query
+     * <p>
+     * This is somewhat memory/resources efficient as it uses the stream api to retrieve and apply the transformation to
+     * results
+     *
+     * @return the amount of entities that were returned by the query and the transformation applied to
+     */
+    public <E> int applyAndMergeAll(@Nonnull final String query,
+                                    final boolean isNative,
+                                    @Nonnull final Class<E> clazz,
+                                    @Nonnull final Function<E, E> transformation)
+            throws DatabaseException {
+        final EntityManager em = this.databaseConnection.getEntityManager();
+        final AtomicInteger i = new AtomicInteger(0);
+        try {
+            //take advantage of stream API for results which is part of Hibernate 5.2, and will come to JPA with 2.2
+            //the disadvantage is that I havent come up with a correct way to use locks for this yet, as the stream
+            //serves the entities without their ids, and doing an additional lookup afterwards sucks
+            final SessionImpl session = em.unwrap(SessionImpl.class);
+            session.getTransaction().begin();
+
+            final QueryImplementor<E> q;
+            if (isNative) {
+                @SuppressWarnings("unchecked") final QueryImplementor<E> nq = session.createNativeQuery(query, clazz);
+                q = nq;
+            } else {
+                q = session.createQuery(query, clazz);
+            }
+            q.stream().forEach((entity) -> {
+                E e = entity;
+                e = transformation.apply(e);
+                session.merge(e);
+                i.incrementAndGet();
+            });
+
+            session.getTransaction().commit();
+            return i.get();
+        } catch (final PersistenceException e) {
+            final String message = String.format("Failed to transform entities of clazz %s from query %s on DB %s",
+                    clazz.getName(), query, this.databaseConnection.getName());
+            throw new DatabaseException(message, e);
+        } finally {
+            em.close();
+        }
+    }
+
+    //################################################################################
     //                                 Deleting
     //################################################################################
 
     @SuppressWarnings("unchecked")
     public <E extends IEntity<I, E>, I extends Serializable> void deleteEntity(@Nonnull final E entity)
             throws DatabaseException {
-        deleteEntity(entity.getId(), entity.getClass());
+        deleteEntity(EntityKey.of(entity));
     }
 
-    public <E extends IEntity<I, E>, I extends Serializable> void deleteEntity(@Nonnull final I id,
-                                                                               @Nonnull final Class<E> clazz)
+    public <E extends IEntity<I, E>, I extends Serializable> void deleteEntity(@Nonnull final EntityKey<I, E> entityKey)
             throws DatabaseException {
         final EntityManager em = this.databaseConnection.getEntityManager();
         try {
             em.getTransaction().begin();
-            final IEntity entity = em.find(clazz, id);
+            final IEntity entity = em.find(entityKey.clazz, entityKey.id);
             if (entity != null) {
                 em.remove(entity);
             }
             em.getTransaction().commit();
         } catch (final PersistenceException e) {
             final String message = String.format("Failed to delete entity id %s of class %s on DB %s",
-                    id.toString(), clazz.getName(), this.databaseConnection.getName());
+                    entityKey.id.toString(), entityKey.clazz.getName(), this.databaseConnection.getName());
             throw new DatabaseException(message, e);
         } finally {
             em.close();
@@ -271,6 +500,33 @@ public class DatabaseWrapper {
     }
 
     /**
+     * Use this for COUNT() and similar jpql queries which are guaranteed to return a result
+     */
+    @Nonnull
+    @CheckReturnValue
+    public <T> T selectJpqlQuerySingleResult(@Nonnull final String queryString,
+                                             @Nullable final Map<String, Object> parameters,
+                                             @Nonnull final Class<T> resultClass) throws DatabaseException {
+        final EntityManager em = this.databaseConnection.getEntityManager();
+        try {
+            final Query q = em.createQuery(queryString);
+            if (parameters != null) {
+                parameters.forEach(q::setParameter);
+            }
+            em.getTransaction().begin();
+            final T result = resultClass.cast(q.getSingleResult());
+            em.getTransaction().commit();
+            return setSauce(result);
+        } catch (final PersistenceException | ClassCastException e) {
+            final String message = String.format("Failed to select single result JPQL query %s with %s parameters for class %s on DB %s",
+                    queryString, parameters != null ? parameters.size() : "null", resultClass.getName(), this.databaseConnection.getName());
+            throw new DatabaseException(message, e);
+        } finally {
+            em.close();
+        }
+    }
+
+    /**
      * Results will be sauced if they are SaucedEntites
      *
      * @param queryString the raw JPQL query string
@@ -302,8 +558,8 @@ public class DatabaseWrapper {
             final List<T> resultList = q.getResultList();
             em.getTransaction().commit();
             return resultList.stream()
-                    .peek(this::setSauce)
-                    .collect(Collectors.toList());
+                             .peek(this::setSauce)
+                             .collect(Collectors.toList());
         } catch (final PersistenceException e) {
             final String message = String.format("Failed to select JPQL query %s with %s parameters, offset %s, limit %s, on DB %s",
                     queryString, parameters != null ? parameters.size() : "null", offset, limit, this.databaseConnection.getName());
@@ -352,9 +608,11 @@ public class DatabaseWrapper {
 
     /**
      * Run a good old SQL query
+     *
+     * @return the number of entities updated or deleted
      */
-    public void executeSqlQuery(@Nonnull final String queryString,
-                                @Nullable final Map<String, Object> parameters) throws DatabaseException {
+    public int executeSqlQuery(@Nonnull final String queryString,
+                               @Nullable final Map<String, Object> parameters) throws DatabaseException {
         final EntityManager em = this.databaseConnection.getEntityManager();
         try {
             final Query q = em.createNativeQuery(queryString);
@@ -362,8 +620,9 @@ public class DatabaseWrapper {
                 parameters.forEach(q::setParameter);
             }
             em.getTransaction().begin();
-            q.executeUpdate();
+            int updated = q.executeUpdate();
             em.getTransaction().commit();
+            return updated;
         } catch (final PersistenceException e) {
             final String message = String.format("Failed to execute plain SQL query %s with %s parameters on DB %s",
                     queryString, parameters != null ? parameters.size() : "null", this.databaseConnection.getName());
@@ -375,47 +634,77 @@ public class DatabaseWrapper {
 
     /**
      * Results will be sauced if they are SaucedEntites
+     *
+     * @param resultEntityClass The result class needs to be an entity class, not a single property value like
+     *                            java.lang.String for example. Use {@link DatabaseWrapper#selectSqlQuery(String, Map)}
+     *                            for that instead.
      */
     @Nonnull
     @CheckReturnValue
     public <T> List<T> selectSqlQuery(@Nonnull final String queryString,
                                       @Nullable final Map<String, Object> parameters,
-                                      @Nonnull final Class<T> resultClass) throws DatabaseException {
-        final EntityManager em = this.databaseConnection.getEntityManager();
+                                      @Nonnull final Class<T> resultEntityClass) throws DatabaseException {
         try {
-            final Query q = em.createNativeQuery(queryString, resultClass);
-            if (parameters != null) {
-                parameters.forEach(q::setParameter);
-            }
-            return selectNativeSqlQuery(em, q);
+            return selectSqlQuery((em) -> em.createNativeQuery(queryString, resultEntityClass), parameters);
         } catch (final PersistenceException | ClassCastException e) {
             final String message = String.format("Failed to select list result plain SQL query %s with %s parameters for class %s on DB %s",
-                    queryString, parameters != null ? parameters.size() : "null", resultClass.getName(), this.databaseConnection.getName());
+                    queryString, parameters != null ? parameters.size() : "null", resultEntityClass.getName(), this.databaseConnection.getName());
             throw new DatabaseException(message, e);
-        } finally {
-            em.close();
         }
     }
 
     /**
      * Results will be sauced if they are SaucedEntites
+     *
+     * @param resultEntityMapping The result mapping needs to be for an entity class, not a single property value like
+     *                            java.lang.String for example. Use {@link DatabaseWrapper#selectSqlQuery(String, Map)}
+     *                            for that instead.
      */
     @Nonnull
     @CheckReturnValue
     public <T> List<T> selectSqlQuery(@Nonnull final String queryString,
                                       @Nullable final Map<String, Object> parameters,
-                                      @Nonnull final String resultMapping) throws DatabaseException {
+                                      @Nonnull final String resultEntityMapping) throws DatabaseException {
+        try {
+            return selectSqlQuery((em) -> em.createNativeQuery(queryString, resultEntityMapping), parameters);
+        } catch (final PersistenceException | ClassCastException e) {
+            final String message = String.format("Failed to select list result plain SQL query %s with %s parameters for result mapping %s on DB %s",
+                    queryString, parameters != null ? parameters.size() : "null", resultEntityMapping, this.databaseConnection.getName());
+            throw new DatabaseException(message, e);
+        }
+    }
+
+    /**
+     * Results will be sauced if they are SaucedEntites
+     * <p>
+     * This method doesnt set any kind of result class so it can be used to retrieve Strings or Longs for example.
+     */
+    @Nonnull
+    @CheckReturnValue
+    public <T> List<T> selectSqlQuery(@Nonnull final String queryString,
+                                      @Nullable final Map<String, Object> parameters) throws DatabaseException {
+        try {
+            return selectSqlQuery((em) -> em.createNativeQuery(queryString), parameters);
+        } catch (final PersistenceException | ClassCastException e) {
+            final String message = String.format("Failed to select list result plain SQL query %s with %s parameters on DB %s",
+                    queryString, parameters != null ? parameters.size() : "null", this.databaseConnection.getName());
+            throw new DatabaseException(message, e);
+        }
+    }
+
+    //callers of this should catch PersistenceExceptions and ClassCastExceptions and rethrow them as DatabaseExceptions
+    @Nonnull
+    @CheckReturnValue
+    private <T> List<T> selectSqlQuery(@Nonnull final Function<EntityManager, Query> queryFunc,
+                                       @Nullable final Map<String, Object> parameters)
+            throws DatabaseException, PersistenceException, ClassCastException {
         final EntityManager em = this.databaseConnection.getEntityManager();
         try {
-            final Query q = em.createNativeQuery(queryString, resultMapping);
+            final Query q = queryFunc.apply(em);
             if (parameters != null) {
                 parameters.forEach(q::setParameter);
             }
             return selectNativeSqlQuery(em, q);
-        } catch (final PersistenceException | ClassCastException e) {
-            final String message = String.format("Failed to select list result plain SQL query %s with %s parameters for result mapping %s on DB %s",
-                    queryString, parameters != null ? parameters.size() : "null", resultMapping, this.databaseConnection.getName());
-            throw new DatabaseException(message, e);
         } finally {
             em.close();
         }
@@ -426,13 +715,13 @@ public class DatabaseWrapper {
     @Nonnull
     @CheckReturnValue
     @SuppressWarnings("unchecked")
-    private <T> List<T> selectNativeSqlQuery(@Nonnull EntityManager em, @Nonnull Query query) {
+    private <T> List<T> selectNativeSqlQuery(@Nonnull final EntityManager em, @Nonnull final Query query) {
         em.getTransaction().begin();
         final List resultList = query.getResultList();
         em.getTransaction().commit();
         return (List<T>) resultList.stream()
-                .peek(this::setSauce)
-                .collect(Collectors.toList());
+                                   .peek(this::setSauce)
+                                   .collect(Collectors.toList());
     }
 
     /**
@@ -471,22 +760,26 @@ public class DatabaseWrapper {
     @Nonnull
     @CheckReturnValue
     //returns a sauced entity
-    private <E extends SaucedEntity<I, E>, I extends Serializable> E newInstance(@Nonnull final I id,
-                                                                                 @Nonnull final Class<E> clazz)
-            throws DatabaseException {
+    private <E extends SaucedEntity<I, E>, I extends Serializable> E newInstance(@Nonnull final EntityKey<I, E> id) {
+        return newInstance(this, id);
+    }
+
+    @Nonnull
+    @CheckReturnValue
+    private static <E extends SaucedEntity<I, E>, I extends Serializable> E newInstance(@Nonnull final DatabaseWrapper dbWrapper,
+                                                                                        @Nonnull final EntityKey<I, E> id) {
         try {
-            final E entity = clazz.newInstance();
-            return entity
-                    .setId(id)
-                    .setSauce(this);
-        } catch (InstantiationException | IllegalAccessException e) {
+            final E entity = id.clazz.getConstructor().newInstance();
+            return entity.setId(id.id)
+                    .setSauce(dbWrapper);
+        } catch (final ReflectiveOperationException e) {
             final String message = String.format("Could not construct an entity of class %s with id %s",
-                    clazz.getName(), id.toString());
-            throw new DatabaseException(message, e);
+                    id.clazz.getName(), id.toString());
+            throw new RuntimeException(message, e);
         }
     }
 
-    private <T> T setSauce(final T t) {
+    private <T> T setSauce(@Nullable final T t) {
         if (t instanceof SaucedEntity) {
             ((SaucedEntity) t).setSauce(this);
         }

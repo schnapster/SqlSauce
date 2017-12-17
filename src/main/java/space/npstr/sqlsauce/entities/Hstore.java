@@ -27,6 +27,7 @@ package space.npstr.sqlsauce.entities;
 import space.npstr.sqlsauce.DatabaseException;
 import space.npstr.sqlsauce.DatabaseWrapper;
 import space.npstr.sqlsauce.converters.PostgresHStoreConverter;
+import space.npstr.sqlsauce.fp.types.EntityKey;
 
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
@@ -39,6 +40,7 @@ import javax.persistence.Table;
 import javax.persistence.Transient;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 
 /**
  * Created by napster on 06.07.17.
@@ -48,6 +50,9 @@ import java.util.Map;
  * JPA-only dependant = not Hibernate or other vendors dependant
  * <p>
  * The x makes it sound awesome and also prevents a name/type collision in postgres
+ * <p>
+ * todo: ideas for this class: explore possibilities of merging the giant blocks of methods in this class for
+ * default / provided database by partially applying the data source
  */
 @Entity
 @Table(name = "hstorex")
@@ -56,12 +61,9 @@ public class Hstore extends SaucedEntity<String, Hstore> {
     @Transient
     public static final String DEFAULT_HSTORE_NAME = "default";
 
-    @Transient
-    public static final Object hstoreLock = new Object();
-
     //you are responsible for using unique names when you want to access unique hstores
     @Id
-    @Column(name = "name")
+    @Column(name = "name", columnDefinition = "text")
     public String name;
 
     @Column(name = "hstorex", columnDefinition = "hstore")
@@ -83,7 +85,6 @@ public class Hstore extends SaucedEntity<String, Hstore> {
 
     @Nonnull
     @Override
-    @CheckReturnValue
     public String getId() {
         return this.name;
     }
@@ -135,9 +136,9 @@ public class Hstore extends SaucedEntity<String, Hstore> {
      */
     @Nonnull
     @CheckReturnValue
-    public static String loadAndGet(@Nonnull final String name, @Nonnull final String key,
+    public static String loadAndGet(@Nonnull final HstoreKey entityKey, @Nonnull final String key,
                                     @Nonnull final String defaultValue) throws DatabaseException {
-        return Hstore.loadAndGet(getDefaultSauce(), name, key, defaultValue);
+        return Hstore.loadAndGet(getDefaultSauce(), entityKey, key, defaultValue);
     }
 
     /**
@@ -147,16 +148,18 @@ public class Hstore extends SaucedEntity<String, Hstore> {
     @CheckReturnValue
     public static String loadAndGet(@Nonnull final String key, @Nonnull final String defaultValue)
             throws DatabaseException {
-        return Hstore.loadAndGet(getDefaultSauce(), DEFAULT_HSTORE_NAME, key, defaultValue);
+        return Hstore.loadAndGet(getDefaultSauce(), HstoreKey.DEFAULT, key, defaultValue);
     }
 
     /**
      * @return the requested Hstore object
+     * @deprecated since 0.0.3 use {@link SaucedEntity#load(EntityKey)} instead
      */
     @Nonnull
     @CheckReturnValue
-    public static Hstore load(@Nonnull final String name) throws DatabaseException {
-        return Hstore.load(getDefaultSauce(), name);
+    @Deprecated
+    public static Hstore load(@Nonnull final HstoreKey entityKey) throws DatabaseException {
+        return Hstore.load(getDefaultSauce(), entityKey);
     }
 
     /**
@@ -165,30 +168,76 @@ public class Hstore extends SaucedEntity<String, Hstore> {
     @Nonnull
     @CheckReturnValue
     public static Hstore load() throws DatabaseException {
-        return Hstore.load(getDefaultSauce(), DEFAULT_HSTORE_NAME);
+        return SaucedEntity.load(getDefaultSauce(), HstoreKey.DEFAULT);
     }
 
     /**
      * Load an Hstore object
      *
      * @return the object for chaining calls; dont forget to merge() the changes
+     * <p>
+     * @deprecated since 0.0.3 This method provides no real value over Hstore.load().set() and instead invites to forget to call save()
+     * This gets especially visible comparing Hstore.loadAndSet().save() vs the much more sensible Hstore.load().setAndSave()
+     * Use Hstore.loadSetAndSave() instead if really only one value needs to be set, or Hstore.loadApplyAndSave() to do
+     * bulk operations
      */
     @Nonnull
     @CheckReturnValue
-    public static Hstore loadAndSet(@Nonnull final String name, @Nonnull final String key, @Nonnull final String value)
+    @Deprecated
+    public static Hstore loadAndSet(@Nonnull final HstoreKey entityKey, @Nonnull final String key, @Nonnull final String value)
             throws DatabaseException {
-        return Hstore.loadAndSet(getDefaultSauce(), name, key, value);
+        return Hstore.loadAndSet(getDefaultSauce(), entityKey, key, value);
     }
 
     /**
      * Uses the default hstore
      *
      * @return the object for chaining calls; dont forget to save() the changes
+     * <p>
+     * @deprecated since 0.0.3 See method above.
      */
     @Nonnull
     @CheckReturnValue
+    @Deprecated
     public static Hstore loadAndSet(@Nonnull final String key, @Nonnull final String value) throws DatabaseException {
-        return Hstore.loadAndSet(getDefaultSauce(), DEFAULT_HSTORE_NAME, key, value);
+        return Hstore.loadAndSet(getDefaultSauce(), HstoreKey.DEFAULT, key, value);
+    }
+
+    /**
+     * Shortcut method to set a single value on a named hstore on the default database and save it
+     */
+    @Nonnull
+    public static Hstore loadSetAndSave(@Nonnull final HstoreKey entityKey, @Nonnull final String key,
+                                        @Nonnull final String value) throws DatabaseException {
+        return loadSetAndSave(getDefaultSauce(), entityKey, key, value);
+    }
+
+    /**
+     * Shortcut method to set a single value on the default hstore on the default database and save it
+     */
+    @Nonnull
+    public static Hstore loadSetAndSave(@Nonnull final String key, @Nonnull final String value)
+            throws DatabaseException {
+        return loadSetAndSave(HstoreKey.DEFAULT, key, value);
+    }
+
+    /**
+     * Apply some functions to the default Hstore of the default database and save it
+     */
+    @Nonnull
+    public static Hstore loadApplyAndSave(@Nonnull final HstoreKey entityKey,
+                                          @Nonnull final Function<Hstore, Hstore> transformation)
+            throws DatabaseException {
+        return loadApplyAndSave(getDefaultSauce(), entityKey, transformation);
+    }
+
+    /**
+     * Apply some functions to the default Hstore of the default database and save it
+     */
+    @Nonnull
+    public static Hstore loadApplyAndSave(@Nonnull final Function<Hstore, Hstore> transformation)
+            throws DatabaseException {
+        return loadApplyAndSave(HstoreKey.DEFAULT, transformation);
     }
 
     //################################################################################
@@ -196,14 +245,15 @@ public class Hstore extends SaucedEntity<String, Hstore> {
     //################################################################################
 
     /**
-     * @return load a value from an hstore object
+     * @return load a value from an hstore
      */
     @Nonnull
     @CheckReturnValue
-    public static String loadAndGet(@Nonnull final DatabaseWrapper databaseWrapper, @Nonnull final String name,
+    public static String loadAndGet(@Nonnull final DatabaseWrapper databaseWrapper, @Nonnull final HstoreKey entityKey,
                                     @Nonnull final String key, @Nonnull final String defaultValue)
             throws DatabaseException {
-        return databaseWrapper.getOrCreate(name, Hstore.class).hstore.getOrDefault(key, defaultValue);
+        return SaucedEntity.load(databaseWrapper, entityKey).hstore
+                .getOrDefault(key, defaultValue);
     }
 
     /**
@@ -213,49 +263,117 @@ public class Hstore extends SaucedEntity<String, Hstore> {
     @CheckReturnValue
     public static String loadAndGet(@Nonnull final DatabaseWrapper databaseWrapper, @Nonnull final String key,
                                     @Nonnull final String defaultValue) throws DatabaseException {
-        return loadAndGet(databaseWrapper, DEFAULT_HSTORE_NAME, key, defaultValue);
+        return loadAndGet(databaseWrapper, HstoreKey.DEFAULT, key, defaultValue);
     }
 
     /**
      * @return the requested Hstore object
+     * @deprecated since 0.0.3 use {@link SaucedEntity#load(DatabaseWrapper, EntityKey)} instead
      */
     @Nonnull
     @CheckReturnValue
-    public static Hstore load(@Nonnull final DatabaseWrapper databaseWrapper, @Nonnull final String name)
+    @Deprecated
+    public static Hstore load(@Nonnull final DatabaseWrapper databaseWrapper, @Nonnull final HstoreKey entityKey)
             throws DatabaseException {
-        return databaseWrapper.getOrCreate(name, Hstore.class);
+        return databaseWrapper.getOrCreate(entityKey);
     }
 
     /**
-     * @return the default Hstore object
+     * @return the default Hstore object from the provided database
      */
     @Nonnull
     @CheckReturnValue
     public static Hstore load(@Nonnull final DatabaseWrapper databaseWrapper) throws DatabaseException {
-        return load(databaseWrapper, DEFAULT_HSTORE_NAME);
+        return SaucedEntity.load(databaseWrapper, HstoreKey.DEFAULT);
     }
 
     /**
      * Load an Hstore object
      *
-     * @return the object for chaining calls; dont forget to merge() the changes
+     * @return the object for chaining calls; dont forget to save() the changes
+     * <p>
+     * @deprecated since 0.0.3 See equally named method single connection convenience method above.
      */
     @Nonnull
     @CheckReturnValue
-    public static Hstore loadAndSet(@Nonnull final DatabaseWrapper databaseWrapper, @Nonnull final String name,
+    @Deprecated
+    public static Hstore loadAndSet(@Nonnull final DatabaseWrapper databaseWrapper, @Nonnull final HstoreKey entityKey,
                                     @Nonnull final String key, @Nonnull final String value) throws DatabaseException {
-        return load(databaseWrapper, name).set(key, value);
+        return load(databaseWrapper, entityKey)
+                .set(key, value);
     }
 
     /**
      * Uses the default hstore
      *
      * @return the object for chaining calls; dont forget to save() the changes
+     * <p>
+     * @deprecated since 0.0.3 See equally named method single connection convenience method above.
      */
     @Nonnull
     @CheckReturnValue
+    @Deprecated
     public static Hstore loadAndSet(@Nonnull final DatabaseWrapper databaseWrapper, @Nonnull final String key,
                                     @Nonnull final String value) throws DatabaseException {
-        return loadAndSet(databaseWrapper, DEFAULT_HSTORE_NAME, key, value);
+        return loadAndSet(databaseWrapper, HstoreKey.DEFAULT, key, value);
+    }
+
+    /**
+     * Shortcut method to set a single value on a named hstore on the provided database and save it
+     */
+    @Nonnull
+    public static Hstore loadSetAndSave(@Nonnull final DatabaseWrapper databaseWrapper,
+                                        @Nonnull final HstoreKey entityKey,
+                                        @Nonnull final String key, @Nonnull final String value)
+            throws DatabaseException {
+        return SaucedEntity.loadApplyAndSave(databaseWrapper, entityKey, setTransformation(key, value));
+    }
+
+    /**
+     * Shortcut method to set a single value on the default hstore on the provided database and save it
+     */
+    @Nonnull
+    public static Hstore loadSetAndSave(@Nonnull final DatabaseWrapper databaseWrapper, @Nonnull final String key,
+                                        @Nonnull final String value) throws DatabaseException {
+        return Hstore.loadApplyAndSave(databaseWrapper, setTransformation(key, value));
+    }
+
+
+    /**
+     * Apply some functions to the default Hstore of the provided database and save it
+     */
+    @Nonnull
+    public static Hstore loadApplyAndSave(@Nonnull final DatabaseWrapper databaseWrapper,
+                                          @Nonnull final Function<Hstore, Hstore> transformation)
+            throws DatabaseException {
+        return SaucedEntity.loadApplyAndSave(databaseWrapper, HstoreKey.DEFAULT, transformation);
+    }
+
+
+    //################################################################################
+    //                              Transformations
+    //################################################################################
+    //these can be used with the loadApplyAndSave methods
+
+    /**
+     * Function that set a key to a value on the applied hstore
+     */
+    public static Function<Hstore, Hstore> setTransformation(final String key, final String value) {
+        return (hstore) -> hstore.set(key, value);
+    }
+
+
+    public static class HstoreKey extends EntityKey<String, Hstore> {
+
+        public static final HstoreKey DEFAULT = HstoreKey.of(DEFAULT_HSTORE_NAME);
+
+        @Nonnull
+        public static HstoreKey of(@Nonnull final String name) {
+            return new HstoreKey(name);
+        }
+
+        private HstoreKey(@Nonnull final String name) {
+            super(name, Hstore.class);
+        }
     }
 }

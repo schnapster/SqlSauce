@@ -1,5 +1,5 @@
 ext {
-    moduleName = 'sqlsauce-discord-entities'
+    moduleName = 'discord-entities'
 }
 
 dependencies {
