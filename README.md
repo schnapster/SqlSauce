@@ -58,7 +58,7 @@ Add through the [JitPack](https://jitpack.io/) repo to your project:
     }
 
     dependencies {
-        compile group: 'space.npstr.SqlSauce', name: 'sqlsauce-core', version: '0.0.3-SNAPSHOT'
+        compile group: 'space.npstr.SqlSauce', name: 'sqlsauce-core', version: '0.0.3'
     }
 
 ```
@@ -75,7 +75,7 @@ Add through the [JitPack](https://jitpack.io/) repo to your project:
     <dependency>
         <groupId>space.npstr.SqlSauce</groupId>
         <artifactId>sqlsauce-core</artifactId>
-        <version>0.0.3-SNAPSHOT</version>
+        <version>0.0.3</version>
     </dependency>
 ```
 
@@ -173,6 +173,37 @@ Error level logs, so you should add your respective appenders there, example:
 
 
 ## Changelog
+
+### v0.0.3
+General:
+- Main module was renamed 'sqlsauce' -> 'sqlsauce-core'
+- Dependency bumps
+- DatabaseExceptions are unchecked now
+
+Sauced Entities:
+- Improved locking performance by using hashed locks
+- Make HStore static methods use functional wrapper methods (see below)
+- Using the correct column definition (text) for Hstore names
+- Add lookup methods with Nullable returns
+- EntityKey type to exactly describe an entity (class + id)
+
+Connection / Wrapper:
+- Better support for functional paradigms in the DatabaseWrapper. For example a Function<Entity, Entity> can be passed
+and will be applied to the specified entity, so you can modify entities without detaching them from the persistence context;
+- Add a method that handles a stream of entities from a query (coming with JPA2.2, already implemented in Hibernate) and applies a Function on them
+- Added single result JPQL query method
+- Default connection count lowered
+- Obtaining an EntityManager while a disconnect has been discovered and is being fixed will now failfast with a DatabaseException instead of timing out
+- Reworked the connection builder to allow full customization of hibernate and hikari properties/config, which also allows adding 2nd level cache
+- Connection check can be turned off / overridden by own implementation
+- Turn off hibernate logging, enable statistics only when metrics are used
+- Add method for native sql queries without any result class or mapping
+
+Migrations:
+- Add Migrations to the Builder, meaning they will be run after building the connection and before returning it
+- Migrations can be named (to prevent accidental changes of file names running them again)
+- Theres a SimpleMigration base class for running migrations with parameterless sql queries even easier
+
 
 ### v0.0.2
 - Initial release of Discord Entities module with Proof of Concept for Guilds and Users + JDA listeners to cache them

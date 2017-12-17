@@ -16,7 +16,7 @@ This module can then be added through this additional dependency
 ###### Gradle build.gradle
 ```groovy
     dependencies {
-        compile group: 'space.npstr.SqlSauce', name: 'discord-entities', version: '0.0.3-SNAPSHOT'
+        compile group: 'space.npstr.SqlSauce', name: 'discord-entities', version: '0.0.3'
     }
 
 ```
@@ -26,7 +26,7 @@ This module can then be added through this additional dependency
     <dependency>
         <groupId>space.npstr.SqlSauce</groupId>
         <artifactId>discord-entities</artifactId>
-        <version>0.0.3-SNAPSHOT</version>
+        <version>0.0.3</version>
     </dependency>
 ```
 
@@ -81,6 +81,17 @@ Setting the entity up to be automatically cached with [JDA](https://github.com/D
 
 
 ## Changelog
+
+### v0.0.3
+- Caching happens on a worker thread now instead of the main JDA thread
+- Some constants are now publicly accessible
+- module was renamed 'sqlsauce-discord-entities' -> 'discord-entities'
+- default values for non-null columns added, this should help with upgrading
+- mass sync / cache methods (useful after downtime / restarts); performance isn't good yet, especially when using it for users
+- Users of a guild are cached when the bot joins a guild
+- Guilds are cached on reconnect
+- More complete attempt at looking up a user name
+
 
 ### v0.0.2
 - Initial release with Proof of Concept for Guilds and a JDA listener
