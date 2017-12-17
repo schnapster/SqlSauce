@@ -28,6 +28,7 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.metrics.MetricsTrackerFactory;
 import io.prometheus.client.hibernate.HibernateStatisticsCollector;
+import net.ttddyy.dsproxy.support.ProxyDataSourceBuilder;
 import org.hibernate.internal.SessionFactoryImpl;
 import org.hibernate.jpa.HibernatePersistenceProvider;
 import org.slf4j.Logger;
@@ -107,6 +108,9 @@ public class DatabaseConnection {
      * @param hikariStats      optional metrics for hikari
      * @param checkConnection  set to false to disable a periodic healthcheck and automatic reconnection of the connection.
      *                         only recommended if you run your own healthcheck and reconnection logic
+     * @param proxyDataSourceBuilder optional datasource proxy that is useful for logging and intercepting queries, see
+     *                               https://github.com/ttddyy/datasource-proxy. The hikari datasource will be set on it,
+     *                               and the resulting proxy will be passed to hibernate.
      */
     public DatabaseConnection(@Nonnull final String dbName,
                               @Nonnull final String jdbcUrl,
@@ -118,7 +122,8 @@ public class DatabaseConnection {
                               @Nullable final SshTunnel.SshDetails sshDetails,
                               @Nullable final MetricsTrackerFactory hikariStats,
                               @Nullable final HibernateStatisticsCollector hibernateStats,
-                              final boolean checkConnection) throws DatabaseException {
+                              final boolean checkConnection,
+                              @Nullable final ProxyDataSourceBuilder proxyDataSourceBuilder) throws DatabaseException {
         this.dbName = dbName;
         this.state = DatabaseState.INITIALIZING;
 
@@ -143,11 +148,19 @@ public class DatabaseConnection {
             hiConf.setDataSourceProperties(dataSourceProps);
             this.hikariDs = new HikariDataSource(hiConf);
 
+            //proxy the datasource
+            DataSource dataSource = hikariDs;
+            if (proxyDataSourceBuilder != null) {
+                dataSource = proxyDataSourceBuilder
+                        .dataSource(hikariDs)
+                        .build();
+            }
+
             //add entities provided by this lib
             entityPackages.add("space.npstr.sqlsauce.entities");
 
             // jpa
-            final PersistenceUnitInfo puInfo = defaultPersistenceUnitInfo(this.hikariDs, entityPackages, dbName);
+            final PersistenceUnitInfo puInfo = defaultPersistenceUnitInfo(dataSource, entityPackages, dbName);
 
             // hibernate
             if (hibernateStats != null) {
@@ -551,6 +564,8 @@ public class DatabaseConnection {
         @Nonnull
         private Migrations migrations = new Migrations();
         private boolean checkConnection = true;
+        @Nullable
+        private ProxyDataSourceBuilder proxyDataSourceBuilder;
 
 
         // absolute minimum needed config
@@ -752,6 +767,13 @@ public class DatabaseConnection {
 
         @Nonnull
         @CheckReturnValue
+        public Builder setProxyDataSourceBuilder(@Nullable final ProxyDataSourceBuilder proxyBuilder) {
+            this.proxyDataSourceBuilder = proxyBuilder;
+            return this;
+        }
+
+        @Nonnull
+        @CheckReturnValue
         public DatabaseConnection build() throws DatabaseException {
             final DatabaseConnection databaseConnection = new DatabaseConnection(
                     this.dbName,
@@ -764,7 +786,8 @@ public class DatabaseConnection {
                     this.sshDetails,
                     this.hikariStats,
                     this.hibernateStats,
-                    this.checkConnection
+                    this.checkConnection,
+                    this.proxyDataSourceBuilder
             );
 
             this.migrations.runMigrations(databaseConnection);

@@ -58,6 +58,7 @@ allprojects {
         hibernateVersion = '5.2.12.Final'
         hikariVersion = '2.7.4'
         jschVersion = '0.1.54'
+        dsProxyVersion = '1.4.4'
 
         jaxbApiVersion = '2.3.0'
         slf4jApiVersion = '1.8.0-beta0'
@@ -93,6 +94,7 @@ dependencies {
     compile group: 'org.hibernate', name: 'hibernate-core', version: hibernateVersion   //hibernate + JPA
     compile group: 'com.zaxxer', name: 'HikariCP', version: hikariVersion               //connection pool
     compile group: 'com.jcraft', name: 'jsch', version: jschVersion                     //ssh tunnel
+    compileOnly group: 'net.ttddyy', name: 'datasource-proxy', version: dsProxyVersion      //log proxy for queries
 
     //various/QA
     compileOnly group: 'org.slf4j', name: 'slf4j-api', version: slf4jApiVersion   //logging framework
