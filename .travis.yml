@@ -3,5 +3,12 @@ language: java
 jdk:
   - oraclejdk8
 
+cache:
+  directories:
+    - "$HOME/.m2"
+    - "$HOME/.gradle"
+    - ".gradle/wrapper"
+    - ".gradle/caches"
+
 script:
-  - ./gradlew install
+  - "./gradlew install"
