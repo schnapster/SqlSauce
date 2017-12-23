@@ -28,6 +28,7 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.metrics.MetricsTrackerFactory;
 import io.prometheus.client.hibernate.HibernateStatisticsCollector;
+import net.ttddyy.dsproxy.support.ProxyDataSource;
 import net.ttddyy.dsproxy.support.ProxyDataSourceBuilder;
 import org.hibernate.internal.SessionFactoryImpl;
 import org.hibernate.jpa.HibernatePersistenceProvider;
@@ -82,7 +83,10 @@ public class DatabaseConnection {
     @Nonnull
     private final EntityManagerFactory emf;
     @Nonnull
-    private final HikariDataSource hikariDs;
+    private final HikariDataSource hikariDataSource;
+    @Nullable
+    private final ProxyDataSource proxiedDataSource;
+
     @Nullable
     private SshTunnel sshTunnel = null;
 
@@ -146,14 +150,18 @@ public class DatabaseConnection {
                 hiConf.setMetricsTrackerFactory(hikariStats);
             }
             hiConf.setDataSourceProperties(dataSourceProps);
-            this.hikariDs = new HikariDataSource(hiConf);
+            this.hikariDataSource = new HikariDataSource(hiConf);
 
             //proxy the datasource
-            DataSource dataSource = hikariDs;
+            DataSource dataSource;
             if (proxyDataSourceBuilder != null) {
-                dataSource = proxyDataSourceBuilder
-                        .dataSource(hikariDs)
+                proxiedDataSource = proxyDataSourceBuilder
+                        .dataSource(hikariDataSource)
                         .build();
+                dataSource = proxiedDataSource;
+            } else {
+                proxiedDataSource = null;
+                dataSource = hikariDataSource;
             }
 
             //add entities provided by this lib
@@ -191,7 +199,7 @@ public class DatabaseConnection {
     }
     
     public int getMaxPoolSize() {
-        return hikariDs.getMaximumPoolSize();
+        return hikariDataSource.getMaximumPoolSize();
     }
 
     @Nonnull
@@ -205,6 +213,15 @@ public class DatabaseConnection {
         return this.emf.createEntityManager();
     }
 
+    @Nonnull
+    public DataSource getDataSource() {
+        if (proxiedDataSource != null) {
+            return proxiedDataSource;
+        } else {
+            return hikariDataSource;
+        }
+    }
+
     public void shutdown() {
         this.connectionCheck.shutdown();
         try {
@@ -214,7 +231,7 @@ public class DatabaseConnection {
 
         this.state = DatabaseState.SHUTDOWN;
         this.emf.close();
-        this.hikariDs.close();
+        this.hikariDataSource.close();
         if (this.sshTunnel != null) {
             this.sshTunnel.disconnect();
         }
