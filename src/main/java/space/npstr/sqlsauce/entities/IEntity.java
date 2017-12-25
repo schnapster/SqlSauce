@@ -41,7 +41,7 @@ public interface IEntity<I extends Serializable, Self extends IEntity<I, Self>> 
 
     @Nonnull
     @CheckReturnValue
-    Self setId(I id);
+    Self setId(@Nonnull I id);
 
     @Nonnull
     I getId();

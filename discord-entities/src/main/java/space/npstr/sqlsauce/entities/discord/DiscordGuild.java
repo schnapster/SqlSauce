@@ -124,7 +124,7 @@ public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extend
     @Nonnull
     @Override
     @CheckReturnValue
-    public Self setId(final Long guildId) {
+    public Self setId(@Nonnull final Long guildId) {
         this.guildId = guildId;
         return getThis();
     }

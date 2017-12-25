@@ -88,7 +88,7 @@ public abstract class DiscordUser<Self extends SaucedEntity<Long, Self>> extends
     @Nonnull
     @Override
     @CheckReturnValue
-    public Self setId(final Long userId) {
+    public Self setId(@Nonnull final Long userId) {
         this.userId = userId;
         return getThis();
     }
