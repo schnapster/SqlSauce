@@ -1,5 +1,10 @@
 package space.npstr.sqlsauce.entities;
 
+import net.dv8tion.jda.core.entities.Guild;
+import net.dv8tion.jda.core.entities.Member;
+import net.dv8tion.jda.core.entities.User;
+
+import javax.annotation.Nonnull;
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
 import java.io.Serializable;
@@ -26,6 +31,14 @@ public class MemberComposite implements Serializable {
 
     //for jpa & the database wrapper
     public MemberComposite() {
+    }
+
+    public MemberComposite(@Nonnull Member member) {
+        this(member.getGuild(), member.getUser());
+    }
+
+    public MemberComposite(@Nonnull Guild guild, @Nonnull User user) {
+        this(guild.getIdLong(), user.getIdLong());
     }
 
     public MemberComposite(long guildId, long userId) {

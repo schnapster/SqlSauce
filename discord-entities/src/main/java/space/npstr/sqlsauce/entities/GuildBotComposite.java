@@ -25,6 +25,9 @@
 
 package space.npstr.sqlsauce.entities;
 
+import net.dv8tion.jda.core.entities.Guild;
+
+import javax.annotation.Nonnull;
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
 import java.io.Serializable;
@@ -50,6 +53,10 @@ public class GuildBotComposite implements Serializable {
 
     //for jpa & the database wrapper
     public GuildBotComposite() {
+    }
+    
+    public GuildBotComposite(@Nonnull Guild guild, long botId) {
+        this(guild.getIdLong(), botId);
     }
 
     public GuildBotComposite(long guildId, long botId) {
