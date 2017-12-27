@@ -91,4 +91,10 @@ public class GuildBotComposite implements Serializable {
         GuildBotComposite other = (GuildBotComposite) o;
         return this.guildId == other.guildId && this.botId == other.botId;
     }
+
+
+    @Override
+    public String toString() {
+        return GuildBotComposite.class.getSimpleName() + String.format("(G %s, B %s)", guildId, botId);
+    }
 }

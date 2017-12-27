@@ -98,4 +98,9 @@ public class MemberComposite implements Serializable {
         MemberComposite other = (MemberComposite) o;
         return this.guildId == other.guildId && this.userId == other.userId;
     }
+
+    @Override
+    public String toString() {
+        return MemberComposite.class.getSimpleName() + String.format("(G %s, U %s)", guildId, userId);
+    }
 }
