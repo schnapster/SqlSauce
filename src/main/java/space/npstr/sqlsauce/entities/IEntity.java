@@ -28,6 +28,7 @@ import com.vladmihalcea.hibernate.type.array.IntArrayType;
 import com.vladmihalcea.hibernate.type.array.StringArrayType;
 import org.hibernate.annotations.TypeDef;
 import org.hibernate.annotations.TypeDefs;
+import space.npstr.sqlsauce.hibernate.types.ArrayListLongUserType;
 import space.npstr.sqlsauce.hibernate.types.LongArrayType;
 
 import javax.annotation.CheckReturnValue;
@@ -56,6 +57,10 @@ import java.io.Serializable;
         @TypeDef(
                 name = "long-array",
                 typeClass = LongArrayType.class
+        ),
+        @TypeDef(
+                name = "array-list-long",
+                typeClass = ArrayListLongUserType.class
         )
 })
 @MappedSuperclass
