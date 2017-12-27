@@ -36,7 +36,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 
 /**
  * Created by napster on 27.12.17.
@@ -57,7 +57,9 @@ public class ArrayListLongUserType implements UserType {
             return null;
         }
         Long[] javaArray = (Long[]) array.getArray();
-        return Arrays.asList(javaArray);
+        ArrayList<Long> result = new ArrayList<>();
+        Collections.addAll(result, javaArray); //do not use Arrays.asList(), that method returns a fake ArrayList
+        return result;
     }
 
     @Override
@@ -68,9 +70,9 @@ public class ArrayListLongUserType implements UserType {
         if (value == null) {
             st.setNull(index, sqlTypes()[0]);
         } else {
-            ArrayList castObject = (ArrayList) value;
+            @SuppressWarnings("unchecked") ArrayList<Long> castObject = (ArrayList) value;
 
-            Long[] longs = (Long[]) castObject.toArray(new Long[castObject.size()]);
+            Long[] longs = castObject.toArray(new Long[castObject.size()]);
             Array array = connection.createArrayOf("bigint", longs);
 
             st.setArray(index, array);
