@@ -24,8 +24,15 @@
 
 package space.npstr.sqlsauce.entities;
 
+import com.vladmihalcea.hibernate.type.array.IntArrayType;
+import com.vladmihalcea.hibernate.type.array.StringArrayType;
+import org.hibernate.annotations.TypeDef;
+import org.hibernate.annotations.TypeDefs;
+import space.npstr.sqlsauce.hibernate.types.LongArrayType;
+
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
+import javax.persistence.MappedSuperclass;
 import java.io.Serializable;
 
 /**
@@ -37,6 +44,21 @@ import java.io.Serializable;
  * Works best for entities where we have a natural id for (for example entities on a guild or channel scope cause we can use their snowflakeIds)
  * IEntities should have a constructor that sets them up with sensible defaults
  */
+@TypeDefs({
+        @TypeDef(
+                name = "string-array",
+                typeClass = StringArrayType.class
+        ),
+        @TypeDef(
+                name = "int-array",
+                typeClass = IntArrayType.class
+        ),
+        @TypeDef(
+                name = "long-array",
+                typeClass = LongArrayType.class
+        )
+})
+@MappedSuperclass
 public interface IEntity<I extends Serializable, Self extends IEntity<I, Self>> {
 
     @Nonnull
