@@ -8,12 +8,13 @@ import java.util.Objects;
 /**
  * Created by napster on 25.12.17.
  * <p>
- * Composite primary key for Guild x User
+ * Composite primary key for Guild x User, aka Member
  * Useful for things that we want to persist for a guild depending on the user and vice-versa, for example
- * pledges/unlockings which could be done by different users for the same guild
+ * pledges/unlockings which could be done by different users for the same guild, or any settings by a user that are
+ * to be treated guild specific
  */
 @Embeddable
-public class GuildUserComposite implements Serializable {
+public class MemberComposite implements Serializable {
 
     private static final long serialVersionUID = 8463735462980082043L;
 
@@ -24,10 +25,10 @@ public class GuildUserComposite implements Serializable {
     private long userId;
 
     //for jpa & the database wrapper
-    public GuildUserComposite() {
+    public MemberComposite() {
     }
 
-    public GuildUserComposite(long guildId, long userId) {
+    public MemberComposite(long guildId, long userId) {
         this.guildId = guildId;
         this.userId = userId;
     }
@@ -56,8 +57,8 @@ public class GuildUserComposite implements Serializable {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof GuildUserComposite)) return false;
-        GuildUserComposite other = (GuildUserComposite) o;
+        if (!(o instanceof MemberComposite)) return false;
+        MemberComposite other = (MemberComposite) o;
         return this.guildId == other.guildId && this.userId == other.userId;
     }
 }
