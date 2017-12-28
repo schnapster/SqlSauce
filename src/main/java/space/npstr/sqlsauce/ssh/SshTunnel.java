@@ -25,6 +25,7 @@
 package space.npstr.sqlsauce.ssh;
 
 import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,33 +45,24 @@ public class SshTunnel {
 
     private static final Logger log = LoggerFactory.getLogger(SshTunnel.class);
 
-    private final SshDetails sshDetails;
-    private volatile Session sshTunnel;
+    @Nonnull
+    private final Session session;
 
-    public SshTunnel(final SshDetails sshDetails) {
-        this.sshDetails = sshDetails;
-    }
-
-    public synchronized SshTunnel connect() {
-
-        if (this.sshTunnel != null && this.sshTunnel.isConnected()) {
-            log.info("Tunnel is already connected, disconnect first before reconnecting");
-            return this;
-        }
+    public SshTunnel(@Nonnull final SshDetails sshDetails) {
         try {
             //establish the tunnel
-            log.info("Starting SSH tunnel");
+            log.info("Configuring SSH tunnel");
 
             final JSch jsch = new JSch();
             JSch.setLogger(new JSchLogger());
 
-            final Session session = jsch.getSession(
-                    this.sshDetails.user,
-                    this.sshDetails.host,
-                    this.sshDetails.sshPort
+            session = jsch.getSession(
+                    sshDetails.user,
+                    sshDetails.host,
+                    sshDetails.sshPort
             );
 
-            jsch.addIdentity(this.sshDetails.keyFile.getPath(), this.sshDetails.passphrase);
+            jsch.addIdentity(sshDetails.keyFile.getPath(), sshDetails.passphrase);
 
             final Properties config = new Properties();
             config.put("StrictHostKeyChecking", "no");
@@ -81,16 +73,24 @@ public class SshTunnel {
 
             //forward the port
             final int assignedPort = session.setPortForwardingL(
-                    this.sshDetails.localPort,
+                    sshDetails.localPort,
                     "localhost",
-                    this.sshDetails.remotePort
+                    sshDetails.remotePort
             );
-            log.info("Port Forwarded: localhost:" + assignedPort + " -> " + this.sshDetails.host + ":" + this.sshDetails.remotePort);
+            log.info("Setting up port forwarding: localhost:" + assignedPort + " -> " + sshDetails.host + ":" + sshDetails.remotePort);
+        } catch (final JSchException e) {
+            throw new RuntimeException("Failed to configure SSH tunnel", e);
+        }
+    }
 
+    public synchronized SshTunnel connect() {
+        if (session.isConnected()) {
+            log.info("Tunnel is already connected, disconnect first before reconnecting");
+            return this;
+        }
+        try {
             session.connect();
             log.info("SSH Connected");
-
-            this.sshTunnel = session;
         } catch (final Exception e) {
             throw new RuntimeException("Failed to start SSH tunnel", e);
         }
@@ -98,11 +98,11 @@ public class SshTunnel {
     }
 
     public boolean isConnected() {
-        return (this.sshTunnel != null && this.sshTunnel.isConnected());
+        return (session.isConnected());
     }
 
     public void disconnect() {
-        this.sshTunnel.disconnect();
+        this.session.disconnect();
     }
 
     public static class SshDetails {
