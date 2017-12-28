@@ -30,6 +30,7 @@ import com.zaxxer.hikari.metrics.MetricsTrackerFactory;
 import io.prometheus.client.hibernate.HibernateStatisticsCollector;
 import net.ttddyy.dsproxy.support.ProxyDataSource;
 import net.ttddyy.dsproxy.support.ProxyDataSourceBuilder;
+import org.flywaydb.core.Flyway;
 import org.hibernate.internal.SessionFactoryImpl;
 import org.hibernate.jpa.HibernatePersistenceProvider;
 import org.slf4j.Logger;
@@ -115,6 +116,12 @@ public class DatabaseConnection {
      * @param proxyDataSourceBuilder optional datasource proxy that is useful for logging and intercepting queries, see
      *                               https://github.com/ttddyy/datasource-proxy. The hikari datasource will be set on it,
      *                               and the resulting proxy will be passed to hibernate.
+     * @param flyway           optional Flyway migrations. This constructor will call Flyway#setDataSource and
+     *                         Flyway#migrate() after creating the ssh tunnel and hikari datasource, and before handing
+     *                         the datasource over to the datasource proxy and hibernate. If you need tighter control
+     *                         over the handling of migrations, consider running them manually before creating the
+     *                         DatabaseConnection. Flyway supports the use of a jdbcUrl instead of a datasource, and
+     *                         you can also manually build a temporary ssh tunnel if need be.
      */
     public DatabaseConnection(@Nonnull final String dbName,
                               @Nonnull final String jdbcUrl,
@@ -127,7 +134,8 @@ public class DatabaseConnection {
                               @Nullable final MetricsTrackerFactory hikariStats,
                               @Nullable final HibernateStatisticsCollector hibernateStats,
                               final boolean checkConnection,
-                              @Nullable final ProxyDataSourceBuilder proxyDataSourceBuilder) throws DatabaseException {
+                              @Nullable final ProxyDataSourceBuilder proxyDataSourceBuilder,
+                              @Nullable final Flyway flyway) throws DatabaseException {
         this.dbName = dbName;
         this.state = DatabaseState.INITIALIZING;
 
@@ -151,6 +159,11 @@ public class DatabaseConnection {
             }
             hiConf.setDataSourceProperties(dataSourceProps);
             this.hikariDataSource = new HikariDataSource(hiConf);
+
+            if (flyway != null) {
+                flyway.setDataSource(hikariDataSource);
+                flyway.migrate();
+            }
 
             //proxy the datasource
             DataSource dataSource;
@@ -581,6 +594,8 @@ public class DatabaseConnection {
         private boolean checkConnection = true;
         @Nullable
         private ProxyDataSourceBuilder proxyDataSourceBuilder;
+        @Nullable
+        private Flyway flyway;
 
 
         // absolute minimum needed config
@@ -789,6 +804,13 @@ public class DatabaseConnection {
 
         @Nonnull
         @CheckReturnValue
+        public Builder setFlyway(@Nullable final Flyway flyway) {
+            this.flyway = flyway;
+            return this;
+        }
+
+        @Nonnull
+        @CheckReturnValue
         public DatabaseConnection build() throws DatabaseException {
             final DatabaseConnection databaseConnection = new DatabaseConnection(
                     this.dbName,
@@ -802,7 +824,8 @@ public class DatabaseConnection {
                     this.hikariStats,
                     this.hibernateStats,
                     this.checkConnection,
-                    this.proxyDataSourceBuilder
+                    this.proxyDataSourceBuilder,
+                    this.flyway
             );
 
             this.migrations.runMigrations(databaseConnection);

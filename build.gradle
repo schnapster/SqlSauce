@@ -58,8 +58,10 @@ allprojects {
         hibernateVersion = '5.2.12.Final'
         hikariVersion = '2.7.4'
         jschVersion = '0.1.54'
-        dsProxyVersion = '1.4.4'
         hibTypesVersion = '1.2.0'
+
+        dsProxyVersion = '1.4.4'
+        flywayVersion = '5.0.3'
 
         jaxbApiVersion = '2.3.0'
         slf4jApiVersion = '1.8.0-beta0'
@@ -96,9 +98,12 @@ dependencies {
     compile group: 'com.zaxxer', name: 'HikariCP', version: hikariVersion               //connection pool
     compile group: 'com.jcraft', name: 'jsch', version: jschVersion                     //ssh tunnel
     compile group: 'com.vladmihalcea', name: 'hibernate-types-52', version: hibTypesVersion // moar hibernate types
-    compileOnly group: 'net.ttddyy', name: 'datasource-proxy', version: dsProxyVersion      //log proxy for queries
 
-    //various/QA
+    //optional db related deps
+    compileOnly group: 'net.ttddyy', name: 'datasource-proxy', version: dsProxyVersion  //log proxy for queries
+    compileOnly group: 'org.flywaydb', name: 'flyway-core', version: flywayVersion      //3rd party migration provider
+
+    //optional various/QA deps
     compileOnly group: 'org.slf4j', name: 'slf4j-api', version: slf4jApiVersion   //logging framework
     compileOnly group: 'com.github.spotbugs', name: 'spotbugs-annotations', version: spotbugsVersion //annotations
     compileOnly group: 'io.prometheus', name: 'simpleclient_hibernate', version: prometheusVersion   //db metrics
