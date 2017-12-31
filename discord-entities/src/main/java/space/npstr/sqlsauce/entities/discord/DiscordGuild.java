@@ -214,7 +214,7 @@ public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extend
                                                                    @Nonnull final Guild guild,
                                                                    @Nonnull final Class<E> clazz)
             throws DatabaseException {
-        return dbWrapper.findApplyAndMerge(EntityKey.of(guild.getIdLong(), clazz), DiscordGuild::join);
+        return dbWrapper.findApplyAndMerge(EntityKey.of(guild.getIdLong(), clazz), (discordGuild) -> discordGuild.set(guild).join());
     }
 
     //leaves
@@ -230,7 +230,7 @@ public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extend
                                                                     @Nonnull final Guild guild,
                                                                     @Nonnull final Class<E> clazz)
             throws DatabaseException {
-        return dbWrapper.findApplyAndMerge(EntityKey.of(guild.getIdLong(), clazz), DiscordGuild::leave);
+        return dbWrapper.findApplyAndMerge(EntityKey.of(guild.getIdLong(), clazz), (discordGuild) -> discordGuild.set(guild).leave());
     }
 
     //caching
