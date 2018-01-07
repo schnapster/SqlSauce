@@ -751,6 +751,35 @@ public class DatabaseWrapper {
         }
     }
 
+    //################################################################################
+    //                                  NOTIFY
+    //################################################################################
+
+    /**
+     * Send a notifications with Postgres' LISTEN/NOTIFY feature.
+     * See https://www.postgresql.org/docs/current/static/sql-notify.html for more info.
+     * <p>
+     * See {@link NotificationService} for a listener implementation provided by this package.
+     */
+    public void notif(@Nonnull String channel, @Nullable String payload) {
+        final EntityManager em = this.databaseConnection.getEntityManager();
+        try {
+            em.getTransaction().begin();
+            //the cast is necessary otherwise hibernate chokes on the void return type
+            em.createNativeQuery("SELECT cast(pg_notify(:channel, :payload) AS TEXT);")
+                    .setParameter("channel", channel)
+                    .setParameter("payload", payload != null ? payload : "")
+                    .getSingleResult();
+            em.getTransaction().commit();
+        } catch (final PersistenceException e) {
+            final String message = String.format("Failed to execute notification for channel %s with payload %s on DB %s",
+                    channel, payload, this.databaseConnection.getName());
+            throw new DatabaseException(message, e);
+        } finally {
+            em.close();
+        }
+    }
+
 
     //################################################################################
     //                                  Internals

@@ -224,10 +224,10 @@ Migrations:
 
 ## TODOs
 
-- test whether this can actually run connections to more than one database at a time
-- improve security of the ssh tunnels
+- improve security of the ssh tunnels (read up on the ssh protocol, etc)
 - explore java 9 modularization
-- add hibernate enhancer plugin to documentation
+- add hibernate enhancer plugin to documentation (? usage was hacky, maybe hold off on that one)
+- update docs with all the new stuff (LISTEN/NOTIFY, flyway, ds proxy, etc)
 
 
 ## Roadmap
