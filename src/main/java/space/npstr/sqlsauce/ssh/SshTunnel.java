@@ -33,30 +33,76 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.NotThreadSafe;
 import java.io.File;
 import java.util.Properties;
 
 /**
  * Created by napster on 08.10.17.
- *
+ * <p>
  * Class initially heavily inspired by the way FredBoat handles the SSH tunnel (MIT license)
+ *
+ * On connection loss, you want to call reconnect() as it creates a new session, because a session may not
+ * always be recovered from a broken state by a disconnect() followed by a connect().
  */
+@NotThreadSafe
 public class SshTunnel {
 
     private static final Logger log = LoggerFactory.getLogger(SshTunnel.class);
 
+    static {
+        JSch.setLogger(new JSchLogger());
+    }
+
     @Nonnull
-    private final Session session;
+    private final JSch jsch;
+
+    @Nonnull
+    private final SshDetails sshDetails;
+
+    @Nonnull
+    private Session currentSession;
 
     public SshTunnel(@Nonnull final SshDetails sshDetails) {
+        this.jsch = new JSch();
+        this.sshDetails = sshDetails;
+        this.currentSession = configureSession();
+    }
+
+    public SshTunnel connect() {
+        if (this.currentSession.isConnected()) {
+            log.info("Tunnel is already connected, disconnect first before reconnecting");
+            return this;
+        }
         try {
-            //establish the tunnel
+            this.currentSession.connect();
+            log.info("SSH Connected");
+        } catch (final Exception e) {
+            throw new RuntimeException("Failed to start SSH tunnel", e);
+        }
+        return this;
+    }
+
+    public boolean isConnected() {
+        return this.currentSession.isConnected();
+    }
+
+    public SshTunnel reconnect() {
+        disconnect();
+        this.currentSession = configureSession();
+        return connect();
+    }
+
+    public SshTunnel disconnect() {
+        this.currentSession.disconnect();
+        return this;
+    }
+
+    private Session configureSession() {
+        try {
+            //configure the tunnel
             log.info("Configuring SSH tunnel");
-
-            final JSch jsch = new JSch();
-            JSch.setLogger(new JSchLogger());
-
-            session = jsch.getSession(
+            Session session = jsch.getSession(
                     sshDetails.user,
                     sshDetails.host,
                     sshDetails.sshPort
@@ -78,31 +124,11 @@ public class SshTunnel {
                     sshDetails.remotePort
             );
             log.info("Setting up port forwarding: localhost:" + assignedPort + " -> " + sshDetails.host + ":" + sshDetails.remotePort);
+
+            return session;
         } catch (final JSchException e) {
             throw new RuntimeException("Failed to configure SSH tunnel", e);
         }
-    }
-
-    public synchronized SshTunnel connect() {
-        if (session.isConnected()) {
-            log.info("Tunnel is already connected, disconnect first before reconnecting");
-            return this;
-        }
-        try {
-            session.connect();
-            log.info("SSH Connected");
-        } catch (final Exception e) {
-            throw new RuntimeException("Failed to start SSH tunnel", e);
-        }
-        return this;
-    }
-
-    public boolean isConnected() {
-        return (session.isConnected());
-    }
-
-    public void disconnect() {
-        this.session.disconnect();
     }
 
     public static class SshDetails {

@@ -27,6 +27,7 @@ package space.npstr.sqlsauce;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.metrics.MetricsTrackerFactory;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.prometheus.client.hibernate.HibernateStatisticsCollector;
 import net.ttddyy.dsproxy.support.ProxyDataSource;
 import net.ttddyy.dsproxy.support.ProxyDataSourceBuilder;
@@ -275,7 +276,8 @@ public class DatabaseConnection {
      * @return true if the database is healthy, false otherwise. Will return false if the database is shutdown, but not
      * attempt to restart/reconnect it.
      */
-    public boolean healthCheck() {
+    @SuppressFBWarnings("IS")
+    public synchronized boolean healthCheck() {
         if (this.state == DatabaseState.SHUTDOWN) {
             return false;
         }
@@ -285,7 +287,7 @@ public class DatabaseConnection {
             log.error("SSH tunnel lost connection.");
             this.state = DatabaseState.FAILED;
             try {
-                this.sshTunnel.connect();
+                this.sshTunnel.reconnect();
             } catch (Exception e) {
                 log.error("Failed to reconnect tunnel during healthcheck", e);
             }
