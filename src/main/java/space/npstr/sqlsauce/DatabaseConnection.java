@@ -97,10 +97,11 @@ public class DatabaseConnection {
     @Nonnull
     private volatile DatabaseState state = DatabaseState.UNINITIALIZED;
 
-    private final ScheduledExecutorService connectionCheck = Executors.newSingleThreadScheduledExecutor();
+    private final ScheduledExecutorService connectionCheck;
 
     /**
-     * @param dbName           name for this database connection, also used as the persistence unit name
+     * @param dbName           name for this database connection, also used as the persistence unit name and other
+     *                         places. Make sure it is unique across your application for best results.
      * @param jdbcUrl          where to find the db, which user, which pw, etc; see easy to find jdbc url docs on the web
      * @param dataSourceProps  properties for the underlying data source. see {@link Builder#getDefaultDataSourceProps()} for a start
      * @param hikariConfig     config for hikari. see {@link Builder#getDefaultHikariConfig()} ()} for a start
@@ -194,7 +195,16 @@ public class DatabaseConnection {
 
             this.state = DatabaseState.READY;
             if (checkConnection) {
+                this.connectionCheck = Executors.newSingleThreadScheduledExecutor(
+                        runnable -> {
+                            Thread thread = new Thread(runnable, "db-connection-check-" + dbName);
+                            thread.setUncaughtExceptionHandler((t, e) -> log.error("Uncaught exception in connection checker thread {}", t.getName(), e));
+                            return thread;
+                        }
+                );
                 this.connectionCheck.scheduleAtFixedRate(this::healthCheck, 5, 5, TimeUnit.SECONDS);
+            } else {
+                this.connectionCheck = null;
             }
             SaucedEntity.setDefaultSauce(new DatabaseWrapper(this));
         } catch (final Exception e) {
@@ -274,10 +284,21 @@ public class DatabaseConnection {
         if (this.sshTunnel != null && !this.sshTunnel.isConnected()) {
             log.error("SSH tunnel lost connection.");
             this.state = DatabaseState.FAILED;
-            this.sshTunnel.connect();
+            try {
+                this.sshTunnel.connect();
+            } catch (Exception e) {
+                log.error("Failed to reconnect tunnel during healthcheck", e);
+            }
         }
 
-        if (runTestQuery()) {
+        boolean testQuerySuccess = false;
+        try {
+            testQuerySuccess = runTestQuery();
+        } catch (Exception e) {
+            log.error("Test query failed", e);
+        }
+
+        if (testQuerySuccess) {
             this.state = DatabaseState.READY;
             return true;
         } else {
