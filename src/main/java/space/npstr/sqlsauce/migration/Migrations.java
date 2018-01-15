@@ -43,7 +43,13 @@ import java.util.List;
  * <p>
  * Keep in mind that Hibernate's autoddl does the heavy lifting of adding new tables and columns. This should only ever
  * recalculate data / change column types in a safe way / delete old columns etc.
+ *
+ * @deprecated since 0.0.4, slated for removal in 0.0.5
+ * Flyway supersedes the existing migration functionality, is a lot more stable and ironed out. I don't want
+ * to reinvent the wheel. If you are using SqlSauce migrations and / or rely on Hibernate's auto-ddl, see our Readme for
+ * more information about using Flyway with SqlSauce.
  */
+@Deprecated
 public class Migrations {
 
     private static final Logger log = LoggerFactory.getLogger(Migrations.class);

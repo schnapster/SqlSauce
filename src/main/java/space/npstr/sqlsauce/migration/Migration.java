@@ -33,7 +33,13 @@ import javax.annotation.Nonnull;
  * Created by napster on 11.10.17.
  * <p>
  * Whatever you do, never rename any migrations you are registering. The simple class name is used to identify them.
+ *
+ * @deprecated since 0.0.4, slated for removal in 0.0.5
+ * Flyway supersedes the existing migration functionality, is a lot more stable and ironed out. I don't want
+ * to reinvent the wheel. If you are using SqlSauce migrations and / or rely on Hibernate's auto-ddl, see our Readme for
+ * more information about using Flyway with SqlSauce.
  */
+@Deprecated
 public abstract class Migration {
 
     private final String name;

@@ -37,8 +37,6 @@ import org.hibernate.jpa.HibernatePersistenceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import space.npstr.sqlsauce.entities.SaucedEntity;
-import space.npstr.sqlsauce.migration.Migration;
-import space.npstr.sqlsauce.migration.Migrations;
 import space.npstr.sqlsauce.ssh.SshTunnel;
 
 import javax.annotation.CheckReturnValue;
@@ -564,9 +562,14 @@ public class DatabaseConnection {
         public static Properties getDefaultHibernateProps() {
             final Properties hibernateProps = new Properties();
 
-            //automatically update the tables we need
-            //caution: only add new columns, don't remove or alter old ones, otherwise manual db table migration needed
-            hibernateProps.put("hibernate.hbm2ddl.auto", "update");
+            //validate entities vs existing tables
+            //For more info see:
+            // https://docs.jboss.org/hibernate/orm/5.2/userguide/html_single/Hibernate_User_Guide.html#configurations-hbmddl
+            //Interesting options:
+            //Set to "update" to have hibernate autogenerate and migrate tables for you (dangerous and requires proper
+            // care, probably a bad idea for serious projects in production, use flyway or something else for migrations instead)
+            //Set to "none" to disable completely
+            hibernateProps.put("hibernate.hbm2ddl.auto", "validate");
 
             //pl0x no log spam
             //NOTE: despite those logs turned off, hibernate still spams tons of debug logs, so you really want to turn
@@ -612,8 +615,10 @@ public class DatabaseConnection {
         private HibernateStatisticsCollector hibernateStats;
         @Nullable
         private MetricsTrackerFactory hikariStats;
+        @SuppressWarnings("DeprecatedIsStillUsed")
         @Nonnull
-        private Migrations migrations = new Migrations();
+        @Deprecated
+        private space.npstr.sqlsauce.migration.Migrations migrations = new space.npstr.sqlsauce.migration.Migrations();
         private boolean checkConnection = true;
         @Nullable
         private ProxyDataSourceBuilder proxyDataSourceBuilder;
@@ -795,16 +800,30 @@ public class DatabaseConnection {
         //migrations
         //will automatically be run before returning the created connection
 
+        /**
+         * @deprecated since 0.0.4, slated for removal in 0.0.5
+         * Flyway supersedes the existing migration functionality, is a lot more stable and ironed out. I don't want
+         * to reinvent the wheel. If you are using SqlSauce migrations and / or rely on Hibernate's auto-ddl, see our Readme for
+         * more information about using Flyway with SqlSauce.
+         */
+        @Deprecated
         @Nonnull
         @CheckReturnValue
-        public Builder setMigrations(@Nonnull final Migrations migrations) {
+        public Builder setMigrations(@Nonnull final space.npstr.sqlsauce.migration.Migrations migrations) {
             this.migrations = migrations;
             return this;
         }
 
+        /**
+         * @deprecated since 0.0.4, slated for removal in 0.0.5
+         * Flyway supersedes the existing migration functionality, is a lot more stable and ironed out. I don't want
+         * to reinvent the wheel. If you are using SqlSauce migrations and / or rely on Hibernate's auto-ddl, see our Readme for
+         * more information about using Flyway with SqlSauce.
+         */
+        @Deprecated
         @Nonnull
         @CheckReturnValue
-        public Builder addMigration(@Nonnull final Migration migration) {
+        public Builder addMigration(@Nonnull final space.npstr.sqlsauce.migration.Migration migration) {
             this.migrations.registerMigration(migration);
             return this;
         }
@@ -851,6 +870,7 @@ public class DatabaseConnection {
                     this.flyway
             );
 
+            //noinspection deprecation
             this.migrations.runMigrations(databaseConnection);
             return databaseConnection;
         }

@@ -36,7 +36,13 @@ import java.util.List;
  * Created by napster on 28.11.17.
  * <p>
  * This one just runs a bunch of parameterless native queries
+ *
+ * @deprecated since 0.0.4, slated for removal in 0.0.5
+ * Flyway supersedes the existing migration functionality, is a lot more stable and ironed out. I don't want
+ * to reinvent the wheel. If you are using SqlSauce migrations and / or rely on Hibernate's auto-ddl, see our Readme for
+ * more information about using Flyway with SqlSauce.
  */
+@Deprecated
 public class SimpleMigration extends Migration {
 
     @Nonnull
