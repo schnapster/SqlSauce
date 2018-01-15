@@ -5,31 +5,28 @@
 [![Build Status Development Branch](https://img.shields.io/travis/napstr/SqlSauce/dev.svg?style=flat-square)](https://travis-ci.org/napstr/SqlSauce/branches) dev branch  
 
 
-SQL database stack I use between various projects.
-
 Setting up and configuring database and ORM stuff has been identified by me as a major pain in the ass so this project has two main goals:
 - Choose the best all-around tools and use them conveniently
 - Strip away crazy config stuff with sane defaults and zero xml files
 
-Bonus goal: Avoid using Spring cause I personally do not like it for small projects.
-
-
 ## Tooling
 
 The chosen tools include
-- [PostgreSQL](postgresql.org/) as the underlying database 
+- [PostgreSQL](https://www.postgresql.org/) as the underlying database 
 - [JPA](https://en.wikipedia.org/wiki/Java_Persistence_API) as the ORM framework
 - [Hibernate](http://hibernate.org/orm/) as the ORM vendor
 - [HikariCP](https://github.com/brettwooldridge/HikariCP) as the connection pool
+- [Flyway](https://flywaydb.org/) for migrations
 
 
 Reasons for the choices:
 - PostgreSQL because it's an _amazing_ jack of all trades database
-- JPA and Hibernate as de-facto industry standards just have a lot of documentation available. Also proper care when writing your models will result in Hibernate's autoddl taking care of setting up and migrating your schema.
+- JPA and Hibernate as de-facto industry standards just have a lot of documentation available.
 - HikariCP because just look at their benchmarks
+- Flyway is incredibly easy to get started with, does it's job and does it well
  
  
-This package is meant to use these specific tools to their fullest, e.g. there is and will be code specific for these chosen tools.
+This package is meant to embrace these specific tools to their fullest, e.g. there is and will be code specific for these chosen tools.
 
 This package is not meant to make these tools exchangeable.
 
@@ -40,12 +37,15 @@ This package is not meant to make these tools exchangeable.
 
 - Ssh tunnel support with reconnect handling. Stay safe, don't expose your databases.
 
+- No EntityManager hassle
+  A functional approach to the DatabaseWrapper allows you to describe an entity, define a transformation for it, and
+execute those without having to touch the persistence context at all.
+
 - Sauced Entities:
   Aware of their source, bringing convenience methods to handle them outside of transactions and persist them whenever needed
   
-- Migrations:
-  A really crude, one-way support to do entity level migrations. Assuming hibernate autoddl to create necessary columns and tables.
-Sure, you can also run raw SQL queries.
+- Listen/Notify:
+  Support for sending and receiving PostgreSQL's asynchronous notifications, with proper changefeed support coming soon™
 
 
 ## Adding SqlSauce to your project
@@ -83,13 +83,9 @@ Add through the [JitPack](https://jitpack.io/) repo to your project:
 
 Short descriptions of how to get started using this.
 
-Using this package will create a table called "hstorex" in your database, which is used to persist
-migration data, and any other Hstore entities that you might use.
-Make sure your code isnt using a table with the same name for anything different.
-
-
 Please also check out the comments and docs inside of the classes.
 They will always be more detailed / up to date than this README.
+
 
 ### DatabaseConnection
 
@@ -97,14 +93,14 @@ Create a connection:
 
 ```java
 DatabaseConnection databaseConnection = new DatabaseConnection.Builder("postgres",
-     "jdbc:postgresql://localhost:5432/db?user=me&password=highlysecurepw")
-        .addEntityPackage("space.npstr.db.entities")
-        .setAppName("My Super Special App_Production"))
-        .setSshDetails(new SshTunnel.SshDetails("db.example.com", "me")
+     "jdbc:postgresql://localhost:5432/db?user=johndoe&password=highlysecurepw")
+        .addEntityPackage("com.example.myapp.db.entities")
+        .setAppName("MyApp_v4.2.69_1337"))
+        .setSshDetails(new SshTunnel.SshDetails("db.example.com", "johndoe")
                          .setSshPort(22)
                          .setLocalPort(1111)
                          .setRemotePort(5432)
-                         .setKeyFile("my_secret_key_rsa")
+                         .setKeyFile("myapp_private_key_rsa")
                          .setPassphrase("anotherhighlysecurepw")
         )
         .build();
@@ -125,7 +121,18 @@ Creating one is pretty straight forward after setting up the connection:
 
 The DatabaseWrapper handles opening and closing EntityManagers and just getting stuff out of the database so you don't have to go through the hassle.
 
+It supports a functional approach to handling entities inside of the persistence context, without you having to manage the persistence context.
+For simple transformations, like setting a value on an entity, you can describe that entity by an EntityKey (a type for id and class),
+and describe the transformation to be done, then hand off those to the DatabaseWrapper, which will load the entity and apply
+the transformation before merging it back. This will probably never be as fast as running pure SQL queries, but it is fancy af.
+
+  The DatabaseWrapper also allows processing entities as streams, which is part of the upcoming JPA 2.2 spec, and is
+already supported by Hibernate.
+
+
 ### SaucedEntities
+
+If a functional approach is not feasible for your needs, you can use SaucedEntities
 
 Have your entities extend the abstract SaucedEntity. A SaucedEntity, loaded with the DatabaseWrapper, is aware of its data source.
 This allows the class to provide convenience methods like `save()` to be merged back into the db it came from after you are done working with it.
@@ -134,30 +141,128 @@ The implementation of IEntity also makes sure you use proper ids for your entiti
 written them to the database.
 
 
+### Advanced Hibernate Types
+
+SqlSauce supports [advanced types for Hibernate](https://github.com/vladmihalcea/hibernate-types) by the glorious Vlad Mihalcea,
+as well as additional custom types found in `hibernate.types`. A full list of `@TypeDef` annotations can be found in the `IEntity` interface.
+If your entities implement it or extend from SaucedEntity, you can use them right away.
+
+
 ### Migrations
 
-Create a package where you are going to drop your migration classes. It is important that once created, to never changed their class names
-(changing packages is fine), as the class names will be used to identify whether a migration has already been run or not.
+This package supports [flyway](https://flywaydb.org/getstarted/) migrations. 
 
+Create and setup flyway with your preferences, here is a very basic example:
 ```java
-    Migrations mainDbMigrations = new Migrations();
-    mainDbMigrations.registerMigration(new m0000SqliteToPostgresUpvotes());
-    mainDbMigrations.registerMigration(new m0001SqliteToPostgresGames());
-    mainDbMigrations.runMigrations(databaseConnection);
+        Flyway flyway = new Flyway();
+        flyway.setBaselineOnMigrate(true);
+        flyway.setBaselineVersion(MigrationVersion.fromVersion("0"));
+        flyway.setBaselineDescription("Base Migration");
+        flyway.setLocations("classpath:com/example/db/migrations");
+```
+Then set it when creating the database connection:
+```java
+DatabaseConnection databaseConnection = new DatabaseConnection.Builder(name, jdbc)
+        ...
+        .setFlyway(flyway)
+        ...
+        .build();
+```
+During creation knocked off by the `build()` call, the DatabaseConnection will call `Flyway#setDataSource(DataSource)` with the Hikari datasource and `Flyway#migrate()` on it,
+after creating the Hikari datasource and before handing the Hikari datasource off to the optional datasource proxy and then Hibernate.
+
+
+### Hstore
+
+To use the packaged Hstore entity, you need to enabled the hstore extension and create a table: 
+
+```sql
+CREATE EXTENSION IF NOT EXISTS hstore;
 ```
 
-Run this code before proceeding with the start of your app.
-The data about migrations that have been run is saved in an Hstore entity.
+```sql
+CREATE TABLE IF NOT EXISTS public.hstorex
+(
+    name    TEXT COLLATE pg_catalog.\"default\" NOT NULL,
+    hstorex HSTORE,
+    CONSTRAINT hstorex_pkey PRIMARY KEY (name)
+);
+```
+
+### Datasource Proxy
+
+The DatabaseConnection supports [datasource-proxy](https://github.com/ttddyy/datasource-proxy)
+This is a neat toole to identify slow queries for example, and many more things.
+
+Here is an example that will log any query run on the resulting database connection that exceeds 10 seconds as a warning:
+```java
+DatabaseConnection databaseConnection = new DatabaseConnection.Builder(name, jdbc)
+        ...
+        .setProxyDataSourceBuilder(new ProxyDataSourceBuilder()
+                .logSlowQueryBySlf4j(10, TimeUnit.SECONDS, SLF4JLogLevel.WARN, "SlowQueryLog")
+                .multiline()
+        )
+        ...
+        .build();
+```
+
+### Listen/Notify
+
+SqlSauce provides rudimentary support for PostgreSQL's LISTEN/NOTIFY with the `NotificationService` class.
+Better, rethinkDB style, changefeed support is planned as well as publishing it as a module.
+
+
+### Prometheus Metrics
+
+#### Hikari Metrics
+
+Hikari provides a [PrometheusMetricsTrackerFactory class](https://github.com/brettwooldridge/HikariCP/blob/dev/src/main/java/com/zaxxer/hikari/metrics/prometheus/PrometheusMetricsTrackerFactory.java)
+out of the box. It is recommended to set a proper pool name to identify your statistics correctly.
+```java
+DatabaseConnection databaseConnection = new DatabaseConnection.Builder(name, jdbc)
+        ...
+        .setPoolName(name)
+        .setHikariStats(new PrometheusMetricsTrackerFactory())
+        ...
+        .build();
+```
+
+#### Hibernate Metrics
+
+The [Prometheus JVM client](https://github.com/prometheus/client_java) provides a [Hibernate package](https://github.com/prometheus/client_java/tree/master/simpleclient_hibernate)
+which can be used to instrument hibernate. The `name` will be used to register the `SessionFactoryImpl` of the 
+DatabaseConnection on the provided `HibernateStatisticsCollector`. Make sure to `register()` on it only after all 
+DatabaseConnections have been set up. 
+
+```java
+HibernateStatisticsCollector hibernateStats = new HibernateStatisticsCollector();
+
+DatabaseConnection databaseConnection = new DatabaseConnection.Builder(name, jdbc)
+        ...
+        .setHibernateStats(hibernateStats)
+        ...
+        .build();
+...
+//create any other connections
+...
+hibernateStats.register(); //call this exactly once after all db connections have been created
+```
+
 
 ### Logging
-Turn off Hibernate logging (at least the debug logs) to improve performance. I noticed a 3x higher throughput after
-disabling the debug logs. This depends on the slf4j implementation you are using, for logback adding 
+
+You shouldn't have debug level logging enabled in production anyways, but sometimes developers gotta do what they gotta do,
+and end up running debug logging in production for a short while.
+If you end up with such a necessity, don't get burned by Hibernate, because it literally clogs your logs.
+I noticed about a 3x higher database throughput after disabling the Hibernate debug logs.
+
+The concrete way to go about it depends on the slf4j implementation you are using, for logback adding 
 ```xml
     <logger name="org.hibernate" level="DEBUG" additivity="false">
     </logger>
 ```
 will completely shut up Hibernate logs. You probably still want to receive Info level or even more important, Warning and 
-Error level logs, so you should add your respective appenders there, example:
+Error level logs from Hibernate, so you should add your respective appenders for those levels, example:
 ```xml
     <logger name="org.hibernate" level="DEBUG" additivity="false">
         <appender-ref ref="INFOFILE"/>
@@ -228,13 +333,8 @@ Migrations:
 - explore java 9 modularization
 - add hibernate enhancer plugin to documentation (? usage was hacky, maybe hold off on that one)
 - update docs with all the new stuff (LISTEN/NOTIFY, flyway, ds proxy, etc)
-
-
-## Roadmap
-
-_aka where is this going?_  
-The SaucedEntity concept looks decent. Splitting that off from the database connection stuff into a separate module 
-could become the foundation for a database agnostic convenience library for small to midsized projects.
+- implement changefeed style notification support
+- unit tests - cant expect this to be taken serious without those
 
 
 ## Dependencies
@@ -265,9 +365,21 @@ See the respective `build.gradle` for details.
   - [Revised BSD style license](http://www.jcraft.com/jsch/LICENSE.txt)
   - [Maven Repository](https://mvnrepository.com/artifact/com.jcraft/jsch)
 
-- **Jaxb Api**:
-  - [CDDL 1.1 GPL2 w/ CPE](https://oss.oracle.com/licenses/CDDL+GPL-1.1)
-  - [Maven Repository](https://mvnrepository.com/artifact/javax.xml.bind/jaxb-api/)
+- **Hibernate Types**:
+  - [GitHub](https://github.com/vladmihalcea/hibernate-types)
+  - [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt)
+  - [Maven Repository](https://mvnrepository.com/artifact/com.vladmihalcea/hibernate-types-52)
+  
+- **datasource-proxy**:
+  - [GitHub](https://github.com/ttddyy/datasource-proxy/)
+  - [MIT License](http://www.opensource.org/licenses/MIT)
+  - [Maven Repository](https://mvnrepository.com/artifact/net.ttddyy/datasource-proxy)
+
+- **Flyway Core**:
+  - [Website](https://flywaydb.org/)
+  - [GitHub](https://github.com/flyway/flyway)
+  - [Apache License, Version 2.0](https://flywaydb.org/licenses/flyway-community.txt)
+  - [Maven Repository](https://mvnrepository.com/artifact/org.flywaydb/flyway-core)
 
 - **Simple Logging Facade for Java**:
   - [Website](https://www.slf4j.org/)
