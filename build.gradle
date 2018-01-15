@@ -97,9 +97,9 @@ dependencies {
     compile group: 'org.hibernate', name: 'hibernate-core', version: hibernateVersion   //hibernate + JPA
     compile group: 'com.zaxxer', name: 'HikariCP', version: hikariVersion               //connection pool
     compile group: 'com.jcraft', name: 'jsch', version: jschVersion                     //ssh tunnel
-    compile group: 'com.vladmihalcea', name: 'hibernate-types-52', version: hibTypesVersion // moar hibernate types
 
     //optional db related deps
+    compileOnly group: 'com.vladmihalcea', name: 'hibernate-types-52', version: hibTypesVersion // moar hibernate types
     compileOnly group: 'net.ttddyy', name: 'datasource-proxy', version: dsProxyVersion  //log proxy for queries
     compileOnly group: 'org.flywaydb', name: 'flyway-core', version: flywayVersion      //3rd party migration provider
 
