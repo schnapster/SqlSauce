@@ -96,6 +96,7 @@ public class DatabaseConnection {
     @Nonnull
     private volatile DatabaseState state = DatabaseState.UNINITIALIZED;
 
+    @Nullable
     private final ScheduledExecutorService connectionCheck;
 
     /**
@@ -243,10 +244,12 @@ public class DatabaseConnection {
     }
 
     public void shutdown() {
-        this.connectionCheck.shutdown();
-        try {
-            this.connectionCheck.awaitTermination(30, TimeUnit.SECONDS);
-        } catch (final InterruptedException ignored) {
+        if (connectionCheck != null) {
+            this.connectionCheck.shutdown();
+            try {
+                this.connectionCheck.awaitTermination(30, TimeUnit.SECONDS);
+            } catch (final InterruptedException ignored) {
+            }
         }
 
         this.state = DatabaseState.SHUTDOWN;
