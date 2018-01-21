@@ -30,6 +30,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.persistence.AttributeConverter;
 import javax.persistence.Converter;
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -47,7 +48,9 @@ import java.util.Map;
  * This converter will never return null values, instead creating/storing empty HashMaps
  */
 @Converter(autoApply = true)
-public class PostgresHStoreConverter implements AttributeConverter<Map<String, String>, String> {
+public class PostgresHStoreConverter implements AttributeConverter<Map<String, String>, String>, Serializable {
+
+    private static final long serialVersionUID = 6734295028227191361L;
 
     @Override
     @Nonnull
