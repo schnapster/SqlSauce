@@ -3,12 +3,22 @@ language: java
 jdk:
   - oraclejdk8
 
+services:
+  - postgresql
+
+env:
+  global:
+    - TEST_DB_JDBC: "jdbc:postgresql://localhost:5432/testing?user=postgres"
+
 cache:
   directories:
     - "$HOME/.m2"
     - "$HOME/.gradle"
     - ".gradle/wrapper"
     - ".gradle/caches"
+
+before_script:
+  - psql -c 'create database testing;' -U postgres
 
 script:
   - "./gradlew install"
