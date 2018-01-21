@@ -437,7 +437,6 @@ public class DatabaseWrapper {
     //                                 Deleting
     //################################################################################
 
-    @SuppressWarnings("unchecked")
     public <E extends IEntity<I, E>, I extends Serializable> void deleteEntity(@Nonnull final E entity)
             throws DatabaseException {
         deleteEntity(EntityKey.of(entity));
@@ -448,7 +447,7 @@ public class DatabaseWrapper {
         final EntityManager em = this.databaseConnection.getEntityManager();
         try {
             em.getTransaction().begin();
-            final IEntity entity = em.find(entityKey.clazz, entityKey.id);
+            final IEntity<I, E> entity = em.find(entityKey.clazz, entityKey.id);
             if (entity != null) {
                 em.remove(entity);
             }
