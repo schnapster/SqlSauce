@@ -58,7 +58,7 @@ Add through the [JitPack](https://jitpack.io/) repo to your project:
     }
 
     dependencies {
-        compile group: 'space.npstr.SqlSauce', name: 'sqlsauce-core', version: '0.0.4-SNAPSHOT'
+        compile group: 'space.npstr.SqlSauce', name: 'sqlsauce-core', version: '0.0.4'
     }
 
 ```
@@ -75,7 +75,7 @@ Add through the [JitPack](https://jitpack.io/) repo to your project:
     <dependency>
         <groupId>space.npstr.SqlSauce</groupId>
         <artifactId>sqlsauce-core</artifactId>
-        <version>0.0.4-SNAPSHOT</version>
+        <version>0.0.4</version>
     </dependency>
 ```
 
@@ -278,6 +278,14 @@ Error level logs from Hibernate, so you should add your respective appenders for
 
 
 ## Changelog
+
+### v0.0.4
+- datasource-proxy support
+- custom Hibernate types
+- Migrations deprecated in favor of flyway support
+- rudimentary LISTEN/NOTIFY support
+- Fix health check
+- Fix tunnel reconnection
 
 ### v0.0.3
 General:

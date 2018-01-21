@@ -22,7 +22,7 @@ allprojects {
     targetCompatibility = 8
 
     group 'space.npstr.SqlSauce'
-    version '0.0.4-SNAPSHOT'
+    version '0.0.4'
 
     publishing {
         publications {
