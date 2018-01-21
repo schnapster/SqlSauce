@@ -553,7 +553,6 @@ public class DatabaseConnection {
             //timeout the validation query (will be done automatically through Connection.isValid())
             hikariConfig.setValidationTimeout(3000);
             hikariConfig.setConnectionTimeout(10000);
-            hikariConfig.setConnectionTestQuery(TEST_QUERY);
             hikariConfig.setAutoCommit(false);
 
             hikariConfig.setDriverClassName("org.postgresql.Driver");
