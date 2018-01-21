@@ -52,7 +52,7 @@ allprojects {
     }
 
     ext {
-        gradleVers = '4.4'
+        gradleVers = '4.4.1'
 
         postgresDriverVersion = '42.1.4'
         hibernateVersion = '5.2.12.Final'
