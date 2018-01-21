@@ -25,8 +25,6 @@
 package space.npstr.sqlsauce;
 
 import org.hibernate.Session;
-import org.hibernate.internal.SessionImpl;
-import org.hibernate.query.spi.QueryImplementor;
 import space.npstr.sqlsauce.entities.IEntity;
 import space.npstr.sqlsauce.entities.SaucedEntity;
 import space.npstr.sqlsauce.fp.types.EntityKey;
@@ -408,27 +406,23 @@ public class DatabaseWrapper {
         final EntityManager em = this.databaseConnection.getEntityManager();
         final AtomicInteger i = new AtomicInteger(0);
         try {
-            //take advantage of stream API for results which is part of Hibernate 5.2, and will come to JPA with 2.2
-            //the disadvantage is that I havent come up with a correct way to use locks for this yet, as the stream
-            //serves the entities without their ids, and doing an additional lookup afterwards sucks
-            final SessionImpl session = em.unwrap(SessionImpl.class);
-            session.getTransaction().begin();
-
-            final QueryImplementor<E> q;
+            em.getTransaction().begin();
+            Query q;
             if (isNative) {
-                @SuppressWarnings("unchecked") final QueryImplementor<E> nq = session.createNativeQuery(query, clazz);
-                q = nq;
+                q = em.createNativeQuery(query, clazz);
             } else {
-                q = session.createQuery(query, clazz);
+                q = em.createQuery(query, clazz);
             }
-            q.stream().forEach((entity) -> {
+            //todo the disadvantage is that I havent come up with a correct way to use locks for this yet, as the stream
+            //serves the entities without their ids, and doing an additional lookup afterwards sucks
+            @SuppressWarnings("unchecked") Stream<E> stream = (Stream<E>) q.getResultStream();
+            stream.forEach((entity) -> {
                 E e = entity;
                 e = transformation.apply(e);
-                session.merge(e);
+                em.merge(e);
                 i.incrementAndGet();
             });
-
-            session.getTransaction().commit();
+            em.getTransaction().commit();
             return i.get();
         } catch (final PersistenceException e) {
             final String message = String.format("Failed to transform entities of clazz %s from query %s on DB %s",
