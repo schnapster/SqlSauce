@@ -1,6 +1,4 @@
-.directory
 .idea/*
 .gradle/*
 build/*
 out/*
-logs/

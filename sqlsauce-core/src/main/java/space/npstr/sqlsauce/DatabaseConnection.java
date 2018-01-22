@@ -553,7 +553,6 @@ public class DatabaseConnection {
             //timeout the validation query (will be done automatically through Connection.isValid())
             hikariConfig.setValidationTimeout(3000);
             hikariConfig.setConnectionTimeout(10000);
-            hikariConfig.setConnectionTestQuery(TEST_QUERY);
             hikariConfig.setAutoCommit(false);
 
             hikariConfig.setDriverClassName("org.postgresql.Driver");
@@ -618,10 +617,7 @@ public class DatabaseConnection {
         private HibernateStatisticsCollector hibernateStats;
         @Nullable
         private MetricsTrackerFactory hikariStats;
-        @SuppressWarnings("DeprecatedIsStillUsed")
-        @Nonnull
-        @Deprecated
-        private space.npstr.sqlsauce.migration.Migrations migrations = new space.npstr.sqlsauce.migration.Migrations();
+
         private boolean checkConnection = true;
         @Nullable
         private ProxyDataSourceBuilder proxyDataSourceBuilder;
@@ -801,36 +797,12 @@ public class DatabaseConnection {
 
 
         //migrations
-        //will automatically be run before returning the created connection
-
-        /**
-         * @deprecated since 0.0.4, slated for removal in 0.0.5
-         * Flyway supersedes the existing migration functionality, is a lot more stable and ironed out. I don't want
-         * to reinvent the wheel. If you are using SqlSauce migrations and / or rely on Hibernate's auto-ddl, see our Readme for
-         * more information about using Flyway with SqlSauce.
-         */
-        @Deprecated
         @Nonnull
         @CheckReturnValue
-        public Builder setMigrations(@Nonnull final space.npstr.sqlsauce.migration.Migrations migrations) {
-            this.migrations = migrations;
+        public Builder setFlyway(@Nullable final Flyway flyway) {
+            this.flyway = flyway;
             return this;
         }
-
-        /**
-         * @deprecated since 0.0.4, slated for removal in 0.0.5
-         * Flyway supersedes the existing migration functionality, is a lot more stable and ironed out. I don't want
-         * to reinvent the wheel. If you are using SqlSauce migrations and / or rely on Hibernate's auto-ddl, see our Readme for
-         * more information about using Flyway with SqlSauce.
-         */
-        @Deprecated
-        @Nonnull
-        @CheckReturnValue
-        public Builder addMigration(@Nonnull final space.npstr.sqlsauce.migration.Migration migration) {
-            this.migrations.registerMigration(migration);
-            return this;
-        }
-
 
         //misc
         @Nonnull
@@ -849,15 +821,8 @@ public class DatabaseConnection {
 
         @Nonnull
         @CheckReturnValue
-        public Builder setFlyway(@Nullable final Flyway flyway) {
-            this.flyway = flyway;
-            return this;
-        }
-
-        @Nonnull
-        @CheckReturnValue
         public DatabaseConnection build() throws DatabaseException {
-            final DatabaseConnection databaseConnection = new DatabaseConnection(
+            return new DatabaseConnection(
                     this.dbName,
                     this.jdbcUrl,
                     this.dataSourceProps,
@@ -872,10 +837,6 @@ public class DatabaseConnection {
                     this.proxyDataSourceBuilder,
                     this.flyway
             );
-
-            //noinspection deprecation
-            this.migrations.runMigrations(databaseConnection);
-            return databaseConnection;
         }
     }
 }

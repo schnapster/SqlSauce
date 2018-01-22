@@ -1,0 +1,32 @@
+apply plugin: 'org.junit.platform.gradle.plugin'
+
+dependencies {
+    //database & connection stuff
+    compile group: 'org.postgresql', name: 'postgresql', version: postgresDriverVersion //postgres jdbc driver
+    compile group: 'org.hibernate', name: 'hibernate-core', version: hibernateVersion   //hibernate + JPA
+    compile group: 'com.zaxxer', name: 'HikariCP', version: hikariVersion               //connection pool
+    compile group: 'com.jcraft', name: 'jsch', version: jschVersion                     //ssh tunnel
+    compile group: 'com.vladmihalcea', name: 'hibernate-types-52', version: hibTypesVersion // moar hibernate types
+
+    //optional db related deps
+    compileOnly group: 'net.ttddyy', name: 'datasource-proxy', version: dsProxyVersion  //log proxy for queries
+    compileOnly group: 'org.flywaydb', name: 'flyway-core', version: flywayVersion      //3rd party migration provider
+
+    //optional various/QA deps
+    compileOnly group: 'org.slf4j', name: 'slf4j-api', version: slf4jApiVersion   //logging framework
+    compileOnly group: 'com.github.spotbugs', name: 'spotbugs-annotations', version: spotbugsVersion //annotations
+    compileOnly group: 'io.prometheus', name: 'simpleclient_hibernate', version: prometheusVersion   //db metrics
+
+    //testing
+    testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: jUnitVersion
+    testRuntime group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: jUnitVersion
+    // To avoid compiler warnings about @API annotations in JUnit code.
+    testCompileOnly group: 'org.apiguardian', name: 'apiguardian-api', version: apiGuardianVersion
+
+    testCompile group: 'ch.qos.logback', name: 'logback-classic', version: logbackVersion
+}
+
+configurations {
+    // Make the compileOnly dependencies available when compiling/running tests
+    testCompile.extendsFrom compileOnly
+}

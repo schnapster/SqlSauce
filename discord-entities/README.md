@@ -11,12 +11,12 @@ like names or avatar urls etc.
 ## Adding SqlSauce Discord Entities to your project
 
 Make sure to include the core package [SqlSauce](https://github.com/napstr/SqlSauce) in your project.
-This module can then be added through this additional dependency
+This module can then be added through this additional dependency:
 
 ###### Gradle build.gradle
 ```groovy
     dependencies {
-        compile group: 'space.npstr.SqlSauce', name: 'discord-entities', version: '0.0.4'
+        compile group: 'space.npstr.SqlSauce', name: 'discord-entities', version: '0.0.5'
     }
 
 ```
@@ -26,7 +26,7 @@ This module can then be added through this additional dependency
     <dependency>
         <groupId>space.npstr.SqlSauce</groupId>
         <artifactId>discord-entities</artifactId>
-        <version>0.0.4</version>
+        <version>0.0.5</version>
     </dependency>
 ```
 
@@ -81,6 +81,9 @@ Setting the entity up to be automatically cached with [JDA](https://github.com/D
 
 
 ## Changelog
+
+### v0.0.5
+- testing and publishing to Bintray 
 
 ### v0.0.4
 - Composite ids

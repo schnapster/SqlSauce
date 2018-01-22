@@ -3,6 +3,16 @@ language: java
 jdk:
   - oraclejdk8
 
+services:
+  - postgresql
+
+env:
+  global:
+    - BUILD_NUMBER: "$TRAVIS_BUILD_NUMBER"
+    - TEST_DB_JDBC: "jdbc:postgresql://localhost:5432/testing?user=postgres"
+    - BINTRAY_USER: napster
+    - secure: "fGaTKEocR9W0FLnJfU3i0oGVVJwsOzllm/wA+zb1bxqCeMT/mk3rK0bSJBF4KizAqZJfUoUSV+kIpxHnMma7lbc+Aez0LwkleCIpkXmC07Odm8wo6sN8Q3cTR083K6sFohG3TxeZBwygbkWbSsIYJTZhyLb3S7ZDuRWuFlQwy88akou3z6nFzBezHtU8DmljH/ut2JpX2TECsHS080HfQUqOjHqY/ms+Jvok3hZZXC0vdOx/P9xmmWCNXIpLbHhIAbReu2Xm/e2E/AxjiPa0nAngu0qWjzve0ls8vTcOyc9nozVqfdQ6+n0oxlM49mzjhs/DHaHsuqUOVGtQ94GIssbyCjwd9iCHsgFinOYrrV3+qoqNAwnVb91j9Z8KHHVrCJUZLLhR0CKZnWhVNaYz4JbCOL3ANKIoXyKZ5Xh+qrjGRD/NefuYZUS2eijERoFDnm5tDVdK2Lyz9YMjGvFZsedG/gmy7vIHFWTEy70RYwgziCbD7qSDyXetDN7cwqexDrsklua/31wg26GiVQCqVPzV1DcrI3fBujKLB306mNEydxVGUWR8OKIweIo3KE8SJEPUKmDGEUN8yJzT/kgavnfBX0ymn1kkYzZEvxEKqpJ85Aiw+d8TCxAk6HmqTtu56cOIkkXRTI/XDttdoJ2B0eAHJxSreIkR43VMAjwJJOM="
+
 cache:
   directories:
     - "$HOME/.m2"
@@ -10,5 +20,8 @@ cache:
     - ".gradle/wrapper"
     - ".gradle/caches"
 
+before_script:
+  - psql -c 'create database testing;' -U postgres
+
 script:
-  - "./gradlew install"
+  - "./gradlew pub"

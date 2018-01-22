@@ -49,16 +49,23 @@ execute those without having to touch the persistence context at all.
 
 
 ## Adding SqlSauce to your project
-Add through the [JitPack](https://jitpack.io/) repo to your project:
+There are two repositories supported:
+- [JitPack](https://jitpack.io/#space.npstr/SqlSauce) for untested builds straight from github
+- [Bintray](https://bintray.com/napster/SqlSauce) for tested builds
+
+While the jitpack repo may provide a build for every commit hash, given the compiling itself is not broken, the bintray
+repo only provides released version builds. It may provide tested builds by commit hash too, but that is not guaranteed.
 
 ###### Gradle build.gradle
 ```groovy
     repositories {
         maven { url 'https://jitpack.io' }
+        //or
+        maven { url 'https://dl.bintray.com/napster/SqlSauce' }
     }
 
     dependencies {
-        compile group: 'space.npstr.SqlSauce', name: 'sqlsauce-core', version: '0.0.4'
+        compile group: 'space.npstr.SqlSauce', name: 'sqlsauce-core', version: '0.0.5'
     }
 
 ```
@@ -70,12 +77,17 @@ Add through the [JitPack](https://jitpack.io/) repo to your project:
             <id>jitpack.io</id>
             <url>https://jitpack.io</url>
         </repository>
+        <!-- or -->
+        <repository>
+            <id>bintray-napster-SqlSauce</id>
+            <url>https://dl.bintray.com/napster/SqlSauce</url>
+        </repository>
     </repositories>
 
     <dependency>
         <groupId>space.npstr.SqlSauce</groupId>
         <artifactId>sqlsauce-core</artifactId>
-        <version>0.0.4</version>
+        <version>0.0.5</version>
     </dependency>
 ```
 
@@ -278,6 +290,9 @@ Error level logs from Hibernate, so you should add your respective appenders for
 
 
 ## Changelog
+
+### v0.0.5
+- testing and publishing to Bintray
 
 ### v0.0.4
 - datasource-proxy support

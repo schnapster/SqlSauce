@@ -29,6 +29,7 @@ import org.postgresql.util.HStoreConverter;
 import javax.annotation.Nullable;
 import javax.persistence.AttributeConverter;
 import javax.persistence.Converter;
+import java.io.Serializable;
 import java.util.Map;
 
 /**
@@ -37,7 +38,9 @@ import java.util.Map;
  * The difference to the PostgresHstoreConverter is that this will accept and return null values.
  */
 @Converter(autoApply = true)
-public class PostgresHStoreNullableConverter implements AttributeConverter<Map<String, String>, String> {
+public class PostgresHStoreNullableConverter implements AttributeConverter<Map<String, String>, String>, Serializable {
+
+    private static final long serialVersionUID = -2040916355815577421L;
 
     @Override
     @Nullable
