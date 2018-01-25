@@ -29,22 +29,18 @@ import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.User;
 import net.dv8tion.jda.core.entities.impl.UserImpl;
 import org.hibernate.annotations.ColumnDefault;
-import org.hibernate.annotations.NaturalId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import space.npstr.sqlsauce.DatabaseException;
 import space.npstr.sqlsauce.DatabaseWrapper;
 import space.npstr.sqlsauce.converters.PostgresHStoreConverter;
-import space.npstr.sqlsauce.entities.SaucedEntity;
 import space.npstr.sqlsauce.fp.types.EntityKey;
 import space.npstr.sqlsauce.fp.types.Transfiguration;
 
-import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.persistence.Column;
 import javax.persistence.Convert;
-import javax.persistence.Id;
 import javax.persistence.MappedSuperclass;
 import javax.persistence.Transient;
 import java.util.ArrayList;
@@ -52,7 +48,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -69,7 +64,7 @@ import java.util.stream.Stream;
  * value.
  */
 @MappedSuperclass
-public abstract class DiscordUser<Self extends SaucedEntity<Long, Self>> extends SaucedEntity<Long, Self> {
+public abstract class DiscordUser<Self extends BaseDiscordUser<Self>> extends BaseDiscordUser<Self> {
 
     @Transient
     private static final Logger log = LoggerFactory.getLogger(DiscordUser.class);
@@ -77,12 +72,6 @@ public abstract class DiscordUser<Self extends SaucedEntity<Long, Self>> extends
 
     @Transient
     public static final String UNKNOWN_NAME = "Unknown User";
-
-    @Id
-    @NaturalId
-    @Column(name = "user_id", nullable = false)
-    protected long userId;
-
 
     @Column(name = "name", nullable = false, columnDefinition = "text")
     @ColumnDefault(value = UNKNOWN_NAME)
@@ -103,35 +92,6 @@ public abstract class DiscordUser<Self extends SaucedEntity<Long, Self>> extends
     @Convert(converter = PostgresHStoreConverter.class)
     @Nonnull
     protected final Map<String, String> nicks = new HashMap<>();
-
-
-    // ################################################################################
-    // ##                               Boilerplate
-    // ################################################################################
-
-    @Nonnull
-    @Override
-    @CheckReturnValue
-    public Self setId(@Nonnull final Long userId) {
-        this.userId = userId;
-        return getThis();
-    }
-
-    @Nonnull
-    @Override
-    public Long getId() {
-        return this.userId;
-    }
-
-    @Override
-    public boolean equals(final Object obj) {
-        return (obj instanceof DiscordUser) && ((DiscordUser) obj).userId == this.userId;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(this.userId);
-    }
 
 
     // ################################################################################
@@ -226,7 +186,6 @@ public abstract class DiscordUser<Self extends SaucedEntity<Long, Self>> extends
                                                                                     @Nonnull final Stream<Member> members,
                                                                                     @Nonnull final Class<E> clazz) {
         final long started = System.currentTimeMillis();
-        final List<DatabaseException> exceptions = new ArrayList<>();
         final AtomicInteger streamed = new AtomicInteger(0);
 
         final Function<Member, Function<E, E>> cache = (member) -> (discorduser) -> discorduser.set(member);
@@ -241,7 +200,7 @@ public abstract class DiscordUser<Self extends SaucedEntity<Long, Self>> extends
                 }
         );
 
-        exceptions.addAll(dbWrapper.findApplyAndMergeAll(transfigurations));
+        final List<DatabaseException> exceptions = new ArrayList<>(dbWrapper.findApplyAndMergeAll(transfigurations));
 
         log.debug("Cached {} DiscordUser entities of class {} in {}ms with {} exceptions.",
                 streamed.get(), clazz.getSimpleName(), System.currentTimeMillis() - started, exceptions.size());

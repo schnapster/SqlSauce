@@ -27,12 +27,10 @@ package space.npstr.sqlsauce.entities.discord;
 import net.dv8tion.jda.core.Region;
 import net.dv8tion.jda.core.entities.Guild;
 import org.hibernate.annotations.ColumnDefault;
-import org.hibernate.annotations.NaturalId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import space.npstr.sqlsauce.DatabaseException;
 import space.npstr.sqlsauce.DatabaseWrapper;
-import space.npstr.sqlsauce.entities.SaucedEntity;
 import space.npstr.sqlsauce.fp.types.EntityKey;
 import space.npstr.sqlsauce.fp.types.Transfiguration;
 
@@ -40,13 +38,11 @@ import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.persistence.Column;
-import javax.persistence.Id;
 import javax.persistence.MappedSuperclass;
 import javax.persistence.Transient;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -62,19 +58,13 @@ import java.util.stream.Stream;
  * leave event is missed, so the left_timestamp and is_present fields will be incorrect.
  */
 @MappedSuperclass
-public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extends SaucedEntity<Long, Self> {
+public abstract class DiscordGuild<Self extends BaseDiscordGuild<Self>> extends BaseDiscordGuild<Self> {
 
     @Transient
     private static final Logger log = LoggerFactory.getLogger(DiscordGuild.class);
 
     @Transient
     public static final String UNKNOWN_NAME = "Unknown Guild";
-
-    @Id
-    @NaturalId
-    @Column(name = "guild_id", nullable = false)
-    protected long guildId;
-
 
     //presence stuff
 
@@ -141,35 +131,6 @@ public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extend
     protected int afkTimeoutSeconds;
 
 
-    // ################################################################################
-    // ##                               Boilerplate
-    // ################################################################################
-
-    @Nonnull
-    @Override
-    @CheckReturnValue
-    public Self setId(@Nonnull final Long guildId) {
-        this.guildId = guildId;
-        return getThis();
-    }
-
-    @Nonnull
-    @Override
-    public Long getId() {
-        return this.guildId;
-    }
-
-    @Override
-    public boolean equals(final Object obj) {
-        return (obj instanceof DiscordGuild) && ((DiscordGuild) obj).guildId == this.guildId;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(this.guildId);
-    }
-
-    
     // ################################################################################
     // ##                               Caching
     // ################################################################################
@@ -315,7 +276,6 @@ public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extend
                                                                                      @Nonnull final Stream<Guild> guilds,
                                                                                      @Nonnull final Class<E> clazz) {
         long started = System.currentTimeMillis();
-        final List<DatabaseException> exceptions = new ArrayList<>();
         final AtomicInteger joined = new AtomicInteger(0);
         final AtomicInteger streamed = new AtomicInteger(0);
         final Function<Guild, Function<E, E>> cacheAndJoin = (guild) -> (discordguild) -> {
@@ -335,7 +295,7 @@ public abstract class DiscordGuild<Self extends SaucedEntity<Long, Self>> extend
                 }
         );
 
-        exceptions.addAll(dbWrapper.findApplyAndMergeAll(transfigurations));
+        final List<DatabaseException> exceptions = new ArrayList<>(dbWrapper.findApplyAndMergeAll(transfigurations));
 
         log.debug("Cached {} DiscordGuild entities of class {} in {}ms with {} exceptions, joined {}",
                 streamed.get(), clazz.getSimpleName(), System.currentTimeMillis() - started, exceptions.size(), joined.get());
