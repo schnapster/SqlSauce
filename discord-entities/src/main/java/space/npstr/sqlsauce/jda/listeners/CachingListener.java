@@ -28,7 +28,6 @@ import net.dv8tion.jda.core.hooks.ListenerAdapter;
 import space.npstr.sqlsauce.DatabaseTask;
 
 import javax.annotation.CheckReturnValue;
-import javax.annotation.Nonnull;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -53,7 +52,6 @@ public abstract class CachingListener<E, Self extends CachingListener<E, Self>> 
     /**
      * Adjust the thread pool size of the cache pump of this listener.
      */
-    @Nonnull
     @CheckReturnValue
     public Self setWorkerSize(final int size) {
         this.cachePump.setCorePoolSize(size);
@@ -67,7 +65,7 @@ public abstract class CachingListener<E, Self extends CachingListener<E, Self>> 
         return cachePump.getQueue().size();
     }
 
-    protected void submit(@Nonnull final DatabaseTask task, @Nonnull final Consumer<Exception> onFail) {
+    protected void submit(final DatabaseTask task, final Consumer<Exception> onFail) {
         this.cachePump.execute(() -> {
             try {
                 task.run();

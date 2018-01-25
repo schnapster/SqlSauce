@@ -30,7 +30,6 @@ import space.npstr.sqlsauce.fp.types.EntityKey;
 import space.npstr.sqlsauce.fp.types.Transfiguration;
 
 import javax.annotation.CheckReturnValue;
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.persistence.MappedSuperclass;
 import javax.persistence.Transient;
@@ -56,11 +55,10 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
     @Transient
     private static DatabaseWrapper defaultSauce;
 
-    public static void setDefaultSauce(@Nonnull final DatabaseWrapper dbWrapper) {
+    public static void setDefaultSauce(final DatabaseWrapper dbWrapper) {
         SaucedEntity.defaultSauce = dbWrapper;
     }
 
-    @Nonnull
     public static DatabaseWrapper getDefaultSauce() {
         if (defaultSauce == null) {
             throw new IllegalStateException("Default DatabaseWrapper not set. Make sure to create at least one " +
@@ -76,13 +74,11 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
 
 
     @SuppressWarnings("unchecked")
-    @Nonnull
     protected Self getThis() {
         return (Self) this;
     }
 
     @SuppressWarnings("unchecked")
-    @Nonnull
     @Override
     public Class<Self> getClazz() {
         return (Class<Self>) this.getClass();
@@ -90,8 +86,7 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
 
     //when loading / creating with the DatabaseWrapper class, it will make sure to set this so that the convenience
     //methods may be used
-    @Nonnull
-    public Self setSauce(@Nonnull final DatabaseWrapper dbWrapper) {
+    public Self setSauce(final DatabaseWrapper dbWrapper) {
         this.dbWrapper = dbWrapper;
         return getThis();
     }
@@ -106,7 +101,6 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
      *
      * @return the updated entity
      */
-    @Nonnull
     @CheckReturnValue
     public Self save() throws DatabaseException {
         synchronized (getEntityLock()) {
@@ -123,10 +117,9 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
      * @return The requested entity from the provided database, or a new instance of the requested class if no such
      * entity is found
      */
-    @Nonnull
     @CheckReturnValue
-    public static <E extends SaucedEntity<I, E>, I extends Serializable> E load(@Nonnull final DatabaseWrapper dbWrapper,
-                                                                                @Nonnull final EntityKey<I, E> entityKey)
+    public static <E extends SaucedEntity<I, E>, I extends Serializable> E load(final DatabaseWrapper dbWrapper,
+                                                                                final EntityKey<I, E> entityKey)
             throws DatabaseException {
         return dbWrapper.getOrCreate(entityKey);
     }
@@ -138,9 +131,8 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
      * @return The requested entity from the default database, or a new instance of the requested class if no such
      * entity is found
      */
-    @Nonnull
     @CheckReturnValue
-    public static <E extends SaucedEntity<I, E>, I extends Serializable> E load(@Nonnull final EntityKey<I, E> entityKey)
+    public static <E extends SaucedEntity<I, E>, I extends Serializable> E load(final EntityKey<I, E> entityKey)
             throws DatabaseException {
         return load(getDefaultSauce(), entityKey);
     }
@@ -154,8 +146,8 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
      */
     @Nullable
     @CheckReturnValue
-    public static <E extends SaucedEntity<I, E>, I extends Serializable> E lookUp(@Nonnull final DatabaseWrapper dbWrapper,
-                                                                                  @Nonnull final EntityKey<I, E> entityKey)
+    public static <E extends SaucedEntity<I, E>, I extends Serializable> E lookUp(final DatabaseWrapper dbWrapper,
+                                                                                  final EntityKey<I, E> entityKey)
             throws DatabaseException {
         return dbWrapper.getEntity(entityKey);
     }
@@ -168,7 +160,7 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
      */
     @Nullable
     @CheckReturnValue
-    public static <E extends SaucedEntity<I, E>, I extends Serializable> E lookUp(@Nonnull final EntityKey<I, E> entityKey)
+    public static <E extends SaucedEntity<I, E>, I extends Serializable> E lookUp(final EntityKey<I, E> entityKey)
             throws DatabaseException {
         return lookUp(getDefaultSauce(), entityKey);
     }
@@ -181,10 +173,9 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
      * @param transformation  the transformation to apply to the entity
      * @return the detached entity after saving it
      */
-    @Nonnull
-    public static <E extends SaucedEntity<I, E>, I extends Serializable> E loadApplyAndSave(@Nonnull final DatabaseWrapper databaseWrapper,
-                                                                                            @Nonnull final EntityKey<I, E> entityKey,
-                                                                                            @Nonnull final Function<E, E> transformation)
+    public static <E extends SaucedEntity<I, E>, I extends Serializable> E loadApplyAndSave(final DatabaseWrapper databaseWrapper,
+                                                                                            final EntityKey<I, E> entityKey,
+                                                                                            final Function<E, E> transformation)
             throws DatabaseException {
         return databaseWrapper.findApplyAndMerge(Transfiguration.of(entityKey, transformation));
     }
@@ -207,25 +198,22 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
      * if an entity is created two times and then merged simultaneously. Use one of the lock below for any writing
      * operations, including lookup operations that will lead to writes (for example SaucedEntity#save()).
      */
-    @Nonnull
     @CheckReturnValue
     public Object getEntityLock() {
         return getEntityLock(EntityKey.of(this));
     }
 
 
-    @Nonnull
     @CheckReturnValue
-    public static <E extends SaucedEntity<I, E>, I extends Serializable> Object getEntityLock(@Nonnull final SaucedEntity<I, E> entity) {
+    public static <E extends SaucedEntity<I, E>, I extends Serializable> Object getEntityLock(final SaucedEntity<I, E> entity) {
         return getEntityLock(EntityKey.of(entity));
     }
 
     /**
      * @return A hashed lock. Uses the Object#hashCode method of the provided id to determine the hash.
      */
-    @Nonnull
     @CheckReturnValue
-    public static Object getEntityLock(@Nonnull final EntityKey id) {
+    public static Object getEntityLock(final EntityKey id) {
         Object[] hashedClasslocks = entityLocks.computeIfAbsent(id.clazz, k -> createObjectArray(concurrencyLevel));
         return hashedClasslocks[Math.floorMod(Objects.hash(id), hashedClasslocks.length)];
     }
@@ -241,7 +229,6 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
         }
     }
 
-    @Nonnull
     @CheckReturnValue
     private static Object[] createObjectArray(final int size) {
         final Object[] result = new Object[size];

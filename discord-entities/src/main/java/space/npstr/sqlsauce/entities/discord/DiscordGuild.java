@@ -35,7 +35,6 @@ import space.npstr.sqlsauce.fp.types.EntityKey;
 import space.npstr.sqlsauce.fp.types.Transfiguration;
 
 import javax.annotation.CheckReturnValue;
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.persistence.Column;
 import javax.persistence.MappedSuperclass;
@@ -94,9 +93,11 @@ public abstract class DiscordGuild<Self extends BaseDiscordGuild<Self>> extends 
     @ColumnDefault(value = "-1")
     protected long ownerId;
 
+    @Nullable
     @Column(nullable = true, name = "icon_id", columnDefinition = "text")
     protected String iconId;
 
+    @Nullable
     @Column(nullable = true, name = "splash_id", columnDefinition = "text")
     protected String splashId;
 
@@ -104,9 +105,11 @@ public abstract class DiscordGuild<Self extends BaseDiscordGuild<Self>> extends 
     @ColumnDefault(value = "''") //key of the unknown region is an emptry string
     protected String region = Region.UNKNOWN.getKey();      //Region enum key
 
+    @Nullable
     @Column(nullable = true, name = "afk_channel_id")
     protected Long afkChannelId;               //VoiceChannel id
 
+    @Nullable
     @Column(nullable = true, name = "system_channel_id")
     protected Long systemChannelId;            //TextChannel id
 
@@ -135,7 +138,6 @@ public abstract class DiscordGuild<Self extends BaseDiscordGuild<Self>> extends 
     // ##                               Caching
     // ################################################################################
 
-    @Nonnull
     public Self set(@Nullable final Guild guild) {
         if (guild == null) {
             return getThis();//gracefully ignore null guilds
@@ -163,57 +165,42 @@ public abstract class DiscordGuild<Self extends BaseDiscordGuild<Self>> extends 
     //convenience static setters for cached values
 
     //joins
-    @Nonnull
-    public static <E extends DiscordGuild<E>> DiscordGuild<E> join(@Nonnull final Guild guild,
-                                                                   @Nonnull final Class<E> clazz)
+    public static <E extends DiscordGuild<E>> DiscordGuild<E> join(final Guild guild, final Class<E> clazz)
             throws DatabaseException {
         return join(getDefaultSauce(), guild, clazz);
     }
 
-    @Nonnull
-    public static <E extends DiscordGuild<E>> DiscordGuild<E> join(@Nonnull final DatabaseWrapper dbWrapper,
-                                                                   @Nonnull final Guild guild,
-                                                                   @Nonnull final Class<E> clazz)
-            throws DatabaseException {
+    public static <E extends DiscordGuild<E>> DiscordGuild<E> join(final DatabaseWrapper dbWrapper, final Guild guild,
+                                                                   final Class<E> clazz) throws DatabaseException {
         return dbWrapper.findApplyAndMerge(EntityKey.of(guild.getIdLong(), clazz), (discordGuild) -> discordGuild.set(guild).join());
     }
 
     //leaves
-    @Nonnull
-    public static <E extends DiscordGuild<E>> DiscordGuild<E> leave(@Nonnull final Guild guild,
-                                                                    @Nonnull final Class<E> clazz)
+    public static <E extends DiscordGuild<E>> DiscordGuild<E> leave(final Guild guild, final Class<E> clazz)
             throws DatabaseException {
         return leave(getDefaultSauce(), guild, clazz);
     }
 
-    @Nonnull
-    public static <E extends DiscordGuild<E>> DiscordGuild<E> leave(@Nonnull final DatabaseWrapper dbWrapper,
-                                                                    @Nonnull final Guild guild,
-                                                                    @Nonnull final Class<E> clazz)
-            throws DatabaseException {
+    public static <E extends DiscordGuild<E>> DiscordGuild<E> leave(final DatabaseWrapper dbWrapper, final Guild guild,
+                                                                    final Class<E> clazz) throws DatabaseException {
         return dbWrapper.findApplyAndMerge(EntityKey.of(guild.getIdLong(), clazz), (discordGuild) -> discordGuild.set(guild).leave());
     }
 
     //caching
-    @Nonnull
-    public static <E extends DiscordGuild<E>> DiscordGuild<E> cache(@Nonnull final Guild guild, @Nonnull final Class<E> clazz)
+    public static <E extends DiscordGuild<E>> DiscordGuild<E> cache(final Guild guild, final Class<E> clazz)
             throws DatabaseException {
         return cache(getDefaultSauce(), guild, clazz);
     }
 
-    @Nonnull
-    public static <E extends DiscordGuild<E>> DiscordGuild<E> cache(@Nonnull final DatabaseWrapper dbWrapper,
-                                                                    @Nonnull final Guild guild,
-                                                                    @Nonnull final Class<E> clazz)
-            throws DatabaseException {
+    public static <E extends DiscordGuild<E>> DiscordGuild<E> cache(final DatabaseWrapper dbWrapper, final Guild guild,
+                                                                    final Class<E> clazz) throws DatabaseException {
         return dbWrapper.findApplyAndMerge(EntityKey.of(guild.getIdLong(), clazz), (discordGuild) -> discordGuild.set(guild));
     }
 
     //syncing
-    @Nonnull
-    public static <E extends DiscordGuild<E>> Collection<DatabaseException> sync(@Nonnull final Stream<Guild> guilds,
-                                                                                 @Nonnull final Function<Long, Boolean> isPresent,
-                                                                                 @Nonnull final Class<E> clazz) {
+    public static <E extends DiscordGuild<E>> Collection<DatabaseException> sync(final Stream<Guild> guilds,
+                                                                                 final Function<Long, Boolean> isPresent,
+                                                                                 final Class<E> clazz) {
         return sync(getDefaultSauce(), guilds, isPresent, clazz);
     }
 
@@ -227,11 +214,10 @@ public abstract class DiscordGuild<Self extends BaseDiscordGuild<Self>> extends 
      * @param clazz     Class of the actual DiscordGuild entity
      * @return DatabaseExceptions caused by the execution of this method
      */
-    @Nonnull
-    public static <E extends DiscordGuild<E>> Collection<DatabaseException> sync(@Nonnull final DatabaseWrapper dbWrapper,
-                                                                                 @Nonnull final Stream<Guild> guilds,
-                                                                                 @Nonnull final Function<Long, Boolean> isPresent,
-                                                                                 @Nonnull final Class<E> clazz) {
+    public static <E extends DiscordGuild<E>> Collection<DatabaseException> sync(final DatabaseWrapper dbWrapper,
+                                                                                 final Stream<Guild> guilds,
+                                                                                 final Function<Long, Boolean> isPresent,
+                                                                                 final Class<E> clazz) {
         final List<DatabaseException> exceptions = new ArrayList<>();
         //leave guilds that we arent part of first
         final AtomicInteger left = new AtomicInteger(0);
@@ -255,9 +241,8 @@ public abstract class DiscordGuild<Self extends BaseDiscordGuild<Self>> extends 
         return exceptions;
     }
 
-    @Nonnull
-    public static <E extends DiscordGuild<E>> Collection<DatabaseException> cacheAll(@Nonnull final Stream<Guild> members,
-                                                                                     @Nonnull final Class<E> clazz) {
+    public static <E extends DiscordGuild<E>> Collection<DatabaseException> cacheAll(final Stream<Guild> members,
+                                                                                     final Class<E> clazz) {
         return cacheAll(getDefaultSauce(), members, clazz);
     }
 
@@ -271,10 +256,9 @@ public abstract class DiscordGuild<Self extends BaseDiscordGuild<Self>> extends 
      * @param clazz     Class of the actual DiscordGuild entity
      * @return DatabaseExceptions caused by the execution of this method
      */
-    @Nonnull
-    public static <E extends DiscordGuild<E>> Collection<DatabaseException> cacheAll(@Nonnull final DatabaseWrapper dbWrapper,
-                                                                                     @Nonnull final Stream<Guild> guilds,
-                                                                                     @Nonnull final Class<E> clazz) {
+    public static <E extends DiscordGuild<E>> Collection<DatabaseException> cacheAll(final DatabaseWrapper dbWrapper,
+                                                                                     final Stream<Guild> guilds,
+                                                                                     final Class<E> clazz) {
         long started = System.currentTimeMillis();
         final AtomicInteger joined = new AtomicInteger(0);
         final AtomicInteger streamed = new AtomicInteger(0);
@@ -304,7 +288,6 @@ public abstract class DiscordGuild<Self extends BaseDiscordGuild<Self>> extends 
 
     //setters for cached values
 
-    @Nonnull
     @CheckReturnValue
     public Self join() {
         this.joined = System.currentTimeMillis();
@@ -312,7 +295,6 @@ public abstract class DiscordGuild<Self extends BaseDiscordGuild<Self>> extends 
         return getThis();
     }
 
-    @Nonnull
     @CheckReturnValue
     public Self leave() {
         this.left = System.currentTimeMillis();
@@ -334,7 +316,6 @@ public abstract class DiscordGuild<Self extends BaseDiscordGuild<Self>> extends 
         return this.present;
     }
 
-    @Nonnull
     public String getName() {
         return this.name;
     }
@@ -353,7 +334,6 @@ public abstract class DiscordGuild<Self extends BaseDiscordGuild<Self>> extends 
         return this.splashId;
     }
 
-    @Nonnull
     public String getRegion() {
         return this.region;
     }

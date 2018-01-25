@@ -38,7 +38,6 @@ import space.npstr.sqlsauce.hibernate.types.ArrayListLongUserType;
 import space.npstr.sqlsauce.hibernate.types.LongArrayType;
 
 import javax.annotation.CheckReturnValue;
-import javax.annotation.Nonnull;
 import javax.persistence.MappedSuperclass;
 import java.io.Serializable;
 
@@ -96,14 +95,11 @@ import java.io.Serializable;
 @MappedSuperclass
 public interface IEntity<I extends Serializable, Self extends IEntity<I, Self>> {
 
-    @Nonnull
     @CheckReturnValue
-    Self setId(@Nonnull I id);
+    Self setId(I id);
 
-    @Nonnull
     I getId();
 
-    @Nonnull
     @CheckReturnValue
     Class<Self> getClazz();
 }

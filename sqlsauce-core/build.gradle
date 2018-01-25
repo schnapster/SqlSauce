@@ -15,6 +15,7 @@ dependencies {
     //optional various/QA deps
     compileOnly group: 'org.slf4j', name: 'slf4j-api', version: slf4jApiVersion   //logging framework
     compileOnly group: 'com.github.spotbugs', name: 'spotbugs-annotations', version: spotbugsVersion //annotations
+    compileOnly group: 'space.npstr', name: 'annotations', version: annotationsVersion //advanced annotations
     compileOnly group: 'io.prometheus', name: 'simpleclient_hibernate', version: prometheusVersion   //db metrics
 
     //testing

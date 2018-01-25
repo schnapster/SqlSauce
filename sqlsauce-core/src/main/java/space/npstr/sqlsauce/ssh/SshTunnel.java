@@ -31,7 +31,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.CheckReturnValue;
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.File;
@@ -54,16 +53,13 @@ public class SshTunnel {
         JSch.setLogger(new JSchLogger());
     }
 
-    @Nonnull
     private final JSch jsch;
 
-    @Nonnull
     private final SshDetails sshDetails;
 
-    @Nonnull
     private Session currentSession;
 
-    public SshTunnel(@Nonnull final SshDetails sshDetails) {
+    public SshTunnel(final SshDetails sshDetails) {
         this.jsch = new JSch();
         this.sshDetails = sshDetails;
         this.currentSession = configureSession();
@@ -140,29 +136,26 @@ public class SshTunnel {
         private int localPort = 5432;      //the local endpoint of the tunnel; make sure it's available
         private int remotePort = 5432;     //port that the database is running on on the remote machine
 
-        public SshDetails(@Nonnull final String host, @Nonnull final String user) {
+        public SshDetails(final String host, final String user) {
             this.host = host;
             this.user = user;
             this.keyFile = new File("database-openssh.ppk");
         }
 
-        @Nonnull
         @CheckReturnValue
-        public SshDetails setHost(@Nonnull final String host) {
+        public SshDetails setHost(final String host) {
             this.host = host;
             return this;
         }
 
-        @Nonnull
         @CheckReturnValue
-        public SshDetails setUser(@Nonnull final String user) {
+        public SshDetails setUser(final String user) {
             this.user = user;
             return this;
         }
 
-        @Nonnull
         @CheckReturnValue
-        public SshDetails setKeyFile(@Nonnull final File file) {
+        public SshDetails setKeyFile(final File file) {
             if (!file.exists()) {
                 log.warn("Provided key file {} does not exist.", file.getPath());
             }
@@ -170,34 +163,29 @@ public class SshTunnel {
             return this;
         }
 
-        @Nonnull
         @CheckReturnValue
-        public SshDetails setKeyFile(@Nonnull final String path) {
+        public SshDetails setKeyFile(final String path) {
             return this.setKeyFile(new File(path));
         }
 
-        @Nonnull
         @CheckReturnValue
         public SshDetails setPassphrase(@Nullable final String passphrase) {
             this.passphrase = passphrase;
             return this;
         }
 
-        @Nonnull
         @CheckReturnValue
         public SshDetails setSshPort(final int sshPort) {
             this.sshPort = sshPort;
             return this;
         }
 
-        @Nonnull
         @CheckReturnValue
         public SshDetails setLocalPort(final int localPort) {
             this.localPort = localPort;
             return this;
         }
 
-        @Nonnull
         @CheckReturnValue
         public SshDetails setRemotePort(final int remotePort) {
             this.remotePort = remotePort;

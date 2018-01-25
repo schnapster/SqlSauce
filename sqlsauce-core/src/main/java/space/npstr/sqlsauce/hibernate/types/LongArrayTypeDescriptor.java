@@ -12,6 +12,7 @@ public class LongArrayTypeDescriptor
         extends AbstractArrayTypeDescriptor<long[]> {
 
     public static final LongArrayTypeDescriptor INSTANCE = new LongArrayTypeDescriptor();
+    private static final long serialVersionUID = 1121850530286001239L;
 
     public LongArrayTypeDescriptor() {
         super(long[].class);

@@ -23,13 +23,12 @@
  */
 
 package space.npstr.sqlsauce;
+import javax.annotation.Nullable;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nonnull;
 
 /**
  * Created by napster on 20.01.18.
@@ -42,6 +41,8 @@ public abstract class BaseTest {
     public static final String TEST_JDBC_URL_ENV = "TEST_DB_JDBC";
 
     private static final Logger log = LoggerFactory.getLogger(BaseTest.class);
+
+    @Nullable
     private static DatabaseConnection dbConn;
 
     static {
@@ -52,14 +53,12 @@ public abstract class BaseTest {
         }));
     }
 
-    @Nonnull
     protected static String getTestJdbcUrl() {
         String jdbc = System.getenv(TEST_JDBC_URL_ENV);
         Assertions.assertNotNull(jdbc, String.format("Jdbc test url %s environment variable is null", TEST_JDBC_URL_ENV));
         return jdbc;
     }
 
-    @Nonnull
     private synchronized static DatabaseConnection getDbConn() {
         if (dbConn == null) {
             dbConn = new DatabaseConnection.Builder(BaseTest.class.getSimpleName(), getTestJdbcUrl())
@@ -69,7 +68,6 @@ public abstract class BaseTest {
         return dbConn;
     }
 
-    @Nonnull
     public DatabaseConnection requireConnection() {
         DatabaseConnection conn = getDbConn();
         Assertions.assertTrue(conn.isAvailable(), "Database connection is unavailable. Is the test database up and running?");

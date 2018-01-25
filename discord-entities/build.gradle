@@ -1,4 +1,5 @@
 dependencies {
     compileOnly project(':sqlsauce-core')
     compileOnly group: 'net.dv8tion', name: 'JDA', version: jdaVersion        // discord API
+    compileOnly group: 'space.npstr', name: 'annotations', version: annotationsVersion //advanced annotations
 }

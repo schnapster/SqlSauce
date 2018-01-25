@@ -26,7 +26,6 @@ package space.npstr.sqlsauce.converters;
 
 import org.postgresql.util.HStoreConverter;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.persistence.AttributeConverter;
 import javax.persistence.Converter;
@@ -53,13 +52,11 @@ public class PostgresHStoreConverter implements AttributeConverter<Map<String, S
     private static final long serialVersionUID = 6734295028227191361L;
 
     @Override
-    @Nonnull
     public String convertToDatabaseColumn(@Nullable final Map<String, String> attribute) {
         return HStoreConverter.toString(attribute != null ? attribute : new HashMap<>());
     }
 
     @Override
-    @Nonnull
     public Map<String, String> convertToEntityAttribute(@Nullable final String dbData) {
         if (dbData == null) {
             return new HashMap<>();

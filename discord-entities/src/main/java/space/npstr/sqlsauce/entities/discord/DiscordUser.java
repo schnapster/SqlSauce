@@ -37,7 +37,6 @@ import space.npstr.sqlsauce.converters.PostgresHStoreConverter;
 import space.npstr.sqlsauce.fp.types.EntityKey;
 import space.npstr.sqlsauce.fp.types.Transfiguration;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.persistence.Column;
 import javax.persistence.Convert;
@@ -81,6 +80,7 @@ public abstract class DiscordUser<Self extends BaseDiscordUser<Self>> extends Ba
     @ColumnDefault(value = "-1")
     protected short discriminator;
 
+    @Nullable
     @Column(name = "avatar_id", nullable = true, columnDefinition = "text")
     protected String avatarId;
 
@@ -90,7 +90,6 @@ public abstract class DiscordUser<Self extends BaseDiscordUser<Self>> extends Ba
 
     @Column(name = "nicks", columnDefinition = "hstore")
     @Convert(converter = PostgresHStoreConverter.class)
-    @Nonnull
     protected final Map<String, String> nicks = new HashMap<>();
 
 
@@ -99,7 +98,6 @@ public abstract class DiscordUser<Self extends BaseDiscordUser<Self>> extends Ba
     // ################################################################################
 
     //Good idea to call this each time you are loading one of these before saving.
-    @Nonnull
     //set general user values
     public Self set(@Nullable final User user) {
         if (user == null) {
@@ -113,7 +111,6 @@ public abstract class DiscordUser<Self extends BaseDiscordUser<Self>> extends Ba
     }
 
     //Good idea to call this each time you are loading one of these before saving.
-    @Nonnull
     //set guild specific user values (additionally to user specific ones)
     public Self set(@Nullable final Member member) {
         if (member == null) {
@@ -134,41 +131,30 @@ public abstract class DiscordUser<Self extends BaseDiscordUser<Self>> extends Ba
 
     //convenience static setters for cached values
 
-    @Nonnull
-    public static <E extends DiscordUser<E>> DiscordUser<E> cache(@Nonnull final User user,
-                                                                  @Nonnull final Class<E> clazz)
+    public static <E extends DiscordUser<E>> DiscordUser<E> cache(final User user, final Class<E> clazz)
             throws DatabaseException {
         return cache(getDefaultSauce(), user, clazz);
     }
 
-    @Nonnull
-    public static <E extends DiscordUser<E>> DiscordUser<E> cache(@Nonnull final DatabaseWrapper dbWrapper,
-                                                                  @Nonnull final User user,
-                                                                  @Nonnull final Class<E> clazz)
-            throws DatabaseException {
+    public static <E extends DiscordUser<E>> DiscordUser<E> cache(final DatabaseWrapper dbWrapper, final User user,
+                                                                  final Class<E> clazz) throws DatabaseException {
         return dbWrapper.findApplyAndMerge(EntityKey.of(user.getIdLong(), clazz),
                 (discordUser) -> discordUser.set(user));
     }
 
-    @Nonnull
-    public static <E extends DiscordUser<E>> DiscordUser<E> cache(@Nonnull final Member member,
-                                                                  @Nonnull final Class<E> clazz)
+    public static <E extends DiscordUser<E>> DiscordUser<E> cache(final Member member, final Class<E> clazz)
             throws DatabaseException {
         return cache(getDefaultSauce(), member, clazz);
     }
 
-    @Nonnull
-    public static <E extends DiscordUser<E>> DiscordUser<E> cache(@Nonnull final DatabaseWrapper dbWrapper,
-                                                                  @Nonnull final Member member,
-                                                                  @Nonnull final Class<E> clazz)
-            throws DatabaseException {
+    public static <E extends DiscordUser<E>> DiscordUser<E> cache(final DatabaseWrapper dbWrapper, final Member member,
+                                                                  final Class<E> clazz) throws DatabaseException {
         return dbWrapper.findApplyAndMerge(EntityKey.of(member.getUser().getIdLong(), clazz),
                                            (discordUser) -> discordUser.set(member));
     }
 
-    @Nonnull
-    public static <E extends DiscordUser<E>> Collection<DatabaseException> cacheAll(@Nonnull final Stream<Member> members,
-                                                                                    @Nonnull final Class<E> clazz) {
+    public static <E extends DiscordUser<E>> Collection<DatabaseException> cacheAll(final Stream<Member> members,
+                                                                                    final Class<E> clazz) {
         return cacheAll(getDefaultSauce(), members, clazz);
     }
 
@@ -181,10 +167,9 @@ public abstract class DiscordUser<Self extends BaseDiscordUser<Self>> extends Ba
      * @param clazz     Class of the actual DiscordUser entity
      * @return DatabaseExceptions caused by the execution of this method
      */
-    @Nonnull
-    public static <E extends DiscordUser<E>> Collection<DatabaseException> cacheAll(@Nonnull final DatabaseWrapper dbWrapper,
-                                                                                    @Nonnull final Stream<Member> members,
-                                                                                    @Nonnull final Class<E> clazz) {
+    public static <E extends DiscordUser<E>> Collection<DatabaseException> cacheAll(final DatabaseWrapper dbWrapper,
+                                                                                    final Stream<Member> members,
+                                                                                    final Class<E> clazz) {
         final long started = System.currentTimeMillis();
         final AtomicInteger streamed = new AtomicInteger(0);
 
@@ -209,7 +194,6 @@ public abstract class DiscordUser<Self extends BaseDiscordUser<Self>> extends Ba
 
 
     //getters for cached values
-    @Nonnull
     public String getName() {
         return this.name;
     }
@@ -227,7 +211,6 @@ public abstract class DiscordUser<Self extends BaseDiscordUser<Self>> extends Ba
         return this.bot;
     }
 
-    @Nonnull
     public Map<String, String> getNicks() {
         return this.nicks;
     }
@@ -239,7 +222,6 @@ public abstract class DiscordUser<Self extends BaseDiscordUser<Self>> extends Ba
         return getNicks().get(Long.toString(guildId));
     }
 
-    @Nonnull
     public String asMention() {
         return "<@" + this.userId + ">";
     }
@@ -250,7 +232,6 @@ public abstract class DiscordUser<Self extends BaseDiscordUser<Self>> extends Ba
                 + (this.avatarId.startsWith("a_") ? ".gif" : ".png");
     }
 
-    @Nonnull
     public String getEffectiveAvatarUrl() { //ty JDA
         final String avatarUrl = getAvatarUrl();
         return avatarUrl != null ? avatarUrl
@@ -267,7 +248,6 @@ public abstract class DiscordUser<Self extends BaseDiscordUser<Self>> extends Ba
     // 4. cached username
     // 5. UNKNOWN_NAME
     //this is a complete method to find a users name from all possible sources in a clear order of preference for the sources
-    @Nonnull
     public String getEffectiveName(@Nullable final Guild guild, @Nullable Function<Long, User> globalUserLookup) {
         if (guild != null) {
             final Member member = guild.getMemberById(this.userId);
@@ -299,7 +279,6 @@ public abstract class DiscordUser<Self extends BaseDiscordUser<Self>> extends Ba
     }
 
     //effective name of a user from the cache, similar to JDAs Member#getEffectiveName
-    @Nonnull
     public String getEffectiveName(long guildId) {
         String nick = getNick(guildId);
         if (nick != null) {

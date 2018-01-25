@@ -40,7 +40,6 @@ import space.npstr.sqlsauce.entities.SaucedEntity;
 import space.npstr.sqlsauce.ssh.SshTunnel;
 
 import javax.annotation.CheckReturnValue;
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
@@ -80,9 +79,7 @@ public class DatabaseConnection {
     private static final Logger log = LoggerFactory.getLogger(DatabaseConnection.class);
     private static final String TEST_QUERY = "SELECT 1;";
 
-    @Nonnull
     private final EntityManagerFactory emf;
-    @Nonnull
     private final HikariDataSource hikariDataSource;
     @Nullable
     private final ProxyDataSource proxiedDataSource;
@@ -90,10 +87,8 @@ public class DatabaseConnection {
     @Nullable
     private SshTunnel sshTunnel = null;
 
-    @Nonnull
     private final String dbName; //a comprehensible name for this connection
 
-    @Nonnull
     private volatile DatabaseState state = DatabaseState.UNINITIALIZED;
 
     @Nullable
@@ -124,12 +119,12 @@ public class DatabaseConnection {
      *                         DatabaseConnection. Flyway supports the use of a jdbcUrl instead of a datasource, and
      *                         you can also manually build a temporary ssh tunnel if need be.
      */
-    public DatabaseConnection(@Nonnull final String dbName,
-                              @Nonnull final String jdbcUrl,
-                              @Nonnull final Properties dataSourceProps,
-                              @Nonnull final HikariConfig hikariConfig,
-                              @Nonnull final Properties hibernateProps,
-                              @Nonnull final Collection<String> entityPackages,
+    public DatabaseConnection(final String dbName,
+                              final String jdbcUrl,
+                              final Properties dataSourceProps,
+                              final HikariConfig hikariConfig,
+                              final Properties hibernateProps,
+                              final Collection<String> entityPackages,
                               @Nullable final String poolName,
                               @Nullable final SshTunnel.SshDetails sshDetails,
                               @Nullable final MetricsTrackerFactory hikariStats,
@@ -213,7 +208,6 @@ public class DatabaseConnection {
         }
     }
 
-    @Nonnull
     @CheckReturnValue
     public String getName() {
         return this.dbName;
@@ -223,7 +217,6 @@ public class DatabaseConnection {
         return hikariDataSource.getMaximumPoolSize();
     }
 
-    @Nonnull
     @CheckReturnValue
     public EntityManager getEntityManager() throws IllegalStateException, DatabaseException {
         if (this.state == DatabaseState.SHUTDOWN) {
@@ -234,7 +227,6 @@ public class DatabaseConnection {
         return this.emf.createEntityManager();
     }
 
-    @Nonnull
     public DataSource getDataSource() {
         if (proxiedDataSource != null) {
             return proxiedDataSource;
@@ -376,6 +368,7 @@ public class DatabaseConnection {
                 }
             }
 
+            @Nullable
             @Override
             public URL getPersistenceUnitRootUrl() {
                 return null;
@@ -400,11 +393,13 @@ public class DatabaseConnection {
                 return false;
             }
 
+            @Nullable
             @Override
             public SharedCacheMode getSharedCacheMode() {
                 return null;
             }
 
+            @Nullable
             @Override
             public ValidationMode getValidationMode() {
                 return null;
@@ -415,11 +410,13 @@ public class DatabaseConnection {
                 return new Properties();
             }
 
+            @Nullable
             @Override
             public String getPersistenceXMLSchemaVersion() {
                 return null;
             }
 
+            @Nullable
             @Override
             public ClassLoader getClassLoader() {
                 return null;
@@ -430,6 +427,7 @@ public class DatabaseConnection {
                 //do nothing
             }
 
+            @Nullable
             @Override
             public ClassLoader getNewTempClassLoader() {
                 return null;
@@ -531,7 +529,6 @@ public class DatabaseConnection {
     //builder pattern, duh
     public static class Builder {
 
-        @Nonnull
         public static Properties getDefaultDataSourceProps() {
             final Properties dataSourceProps = new Properties();
 
@@ -542,7 +539,6 @@ public class DatabaseConnection {
             return dataSourceProps;
         }
 
-        @Nonnull
         public static HikariConfig getDefaultHikariConfig() {
             final HikariConfig hikariConfig = new HikariConfig();
 
@@ -560,7 +556,6 @@ public class DatabaseConnection {
             return hikariConfig;
         }
 
-        @Nonnull
         public static Properties getDefaultHibernateProps() {
             final Properties hibernateProps = new Properties();
 
@@ -597,17 +592,11 @@ public class DatabaseConnection {
         }
 
 
-        @Nonnull
         private String dbName;
-        @Nonnull
         private String jdbcUrl;
-        @Nonnull
         private Properties dataSourceProps = getDefaultDataSourceProps();
-        @Nonnull
         private HikariConfig hikariConfig = getDefaultHikariConfig();
-        @Nonnull
         private Properties hibernateProps = getDefaultHibernateProps();
-        @Nonnull
         private Collection<String> entityPackages = new ArrayList<>();
         @Nullable
         private String poolName;
@@ -627,9 +616,8 @@ public class DatabaseConnection {
 
         // absolute minimum needed config
 
-        @Nonnull
         @CheckReturnValue
-        public Builder(@Nonnull final String dbName, @Nonnull final String jdbcUrl) {
+        public Builder(final String dbName, final String jdbcUrl) {
             this.dbName = dbName;
             this.jdbcUrl = jdbcUrl;
         }
@@ -637,16 +625,14 @@ public class DatabaseConnection {
         /**
          * Give this database connection a name - preferably unique inside your application.
          */
-        @Nonnull
         @CheckReturnValue
-        public Builder setDatabaseName(@Nonnull final String dbName) {
+        public Builder setDatabaseName(final String dbName) {
             this.dbName = dbName;
             return this;
         }
 
-        @Nonnull
         @CheckReturnValue
-        public Builder setJdbcUrl(@Nonnull final String jdbcUrl) {
+        public Builder setJdbcUrl(final String jdbcUrl) {
             this.jdbcUrl = jdbcUrl;
             return this;
         }
@@ -659,16 +645,14 @@ public class DatabaseConnection {
          * {@link Builder#getDefaultDataSourceProps()}, which can be overriden using this method. Use
          * {@link Builder#setDataSourceProperty(Object, Object)} if you want to add a single property.
          */
-        @Nonnull
         @CheckReturnValue
-        public Builder setDataSourceProps(@Nonnull final Properties props) {
+        public Builder setDataSourceProps(final Properties props) {
             this.dataSourceProps = props;
             return this;
         }
 
-        @Nonnull
         @CheckReturnValue
-        public Builder setDataSourceProperty(@Nonnull final Object key, @Nonnull final Object value) {
+        public Builder setDataSourceProperty(final Object key, final Object value) {
             this.dataSourceProps.put(key, value);
             return this;
         }
@@ -676,9 +660,8 @@ public class DatabaseConnection {
         /**
          * Name that the connections will show up with in db management tools
          */
-        @Nonnull
         @CheckReturnValue
-        public Builder setAppName(@Nonnull final String appName) {
+        public Builder setAppName(final String appName) {
             this.dataSourceProps.setProperty("ApplicationName", appName);
             return this;
         }
@@ -690,9 +673,8 @@ public class DatabaseConnection {
          * Set your own HikariDataSource. By default, the builder populates the HikariDataSource properties with
          * {@link Builder#getDefaultHikariConfig()} ()} ()}, which can be overriden using this method.
          */
-        @Nonnull
         @CheckReturnValue
-        public Builder setHikariConfig(@Nonnull final HikariConfig hikariConfig) {
+        public Builder setHikariConfig(final HikariConfig hikariConfig) {
             this.hikariConfig = hikariConfig;
             return this;
         }
@@ -701,7 +683,6 @@ public class DatabaseConnection {
          * Name of the Hikari pool. Should be unique across your application. If you don't set one or set a null one
          * a default pool name based on the database name will be picked.
          */
-        @Nonnull
         @CheckReturnValue
         public Builder setPoolName(@Nullable final String poolName) {
             this.poolName = poolName;
@@ -716,16 +697,14 @@ public class DatabaseConnection {
          * {@link Builder#getDefaultHibernateProps()}, which can be overriden using this method. Use
          * {@link Builder#setHibernateProperty(Object, Object)} if you want to add a single property.
          */
-        @Nonnull
         @CheckReturnValue
-        public Builder setHibernateProps(@Nonnull final Properties props) {
+        public Builder setHibernateProps(final Properties props) {
             this.hibernateProps = props;
             return this;
         }
 
-        @Nonnull
         @CheckReturnValue
-        public Builder setHibernateProperty(@Nonnull final Object key, @Nonnull final Object value) {
+        public Builder setHibernateProperty(final Object key, final Object value) {
             this.hibernateProps.put(key, value);
             return this;
         }
@@ -734,15 +713,13 @@ public class DatabaseConnection {
          * Set the name of the dialect to be used, as sometimes auto detection is off (or you want to use a custom one)
          * Example: "org.hibernate.dialect.PostgreSQL95Dialect"
          */
-        @Nonnull
         @CheckReturnValue
-        public Builder setDialect(@Nonnull final String dialect) {
+        public Builder setDialect(final String dialect) {
             return setHibernateProperty("hibernate.dialect", dialect);
         }
 
-        @Nonnull
         @CheckReturnValue
-        public Builder setEntityPackages(@Nonnull final Collection<String> entityPackages) {
+        public Builder setEntityPackages(final Collection<String> entityPackages) {
             this.entityPackages = entityPackages;
             return this;
         }
@@ -751,9 +728,8 @@ public class DatabaseConnection {
          * Add all packages of your application that contain entities that you want to use with this connection.
          * Example: "com.example.yourorg.yourproject.db.entities"
          */
-        @Nonnull
         @CheckReturnValue
-        public Builder addEntityPackage(@Nonnull final String entityPackage) {
+        public Builder addEntityPackage(final String entityPackage) {
             this.entityPackages.add(entityPackage);
             return this;
         }
@@ -764,7 +740,6 @@ public class DatabaseConnection {
         /**
          * Set this to tunnel the database connection through the configured SSH tunnel. Provide a null object to reset.
          */
-        @Nonnull
         @CheckReturnValue
         public Builder setSshDetails(@Nullable final SshTunnel.SshDetails sshDetails) {
             this.sshDetails = sshDetails;
@@ -774,7 +749,6 @@ public class DatabaseConnection {
 
         // metrics stuff
 
-        @Nonnull
         @CheckReturnValue
         public Builder setHikariStats(@Nullable final MetricsTrackerFactory hikariStats) {
             this.hikariStats = hikariStats;
@@ -788,7 +762,6 @@ public class DatabaseConnection {
          * <p>
          * for the resulting DatabaseConnection.
          */
-        @Nonnull
         @CheckReturnValue
         public Builder setHibernateStats(@Nullable final HibernateStatisticsCollector hibernateStats) {
             this.hibernateStats = hibernateStats;
@@ -797,7 +770,6 @@ public class DatabaseConnection {
 
 
         //migrations
-        @Nonnull
         @CheckReturnValue
         public Builder setFlyway(@Nullable final Flyway flyway) {
             this.flyway = flyway;
@@ -805,21 +777,18 @@ public class DatabaseConnection {
         }
 
         //misc
-        @Nonnull
         @CheckReturnValue
         public Builder setCheckConnection(final boolean checkConnection) {
             this.checkConnection = checkConnection;
             return this;
         }
 
-        @Nonnull
         @CheckReturnValue
         public Builder setProxyDataSourceBuilder(@Nullable final ProxyDataSourceBuilder proxyBuilder) {
             this.proxyDataSourceBuilder = proxyBuilder;
             return this;
         }
 
-        @Nonnull
         @CheckReturnValue
         public DatabaseConnection build() throws DatabaseException {
             return new DatabaseConnection(

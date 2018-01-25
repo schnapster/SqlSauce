@@ -28,7 +28,6 @@ import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.User;
 
-import javax.annotation.Nonnull;
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
 import java.io.Serializable;
@@ -57,11 +56,11 @@ public class MemberComposite implements Serializable {
     public MemberComposite() {
     }
 
-    public MemberComposite(@Nonnull Member member) {
+    public MemberComposite(Member member) {
         this(member.getGuild(), member.getUser());
     }
 
-    public MemberComposite(@Nonnull Guild guild, @Nonnull User user) {
+    public MemberComposite(Guild guild, User user) {
         this(guild.getIdLong(), user.getIdLong());
     }
 

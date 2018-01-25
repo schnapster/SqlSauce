@@ -29,7 +29,6 @@ import org.postgresql.jdbc.PgConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -77,7 +76,7 @@ public class NotificationService {
          * Doing heavy work in here is not recommended.
          * Any uncaught exceptions from here will be spit out through the exception handler.
          */
-        void notif(@Nonnull PGNotification notification);
+        void notif(PGNotification notification);
     }
 
     public interface ExceptionHandler {
@@ -85,7 +84,7 @@ public class NotificationService {
          * Any exceptions, most notably all kinds of SQL exceptions and uncaught exceptions from notifying listeners
          * will be thrown into this place.
          */
-        void handle(@Nonnull Exception e);
+        void handle(Exception e);
     }
 
 
@@ -94,15 +93,11 @@ public class NotificationService {
     //todo is there a better way to synchronize / thread safety?
     //current thread safety design synchronizes on the listeners object whenever the Map or any of the Sets of its
     //values are accessed
-    @Nonnull
     private final Map<String, Set<NotificationListener>> listeners = new HashMap<>();
 
-    @Nonnull
     private final Connection connection;              //connection that we are listening on
 
-    @Nonnull
     private final ExecutorService exec;                 //runs the main loop
-    @Nonnull
     private final ExceptionHandler exceptionHandler;    //handles all exceptions after successful init
 
     private volatile boolean pleaseShutdown = false;    // controls the main loop going on
@@ -118,7 +113,7 @@ public class NotificationService {
      *                         is provided (null value), exceptions will just be logged.
      * @throws DatabaseException Propagates any SQLExceptions while creating the connection
      */
-    public NotificationService(@Nonnull String jdbcUrl, @Nonnull String name, int intervalMillis,
+    public NotificationService(String jdbcUrl, String name, int intervalMillis,
                                @Nullable ExceptionHandler exceptionHandler) {
         Properties props = new Properties();
         props.setProperty("ApplicationName", name + "-" + NotificationService.class.getSimpleName());
@@ -158,7 +153,7 @@ public class NotificationService {
      *                so the channel names need to be checked by the code calling this for their legitimacy.
      *                Do not allow these to be set by any user values ever or else sql injections might happen.
      */
-    public NotificationService addListener(@Nonnull NotificationListener listener, @Nonnull String channel) {
+    public NotificationService addListener(NotificationListener listener, String channel) {
         return addListener(listener, Collections.singleton(channel));
     }
 
@@ -169,7 +164,7 @@ public class NotificationService {
      *                 so the channel names need to be checked by the code calling this for their legitimacy.
      *                 Do not allow these to be set by any user values ever or else sql injections might happen.
      */
-    public NotificationService addListener(@Nonnull NotificationListener listener, @Nonnull Collection<String> channels) {
+    public NotificationService addListener(NotificationListener listener, Collection<String> channels) {
         if (channels.isEmpty()) {
             throw new IllegalArgumentException("Provide at least one channel to listen to");
         }
@@ -195,7 +190,7 @@ public class NotificationService {
      *                so the channel names need to be checked by the code calling this for their legitimacy.
      *                Do not allow these to be set by any user values ever or else sql injections might happen.
      */
-    public NotificationService removeListener(@Nonnull NotificationListener listener, @Nonnull String channel) {
+    public NotificationService removeListener(NotificationListener listener, String channel) {
         return removeListener(listener, Collections.singleton(channel));
     }
 
@@ -206,7 +201,7 @@ public class NotificationService {
      *                 so the channel names need to be checked by the code calling this for their legitimacy.
      *                 Do not allow these to be set by any user values ever or else sql injections might happen.
      */
-    public NotificationService removeListener(@Nonnull NotificationListener listener, @Nonnull Collection<String> channels) {
+    public NotificationService removeListener(NotificationListener listener, Collection<String> channels) {
         if (channels.isEmpty()) {
             throw new IllegalArgumentException("Provide at least one channel to unlisten from");
         }
@@ -230,14 +225,14 @@ public class NotificationService {
     /**
      * Remove a listener from all channels it is listening to.
      */
-    public NotificationService removeListener(@Nonnull NotificationListener listener) {
+    public NotificationService removeListener(NotificationListener listener) {
         return removeListeners(Collections.singleton(listener));
     }
 
     /**
      * Remove a bunch of listeners from all channels they are listening to.
      */
-    public NotificationService removeListeners(@Nonnull Collection<NotificationListener> listenersToRemove) {
+    public NotificationService removeListeners(Collection<NotificationListener> listenersToRemove) {
         synchronized (listeners) {
             for (Set<NotificationListener> channel : listeners.values()) {
                 channel.removeAll(listenersToRemove);
@@ -265,7 +260,7 @@ public class NotificationService {
      * notifications, because this implementation will send notifications only between checking for new notifications,
      * and a heavy load of sending notifications through this class may delay the fetching of notifications.
      */
-    public void notif(@Nonnull String channel, @Nullable String payload) {
+    public void notif(String channel, @Nullable String payload) {
         outstandingNotifs.add(new Notif(channel, payload));
     }
 
@@ -315,7 +310,7 @@ public class NotificationService {
     //channels that we are actually listening to
     //between receiving notifications, these are updated with LISTEN and UNLISTEN to correctly represent the current
     // state of listeners
-    private Set<String> listening = new HashSet<>();
+    private final Set<String> listening = new HashSet<>();
 
     //main work loop in here
     private void work(int intervalMillis) {
@@ -358,6 +353,7 @@ public class NotificationService {
         drainNotifs();
         // tell the database to unlisten
         try (Statement unlistenAll = connection.createStatement()) {
+            //noinspection SqlResolve
             unlistenAll.executeUpdate("UNLISTEN *");
         } catch (Exception e) {
             exceptionHandler.handle(e);
@@ -379,21 +375,21 @@ public class NotificationService {
 
     //notif type
     private static class Notif {
-        @Nonnull
         public final String channel;
         @Nullable
         public final String payload;
 
-        public Notif(@Nonnull String channel, @Nullable String payload) {
+        public Notif(String channel, @Nullable String payload) {
             this.channel = channel;
             this.payload = payload;
         }
     }
 
-    private Queue<Notif> outstandingNotifs = new ConcurrentLinkedQueue<>();
+    private final Queue<Notif> outstandingNotifs = new ConcurrentLinkedQueue<>();
 
     //send out all notifications
     private void drainNotifs() {
+        //noinspection SqlResolve
         try (PreparedStatement notify = connection.prepareStatement("SELECT pg_notify(?, ?)")) {
             Notif toSend = outstandingNotifs.poll();
             while (toSend != null) {

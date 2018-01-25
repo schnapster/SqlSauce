@@ -18,6 +18,7 @@ public class LongArrayType
         implements DynamicParameterizedType {
 
     public static final LongArrayType INSTANCE = new LongArrayType();
+    private static final long serialVersionUID = 1291864436296687737L;
 
     public LongArrayType() {
         super(ArraySqlTypeDescriptor.INSTANCE, LongArrayTypeDescriptor.INSTANCE);

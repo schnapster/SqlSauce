@@ -28,7 +28,6 @@ import org.hibernate.annotations.NaturalId;
 import space.npstr.sqlsauce.entities.SaucedEntity;
 
 import javax.annotation.CheckReturnValue;
-import javax.annotation.Nonnull;
 import javax.persistence.Column;
 import javax.persistence.Id;
 import javax.persistence.MappedSuperclass;
@@ -49,15 +48,13 @@ public abstract class BaseDiscordGuild<Self extends SaucedEntity<Long, Self>> ex
     @Column(name = "guild_id", nullable = false)
     protected long guildId;
 
-    @Nonnull
     @Override
     @CheckReturnValue
-    public Self setId(@Nonnull final Long guildId) {
+    public Self setId(final Long guildId) {
         this.guildId = guildId;
         return getThis();
     }
 
-    @Nonnull
     @Override
     public Long getId() {
         return this.guildId;

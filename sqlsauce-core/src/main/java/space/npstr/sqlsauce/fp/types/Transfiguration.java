@@ -26,7 +26,6 @@ package space.npstr.sqlsauce.fp.types;
 
 import space.npstr.sqlsauce.entities.SaucedEntity;
 
-import javax.annotation.Nonnull;
 import java.io.Serializable;
 import java.util.function.Function;
 
@@ -47,14 +46,13 @@ public class Transfiguration<I, E> {
     public final Function<E, E> tf;
 
 
-    @Nonnull
     public static <E extends SaucedEntity<I, E>, I extends Serializable>
-    Transfiguration<I, E> of(@Nonnull final EntityKey<I, E> entityKey,
-                             @Nonnull final Function<E, E> transformation) {
+    Transfiguration<I, E> of(final EntityKey<I, E> entityKey,
+                             final Function<E, E> transformation) {
         return new Transfiguration<>(entityKey, transformation);
     }
 
-    private Transfiguration(@Nonnull final EntityKey<I, E> entityKey, @Nonnull final Function<E, E> transformation) {
+    private Transfiguration(final EntityKey<I, E> entityKey, final Function<E, E> transformation) {
         this.key = entityKey;
         this.tf = transformation;
     }

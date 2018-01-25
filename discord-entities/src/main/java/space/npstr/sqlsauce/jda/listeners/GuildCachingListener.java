@@ -35,7 +35,6 @@ import space.npstr.sqlsauce.DatabaseException;
 import space.npstr.sqlsauce.DatabaseTask;
 import space.npstr.sqlsauce.entities.discord.DiscordGuild;
 
-import javax.annotation.Nonnull;
 import java.util.Collection;
 
 /**
@@ -84,7 +83,7 @@ public class GuildCachingListener<E extends DiscordGuild<E>> extends CachingList
         );
     }
 
-    private void onGuildEvent(@Nonnull final DatabaseTask task, @Nonnull final GenericGuildEvent event) {
+    private void onGuildEvent(final DatabaseTask task, final GenericGuildEvent event) {
         submit(task, e -> log.error("Failed to cache event {} for guild {}",
                 event.getClass().getSimpleName(), event.getGuild().getIdLong(), e));
     }
