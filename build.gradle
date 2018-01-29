@@ -34,27 +34,13 @@ allprojects {
 subprojects {
 
     apply plugin: 'java'
+    apply plugin: 'java-library'
     apply plugin: 'maven-publish'
     apply plugin: 'com.github.spotbugs'
     apply plugin: 'com.jfrog.bintray'
 
     sourceCompatibility = 8
     targetCompatibility = 8
-
-    publishing {
-        publications {
-            mavenJava(MavenPublication) {
-                groupId rootProject.group
-                artifactId project.name
-
-                from components.java
-
-                artifact sourceJar {
-                    classifier "sources"
-                }
-            }
-        }
-    }
 
     compileJava.dependsOn clean
     compileJava.options.encoding = 'UTF-8'
@@ -121,9 +107,50 @@ subprojects {
         logbackVersion = '1.2.3'
     }
 
+    def pomConfig = {
+        licenses {
+            license {
+                name "MIT License"
+                url "https://opensource.org/licenses/MIT"
+                distribution "repo"
+            }
+        }
+        developers {
+            developer {
+                name "Napster"
+                email "napster@npstr.space"
+            }
+        }
+        scm {
+            url "https://github.com/napstr/SqlSauce"
+        }
+    }
+
+    publishing {
+        publications {
+            mavenJava(MavenPublication) {
+                from components.java
+                artifact sourceJar {
+                    classifier "sources"
+                }
+                groupId project.group
+                artifactId project.name
+                version project.version
+                pom.withXml {
+                    def root = asNode()
+                    root.appendNode('description', 'SQL tech stack on top of PostgreSQL, HikariCP, Hibernate')
+                    root.appendNode('name', 'SqlSauce')
+                    root.appendNode('url', 'https://github.com/napstr/SqlSauce')
+                    root.children().last() + pomConfig
+                }
+            }
+        }
+    }
+
     bintray {
         user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
         key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
+        publications = ['mavenJava']
         filesSpec {
             from('build/libs')
             into '.'
@@ -134,6 +161,8 @@ subprojects {
             repo = 'SqlSauce'
             name = project.name
             userOrg = user
+            licenses = ['MIT']
+            vcsUrl = 'https://github.com/napstr/SqlSauce'
             version {
                 name = project.version
             }
