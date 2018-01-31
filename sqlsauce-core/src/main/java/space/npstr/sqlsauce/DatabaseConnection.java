@@ -79,6 +79,7 @@ public class DatabaseConnection {
     private static final Logger log = LoggerFactory.getLogger(DatabaseConnection.class);
     private static final String TEST_QUERY = "SELECT 1;";
     private static final long DEFAULT_FORCE_RECONNECT_TUNNEL_AFTER = TimeUnit.MINUTES.toNanos(1);
+    private static final long DEFAULT_HEALTHCHECK_PERIOD = TimeUnit.SECONDS.toNanos(5);
 
     private final EntityManagerFactory emf;
     private final HikariDataSource hikariDataSource;
@@ -113,6 +114,7 @@ public class DatabaseConnection {
      * @param hikariStats      optional metrics for hikari
      * @param checkConnection  set to false to disable a periodic healthcheck and automatic reconnection of the connection.
      *                         only recommended if you run your own healthcheck and reconnection logic
+     * @param healthCheckPeriod (nanos) period between health checks
      * @param tunnelForceReconnectAfter (nanos) will forcefully reconnect a connected tunnel as part of the
      *                                  healthcheck, if there was no successful test query for this time period.
      * @param proxyDataSourceBuilder optional datasource proxy that is useful for logging and intercepting queries, see
@@ -136,6 +138,7 @@ public class DatabaseConnection {
                               @Nullable final MetricsTrackerFactory hikariStats,
                               @Nullable final HibernateStatisticsCollector hibernateStats,
                               final boolean checkConnection,
+                              long healthCheckPeriod,
                               long tunnelForceReconnectAfter,
                               @Nullable final ProxyDataSourceBuilder proxyDataSourceBuilder,
                               @Nullable final Flyway flyway) throws DatabaseException {
@@ -206,7 +209,7 @@ public class DatabaseConnection {
                             return thread;
                         }
                 );
-                this.connectionCheck.scheduleAtFixedRate(this::healthCheck, 5, 5, TimeUnit.SECONDS);
+                this.connectionCheck.scheduleAtFixedRate(this::healthCheck, healthCheckPeriod, healthCheckPeriod, TimeUnit.NANOSECONDS);
             } else {
                 this.connectionCheck = null;
             }
@@ -631,6 +634,7 @@ public class DatabaseConnection {
         @Nullable
         private MetricsTrackerFactory hikariStats;
         private boolean checkConnection = true;
+        private long healthcheckPeriod = DEFAULT_HEALTHCHECK_PERIOD;
         private long tunnelForceReconnectAfter = DEFAULT_FORCE_RECONNECT_TUNNEL_AFTER;
         @Nullable
         private ProxyDataSourceBuilder proxyDataSourceBuilder;
@@ -808,6 +812,15 @@ public class DatabaseConnection {
         }
 
         /**
+         * Set to some positive value. Default is 5 seconds. Can be disabled by {@link Builder#setCheckConnection(boolean)}
+         */
+        @CheckReturnValue
+        public Builder setHealthCheckPeriod(final long healthCheckPeriod, TimeUnit timeUnit) {
+            this.healthcheckPeriod = timeUnit.toNanos(healthCheckPeriod);
+            return this;
+        }
+
+        /**
          * Set to 0 to never force reconnect the tunnel. Other than that, the force reconnect period should be higher
          * than the healthcheck period. Default is 1 minute.
          */
@@ -837,6 +850,7 @@ public class DatabaseConnection {
                     this.hikariStats,
                     this.hibernateStats,
                     this.checkConnection,
+                    this.healthcheckPeriod,
                     this.tunnelForceReconnectAfter,
                     this.proxyDataSourceBuilder,
                     this.flyway
