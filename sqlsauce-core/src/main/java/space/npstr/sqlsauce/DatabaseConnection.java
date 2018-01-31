@@ -216,6 +216,9 @@ public class DatabaseConnection {
             SaucedEntity.setDefaultSauce(new DatabaseWrapper(this));
         } catch (final Exception e) {
             this.state = DatabaseState.FAILED;
+            if (sshTunnel != null) {
+                sshTunnel.disconnect();
+            }
             throw new DatabaseException("Failed to create database connection", e);
         }
     }
