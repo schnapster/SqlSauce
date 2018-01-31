@@ -306,6 +306,7 @@ public class DatabaseConnection {
                 this.state = DatabaseState.FAILED;
                 try {
                     this.sshTunnel.reconnect();
+                    lastConnected = System.nanoTime();
                 } catch (Exception e) {
                     log.error("Failed to reconnect tunnel during healthcheck", e);
                 }
