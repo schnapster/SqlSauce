@@ -78,6 +78,7 @@ public class DatabaseConnection {
 
     private static final Logger log = LoggerFactory.getLogger(DatabaseConnection.class);
     private static final String TEST_QUERY = "SELECT 1;";
+    private static final long DEFAULT_FORCE_RECONNECT_TUNNEL_AFTER = TimeUnit.MINUTES.toNanos(1);
 
     private final EntityManagerFactory emf;
     private final HikariDataSource hikariDataSource;
@@ -94,6 +95,9 @@ public class DatabaseConnection {
     @Nullable
     private final ScheduledExecutorService connectionCheck;
 
+    private final long tunnelForceReconnectAfter;
+    private long lastConnected;
+
     /**
      * @param dbName           name for this database connection, also used as the persistence unit name and other
      *                         places. Make sure it is unique across your application for best results.
@@ -109,6 +113,8 @@ public class DatabaseConnection {
      * @param hikariStats      optional metrics for hikari
      * @param checkConnection  set to false to disable a periodic healthcheck and automatic reconnection of the connection.
      *                         only recommended if you run your own healthcheck and reconnection logic
+     * @param tunnelForceReconnectAfter (nanos) will forcefully reconnect a connected tunnel as part of the
+     *                                  healthcheck, if there was no successful test query for this time period.
      * @param proxyDataSourceBuilder optional datasource proxy that is useful for logging and intercepting queries, see
      *                               https://github.com/ttddyy/datasource-proxy. The hikari datasource will be set on it,
      *                               and the resulting proxy will be passed to hibernate.
@@ -130,15 +136,18 @@ public class DatabaseConnection {
                               @Nullable final MetricsTrackerFactory hikariStats,
                               @Nullable final HibernateStatisticsCollector hibernateStats,
                               final boolean checkConnection,
+                              long tunnelForceReconnectAfter,
                               @Nullable final ProxyDataSourceBuilder proxyDataSourceBuilder,
                               @Nullable final Flyway flyway) throws DatabaseException {
         this.dbName = dbName;
         this.state = DatabaseState.INITIALIZING;
+        this.tunnelForceReconnectAfter = tunnelForceReconnectAfter;
 
         try {
             // create ssh tunnel
             if (sshDetails != null) {
                 this.sshTunnel = new SshTunnel(sshDetails).connect();
+                lastConnected = System.nanoTime();
             }
 
             // hikari connection pool
@@ -266,6 +275,8 @@ public class DatabaseConnection {
      * The healthcheck has to be called proactively, as the ssh tunnel does not provide any callback for detecting a
      * disconnect. The default configuration of the database connection takes care of doing this every few seconds.
      *
+     * The period this is called should be smaller than the tunnel force reconnect time.
+     *
      * @return true if the database is healthy, false otherwise. Will return false if the database is shutdown, but not
      * attempt to restart/reconnect it.
      */
@@ -276,13 +287,25 @@ public class DatabaseConnection {
         }
 
         //is the ssh connection still alive?
-        if (this.sshTunnel != null && !this.sshTunnel.isConnected()) {
-            log.error("SSH tunnel lost connection.");
-            this.state = DatabaseState.FAILED;
-            try {
-                this.sshTunnel.reconnect();
-            } catch (Exception e) {
-                log.error("Failed to reconnect tunnel during healthcheck", e);
+        if (this.sshTunnel != null) {
+            boolean reconnectTunnel = false;
+
+            if (!this.sshTunnel.isConnected()) {
+                log.error("SSH tunnel lost connection.");
+                reconnectTunnel = true;
+            } else if (tunnelForceReconnectAfter > 0 && System.nanoTime() - lastConnected > tunnelForceReconnectAfter) {
+                log.error("Last successful test query older than {}ms despite connected tunnel, forcefully reconnecting the tunnel.",
+                        tunnelForceReconnectAfter);
+                reconnectTunnel = true;
+            }
+
+            if (reconnectTunnel) {
+                this.state = DatabaseState.FAILED;
+                try {
+                    this.sshTunnel.reconnect();
+                } catch (Exception e) {
+                    log.error("Failed to reconnect tunnel during healthcheck", e);
+                }
             }
         }
 
@@ -295,6 +318,7 @@ public class DatabaseConnection {
 
         if (testQuerySuccess) {
             this.state = DatabaseState.READY;
+            lastConnected = System.nanoTime();
             return true;
         } else {
             this.state = DatabaseState.FAILED;
@@ -606,8 +630,8 @@ public class DatabaseConnection {
         private HibernateStatisticsCollector hibernateStats;
         @Nullable
         private MetricsTrackerFactory hikariStats;
-
         private boolean checkConnection = true;
+        private long tunnelForceReconnectAfter = DEFAULT_FORCE_RECONNECT_TUNNEL_AFTER;
         @Nullable
         private ProxyDataSourceBuilder proxyDataSourceBuilder;
         @Nullable
@@ -783,6 +807,16 @@ public class DatabaseConnection {
             return this;
         }
 
+        /**
+         * Set to 0 to never force reconnect the tunnel. Other than that, the force reconnect period should be higher
+         * than the healthcheck period. Default is 1 minute.
+         */
+        @CheckReturnValue
+        public Builder setTunnelForceReconnectAfter(final long tunnelForceReconnectAfter, TimeUnit timeUnit) {
+            this.tunnelForceReconnectAfter = timeUnit.toNanos(tunnelForceReconnectAfter);
+            return this;
+        }
+
         @CheckReturnValue
         public Builder setProxyDataSourceBuilder(@Nullable final ProxyDataSourceBuilder proxyBuilder) {
             this.proxyDataSourceBuilder = proxyBuilder;
@@ -803,6 +837,7 @@ public class DatabaseConnection {
                     this.hikariStats,
                     this.hibernateStats,
                     this.checkConnection,
+                    this.tunnelForceReconnectAfter,
                     this.proxyDataSourceBuilder,
                     this.flyway
             );
