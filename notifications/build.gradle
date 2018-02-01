@@ -1,5 +1,5 @@
 dependencies {
     compileOnly project(':sqlsauce-core')
     testCompile project(':sqlsauce-core').sourceSets.test.output
-    compileOnly group: 'net.dv8tion', name: 'JDA', version: jdaVersion        // discord API
 }
+

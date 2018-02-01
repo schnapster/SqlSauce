@@ -724,7 +724,7 @@ public class DatabaseWrapper {
      * Send a notifications with Postgres' LISTEN/NOTIFY feature.
      * See https://www.postgresql.org/docs/current/static/sql-notify.html for more info.
      * <p>
-     * See {@link NotificationService} for a listener implementation provided by this package.
+     * See {@link space.npstr.sqlsauce.notifications.NotificationService} for a listener implementation provided by this package.
      */
     public void notif(String channel, @Nullable String payload) {
         final EntityManager em = this.databaseConnection.getEntityManager();

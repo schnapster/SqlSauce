@@ -22,12 +22,16 @@
  * SOFTWARE.
  */
 
-package space.npstr.sqlsauce;
+package space.npstr.sqlsauce.notifications;
 
 import org.postgresql.PGNotification;
 import org.postgresql.jdbc.PgConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import space.npstr.sqlsauce.DatabaseException;
+import space.npstr.sqlsauce.notifications.exceptions.LoggingNsExceptionHandler;
+import space.npstr.sqlsauce.notifications.exceptions.NsExceptionHandler;
+import space.npstr.sqlsauce.notifications.listeners.NotificationListener;
 
 import javax.annotation.Nullable;
 import java.sql.Connection;
@@ -70,24 +74,6 @@ import java.util.concurrent.Executors;
  */
 public class NotificationService {
 
-    public interface NotificationListener {
-        /**
-         * Get notified of a notification.
-         * Doing heavy work in here is not recommended.
-         * Any uncaught exceptions from here will be spit out through the exception handler.
-         */
-        void notif(PGNotification notification);
-    }
-
-    public interface ExceptionHandler {
-        /**
-         * Any exceptions, most notably all kinds of SQL exceptions and uncaught exceptions from notifying listeners
-         * will be thrown into this place.
-         */
-        void handle(Exception e);
-    }
-
-
     private static final Logger log = LoggerFactory.getLogger(NotificationService.class);
 
     //todo is there a better way to synchronize / thread safety?
@@ -98,7 +84,7 @@ public class NotificationService {
     private final Connection connection;              //connection that we are listening on
 
     private final ExecutorService exec;                 //runs the main loop
-    private final ExceptionHandler exceptionHandler;    //handles all exceptions after successful init
+    private final NsExceptionHandler exceptionHandler;    //handles all exceptions after successful init
 
     private volatile boolean pleaseShutdown = false;    // controls the main loop going on
     private volatile boolean hasShutdown = false;       // set to true once the main loop truly exits
@@ -114,7 +100,7 @@ public class NotificationService {
      * @throws DatabaseException Propagates any SQLExceptions while creating the connection
      */
     public NotificationService(String jdbcUrl, String name, int intervalMillis,
-                               @Nullable ExceptionHandler exceptionHandler) {
+                               @Nullable NsExceptionHandler exceptionHandler) {
         Properties props = new Properties();
         props.setProperty("ApplicationName", name + "-" + NotificationService.class.getSimpleName());
 
@@ -128,7 +114,7 @@ public class NotificationService {
         if (exceptionHandler != null) {
             this.exceptionHandler = exceptionHandler;
         } else {
-            this.exceptionHandler = e -> log.error("Exception in Listen/Notify", e);
+            this.exceptionHandler = new LoggingNsExceptionHandler(log);
         }
 
         if (intervalMillis <= 0) {
@@ -335,14 +321,14 @@ public class NotificationService {
                                 try {
                                     listener.notif(notification);
                                 } catch (Exception e) {
-                                    exceptionHandler.handle(e); //todo create a new method for listener exceptions?
+                                    exceptionHandler.handleListenerException(e);
                                 }
                             }
                         }
                     }
                 }
             } catch (Exception e) {
-                exceptionHandler.handle(e);
+                exceptionHandler.handleNotificationServiceException(e);
             }
         }
 
@@ -356,19 +342,19 @@ public class NotificationService {
             //noinspection SqlResolve
             unlistenAll.executeUpdate("UNLISTEN *");
         } catch (Exception e) {
-            exceptionHandler.handle(e);
+            exceptionHandler.handleNotificationServiceException(e);
         }
         //close the connection
         try {
             connection.close();
         } catch (Exception e) {
-            exceptionHandler.handle(e);
+            exceptionHandler.handleNotificationServiceException(e);
         }
         //close the executor
         try {
             exec.shutdown();
         } catch (Exception e) {
-            exceptionHandler.handle(e);
+            exceptionHandler.handleNotificationServiceException(e);
         }
         hasShutdown = true;
     }
@@ -399,7 +385,7 @@ public class NotificationService {
                 toSend = outstandingNotifs.poll();
             }
         } catch (Exception e) {
-            exceptionHandler.handle(e);
+            exceptionHandler.handleNotificationServiceException(e);
         }
     }
 
@@ -422,7 +408,7 @@ public class NotificationService {
                 listen.executeUpdate("LISTEN " + channel + ";");
                 listening.add(channel);
             } catch (Exception e) {
-                exceptionHandler.handle(e);
+                exceptionHandler.handleNotificationServiceException(e);
             }
         }
 
@@ -431,7 +417,7 @@ public class NotificationService {
                 unlisten.executeUpdate("UNLISTEN " + channel + ";");
                 listening.remove(channel);
             } catch (Exception e) {
-                exceptionHandler.handle(e);
+                exceptionHandler.handleNotificationServiceException(e);
             }
         }
     }

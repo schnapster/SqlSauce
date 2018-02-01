@@ -1,3 +1,4 @@
 rootProject.name = 'SqlSauce'
 include 'discord-entities'
 include 'sqlsauce-core'
+include 'notifications'

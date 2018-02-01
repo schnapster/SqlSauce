@@ -37,6 +37,7 @@ subprojects {
     apply plugin: 'java-library'
     apply plugin: 'maven-publish'
     apply plugin: 'com.github.spotbugs'
+    apply plugin: 'org.junit.platform.gradle.plugin'
     apply plugin: 'com.jfrog.bintray'
 
     sourceCompatibility = 8
@@ -82,6 +83,11 @@ subprojects {
         }
     }
 
+    configurations {
+        // Make the compileOnly dependencies available when compiling/running tests
+        testCompile.extendsFrom compileOnly
+    }
+
     ext {
         postgresDriverVersion = '42.2.0'
         hibernateVersion = '5.2.12.Final'
@@ -105,6 +111,22 @@ subprojects {
         jUnitVersion = '5.0.2'
         apiGuardianVersion = '1.0.0'
         logbackVersion = '1.2.3'
+    }
+
+    dependencies { //for each module
+
+        //optional various/QA deps
+        compileOnly group: 'org.slf4j', name: 'slf4j-api', version: slf4jApiVersion   //logging framework
+        compileOnly group: 'com.github.spotbugs', name: 'spotbugs-annotations', version: spotbugsVersion //annotations
+        compileOnly group: 'space.npstr', name: 'annotations', version: annotationsVersion //advanced annotations
+
+        //testing
+        testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: jUnitVersion
+        testRuntime group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: jUnitVersion
+        // To avoid compiler warnings about @API annotations in JUnit code.
+        testCompileOnly group: 'org.apiguardian', name: 'apiguardian-api', version: apiGuardianVersion
+
+        testCompile group: 'ch.qos.logback', name: 'logback-classic', version: logbackVersion
     }
 
     def pomConfig = {

@@ -22,14 +22,17 @@
  * SOFTWARE.
  */
 
-package space.npstr.sqlsauce.databasewrapper;
+package space.npstr.sqlsauce.notifications;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import space.npstr.sqlsauce.BaseTest;
 import space.npstr.sqlsauce.DatabaseWrapper;
-import space.npstr.sqlsauce.NotificationService;
+import space.npstr.sqlsauce.notifications.exceptions.SimpleNsExceptionHandler;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -39,16 +42,46 @@ import java.util.concurrent.atomic.AtomicInteger;
 class NotifyTest extends BaseTest {
 
     @Test
-    void pgNotify() throws InterruptedException {
+    void pgNotifyViaNotificationService() throws InterruptedException {
+        int interval = 100;
+        String channel = "foo";
+        String payload = "bar";
+
+        List<Exception> exceptions = Collections.synchronizedList(new ArrayList<>());
+        NotificationService ns = new NotificationService(getTestJdbcUrl(), NotifyTest.class.getSimpleName(),
+                interval, (SimpleNsExceptionHandler) exceptions::add);
+
+        AtomicInteger notifications = new AtomicInteger(0);
+        AtomicBoolean isBar = new AtomicBoolean(false);
+        ns.addListener(notification -> {
+            notifications.getAndIncrement();
+            isBar.set(notification.getParameter().equals(payload));
+        }, channel);
+
+        Thread.sleep(interval * 2);
+        ns.notif(channel, payload);
+        Thread.sleep(interval * 2);
+        ns.shutdown();
+
+        for (Exception e : exceptions) {
+            log.error("NotificationService threw exception", e);
+        }
+        Assertions.assertEquals(0, exceptions.size(), "NotificationService threw exceptions");
+        Assertions.assertEquals(1, notifications.get(), "Did not receive notification");
+        Assertions.assertTrue(isBar.get(), "Payload was wrong");
+    }
+
+    @Test
+    void pgNotifyViaDatabaseWrapper() throws InterruptedException {
         DatabaseWrapper wrapper = new DatabaseWrapper(requireConnection());
 
         int interval = 100;
         String channel = "foo";
         String payload = "bar";
 
-        AtomicInteger exceptions = new AtomicInteger(0);
+        List<Exception> exceptions = Collections.synchronizedList(new ArrayList<>());
         NotificationService ns = new NotificationService(getTestJdbcUrl(), NotifyTest.class.getSimpleName(),
-                interval, e -> exceptions.incrementAndGet());
+                interval, (SimpleNsExceptionHandler) exceptions::add);
 
         AtomicInteger notifications = new AtomicInteger(0);
         AtomicBoolean isBar = new AtomicBoolean(false);
@@ -60,10 +93,13 @@ class NotifyTest extends BaseTest {
         Thread.sleep(interval * 2);
         wrapper.notif(channel, payload);
         Thread.sleep(interval * 2);
+        ns.shutdown();
 
-        Assertions.assertEquals(0, exceptions.get(), "NotificationService threw exceptions");
+        for (Exception e : exceptions) {
+            log.error("NotificationService threw exception", e);
+        }
+        Assertions.assertEquals(0, exceptions.size(), "NotificationService threw exceptions");
         Assertions.assertEquals(1, notifications.get(), "Did not receive notification");
         Assertions.assertTrue(isBar.get(), "Payload was wrong");
-        ns.shutdown();
     }
 }

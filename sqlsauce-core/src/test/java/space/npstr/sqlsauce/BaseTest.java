@@ -23,12 +23,13 @@
  */
 
 package space.npstr.sqlsauce;
-import javax.annotation.Nullable;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nullable;
 
 /**
  * Created by napster on 20.01.18.
@@ -40,7 +41,7 @@ public abstract class BaseTest {
 
     public static final String TEST_JDBC_URL_ENV = "TEST_DB_JDBC";
 
-    private static final Logger log = LoggerFactory.getLogger(BaseTest.class);
+    protected static final Logger log = LoggerFactory.getLogger(BaseTest.class);
 
     @Nullable
     private static DatabaseConnection dbConn;

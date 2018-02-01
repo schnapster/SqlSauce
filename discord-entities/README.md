@@ -16,9 +16,8 @@ This module can then be added through this additional dependency:
 ###### Gradle build.gradle
 ```groovy
     dependencies {
-        compile group: 'space.npstr.SqlSauce', name: 'discord-entities', version: '0.0.5'
+        compile group: 'space.npstr.SqlSauce', name: 'discord-entities', version: '0.0.6'
     }
-
 ```
 
 ###### Maven pom.xml
@@ -26,7 +25,7 @@ This module can then be added through this additional dependency:
     <dependency>
         <groupId>space.npstr.SqlSauce</groupId>
         <artifactId>discord-entities</artifactId>
-        <version>0.0.5</version>
+        <version>0.0.6</version>
     </dependency>
 ```
 
@@ -81,6 +80,10 @@ Setting the entity up to be automatically cached with [JDA](https://github.com/D
 
 
 ## Changelog
+
+### v0.0.6
+- base user and base guild entities
+- Add package wide nullability annotations
 
 ### v0.0.5
 - testing and publishing to Bintray 

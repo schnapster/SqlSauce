@@ -65,9 +65,8 @@ repo only provides released version builds. It may provide tested builds by comm
     }
 
     dependencies {
-        compile group: 'space.npstr.SqlSauce', name: 'sqlsauce-core', version: '0.0.5'
+        compile group: 'space.npstr.SqlSauce', name: 'sqlsauce-core', version: '0.0.6'
     }
-
 ```
 
 ###### Maven pom.xml
@@ -87,9 +86,14 @@ repo only provides released version builds. It may provide tested builds by comm
     <dependency>
         <groupId>space.npstr.SqlSauce</groupId>
         <artifactId>sqlsauce-core</artifactId>
-        <version>0.0.5</version>
+        <version>0.0.6</version>
     </dependency>
 ```
+
+## Additional Modules
+
+- [Discord Entities](https://github.com/napstr/SqlSauce/blob/master/discord-entities)
+- [Notifications](https://github.com/napstr/SqlSauce/blob/master/notifications)
 
 ## Usage
 
@@ -220,8 +224,8 @@ DatabaseConnection databaseConnection = new DatabaseConnection.Builder(name, jdb
 
 ### Listen/Notify
 
-SqlSauce provides rudimentary support for PostgreSQL's LISTEN/NOTIFY with the `NotificationService` class.
-Better, rethinkDB style, changefeed support is planned as well as publishing it as a module.
+SqlSauce provides rudimentary support for PostgreSQL's LISTEN/NOTIFY with the [Notifications module.](https://github.com/napstr/SqlSauce/blob/master/notifications)
+Better, more extensive, rethinkDB style, changefeed support is planned.
 
 
 ### Prometheus Metrics
@@ -284,12 +288,14 @@ Error level logs from Hibernate, so you should add your respective appenders for
 ```
 
 
-## Additional Modules
-
-[Discord Entities](https://github.com/napstr/SqlSauce/blob/master/discord-entities/README.md)
-
-
 ## Changelog
+
+### v0.0.6
+- Revert beta dependencies
+- Add package wide nullability annotations
+- Improve recovery from faulty SSH tunnel
+- Configurable health check periods
+- Move NotificationService into its own module
 
 ### v0.0.5
 - testing and publishing to Bintray
