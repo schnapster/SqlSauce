@@ -29,6 +29,7 @@ import org.hibernate.HibernateException;
 import org.hibernate.engine.spi.SharedSessionContractImplementor;
 import org.hibernate.usertype.UserType;
 
+import javax.annotation.Nullable;
 import java.io.Serializable;
 import java.sql.Array;
 import java.sql.Connection;
@@ -49,6 +50,7 @@ import java.util.Collections;
 public class ArrayListLongUserType implements UserType {
     protected static final int SQLTYPE = java.sql.Types.ARRAY;
 
+    @Nullable
     @Override
     public Object nullSafeGet(ResultSet rs, String[] names, SharedSessionContractImplementor session, Object owner)
             throws HibernateException, SQLException {
@@ -84,6 +86,7 @@ public class ArrayListLongUserType implements UserType {
         return cached;
     }
 
+    @Nullable
     @Override
     public Object deepCopy(final Object o) throws HibernateException {
         return o == null ? null : ((ArrayList) o).clone();
