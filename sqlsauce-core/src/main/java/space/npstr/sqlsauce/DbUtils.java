@@ -25,12 +25,16 @@
 package space.npstr.sqlsauce;
 
 import org.hibernate.Session;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import javax.annotation.CheckReturnValue;
 import javax.persistence.EntityManager;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +50,26 @@ import static java.util.stream.Collectors.toList;
  */
 //todo think about retrieving the data as JSON from postgres instead of piping it through this abomination
 public class DbUtils {
+
+    private static final Logger log = LoggerFactory.getLogger(DbUtils.class);
+
+    /**
+     * Build parameters for queries like the true lazy bastard you are.
+     * <p>
+     * Pass pairs of strings and objects, and you'll be fine, various exceptions or logs otherwise.
+     */
+    @CheckReturnValue
+    public static Map<String, Object> paramsOf(Object... stringObjectPairs) {
+        if (stringObjectPairs.length % 2 == 1) {
+            log.warn("Passed an uneven number of args to the parameter factory, this is a likely bug.");
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        for (int i = 0; i < stringObjectPairs.length - 1; ) { //loop inspired by apache commons MapUtils.putAll
+            result.put((String) stringObjectPairs[i++], stringObjectPairs[i++]);
+        }
+        return result;
+    }
 
 
     //########## stuff below is copy pasta from https://brixomatic.wordpress.com/2016/07/14/returning-the-result-of-a-jpa-native-query-as-a-simple-map-or-pojo/

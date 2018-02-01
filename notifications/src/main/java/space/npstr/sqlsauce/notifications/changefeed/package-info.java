@@ -22,24 +22,8 @@
  * SOFTWARE.
  */
 
-package space.npstr.sqlsauce.notifications.exceptions;
+@space.npstr.annotations.FieldsAreNonNullByDefault
+@space.npstr.annotations.ParametersAreNonnullByDefault
+@space.npstr.annotations.ReturnTypesAreNonNullByDefault
 
-import space.npstr.sqlsauce.notifications.NotificationListener;
-
-/**
- * Created by napster on 01.02.18.
- * <p>
- * Exception handler for the NotificationService.
- * See {@link LoggingNsExceptionHandler} and {@link NoopNsExceptionHandler} for default implementations, or roll your own.
- */
-public interface NsExceptionHandler {
-    /**
-     * Any exceptions, most notably all kinds of SQL exceptions will be passed in here.
-     */
-    void handleNotificationServiceException(Exception e);
-
-    /**
-     * Any uncaught exceptions from calling {@link NotificationListener#notif} will be passed in here.
-     */
-    void handleListenerException(Exception e);
-}
+package space.npstr.sqlsauce.notifications.changefeed;

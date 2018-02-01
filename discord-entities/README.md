@@ -81,6 +81,9 @@ Setting the entity up to be automatically cached with [JDA](https://github.com/D
 
 ## Changelog
 
+### v0.0.8
+- Add missing package-info.java files
+
 ### v0.0.7
 - Bintray publishing fix
 

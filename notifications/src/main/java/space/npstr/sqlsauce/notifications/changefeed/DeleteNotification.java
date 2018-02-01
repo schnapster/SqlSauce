@@ -22,18 +22,27 @@
  * SOFTWARE.
  */
 
-package space.npstr.sqlsauce.notifications.listeners;
+package space.npstr.sqlsauce.notifications.changefeed;
 
+import org.json.JSONObject;
 import org.postgresql.PGNotification;
+
+import java.time.OffsetDateTime;
 
 /**
  * Created by napster on 01.02.18.
  */
-public interface NotificationListener {
-    /**
-     * Get notified of a notification.
-     * Doing heavy work in here is not recommended.
-     * Any uncaught exceptions from here will be spit out through the exception handler.
-     */
-    void notif(PGNotification notification);
+public class DeleteNotification extends ChangeFeedNotification {
+
+    private final JSONObject rowdataOld;
+
+    protected DeleteNotification(PGNotification source, String schemaName, String tableName, Operation operation,
+                                 OffsetDateTime transactionTime, OffsetDateTime captureTime, JSONObject rowdataOld) {
+        super(source, schemaName, tableName, operation, transactionTime, captureTime);
+        this.rowdataOld = rowdataOld;
+    }
+
+    public JSONObject getRowdataOld() {
+        return rowdataOld;
+    }
 }

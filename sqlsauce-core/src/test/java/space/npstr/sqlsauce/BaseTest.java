@@ -43,6 +43,18 @@ public abstract class BaseTest {
 
     protected static final Logger log = LoggerFactory.getLogger(BaseTest.class);
 
+    // general purpose reusable sql statements
+    //language=PostgreSQL
+    protected static final String DROP_TABLE_IF_EXISTS = "DROP TABLE IF EXISTS %s";
+    //language=PostgreSQL
+    protected static final String CREATE_SIMPLE_TABLE
+            = "CREATE TABLE %s "
+            + "( "
+            + "    id BIGINT NOT NULL, "
+            + "    name TEXT COLLATE pg_catalog.\"default\", "
+            + "    CONSTRAINT changefeed_test_pkey PRIMARY KEY (id) "
+            + ");";
+
     @Nullable
     private static DatabaseConnection dbConn;
 

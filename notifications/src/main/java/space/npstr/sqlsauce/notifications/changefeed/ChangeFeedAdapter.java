@@ -22,24 +22,27 @@
  * SOFTWARE.
  */
 
-package space.npstr.sqlsauce.notifications.exceptions;
-
-import space.npstr.sqlsauce.notifications.NotificationListener;
+package space.npstr.sqlsauce.notifications.changefeed;
 
 /**
  * Created by napster on 01.02.18.
  * <p>
- * Exception handler for the NotificationService.
- * See {@link LoggingNsExceptionHandler} and {@link NoopNsExceptionHandler} for default implementations, or roll your own.
+ * Extend this class to receive notifications
  */
-public interface NsExceptionHandler {
-    /**
-     * Any exceptions, most notably all kinds of SQL exceptions will be passed in here.
-     */
-    void handleNotificationServiceException(Exception e);
+public abstract class ChangeFeedAdapter implements IChangeFeed {
 
-    /**
-     * Any uncaught exceptions from calling {@link NotificationListener#notif} will be passed in here.
-     */
-    void handleListenerException(Exception e);
+    @Override
+    public void onInsert(InsertNotification insertNotification) {
+        //override me
+    }
+
+    @Override
+    public void onUpdate(UpdateNotification updateNotification) {
+        //override me
+    }
+
+    @Override
+    public void onDelete(DeleteNotification deleteNotification) {
+        //override me
+    }
 }

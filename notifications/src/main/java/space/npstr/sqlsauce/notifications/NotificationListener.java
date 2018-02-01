@@ -22,24 +22,18 @@
  * SOFTWARE.
  */
 
-package space.npstr.sqlsauce.notifications.exceptions;
+package space.npstr.sqlsauce.notifications;
 
-import space.npstr.sqlsauce.notifications.NotificationListener;
+import org.postgresql.PGNotification;
 
 /**
  * Created by napster on 01.02.18.
- * <p>
- * Exception handler for the NotificationService.
- * See {@link LoggingNsExceptionHandler} and {@link NoopNsExceptionHandler} for default implementations, or roll your own.
  */
-public interface NsExceptionHandler {
+public interface NotificationListener {
     /**
-     * Any exceptions, most notably all kinds of SQL exceptions will be passed in here.
+     * Get notified of a notification.
+     * Doing heavy work in here is not recommended.
+     * Any uncaught exceptions from here will be spit out through the exception handler.
      */
-    void handleNotificationServiceException(Exception e);
-
-    /**
-     * Any uncaught exceptions from calling {@link NotificationListener#notif} will be passed in here.
-     */
-    void handleListenerException(Exception e);
+    void notif(PGNotification notification);
 }

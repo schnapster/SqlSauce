@@ -64,6 +64,10 @@ Receiving notifications:
 
 ## Changelog
 
+### v0.0.8
+- Add missing package-info.java files
+- Changefeed v1 release
+
 ### v0.0.7
 - Bintray publishing fix
 
@@ -76,9 +80,13 @@ Receiving notifications:
 
 - full tunnel / healthcheck support
 - add trigger creation sql
-- abstract notification classes on top of various triggers
+- add example usage for changefeed to this README
 
 
 ## Dependencies
 
-Currently no additional dependencies except for the [sqlsauce-core module](https://github.com/napstr/SqlSauce).
+- **JSON In Java**:
+  - [Website](http://json.org/)
+  - [GitHub](https://github.com/stleary/JSON-java)
+  - [The JSON License](http://json.org/license.html)
+  - [Maven Repository](https://mvnrepository.com/artifact/org.json/json)

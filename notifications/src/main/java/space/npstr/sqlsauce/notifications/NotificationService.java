@@ -31,7 +31,6 @@ import org.slf4j.LoggerFactory;
 import space.npstr.sqlsauce.DatabaseException;
 import space.npstr.sqlsauce.notifications.exceptions.LoggingNsExceptionHandler;
 import space.npstr.sqlsauce.notifications.exceptions.NsExceptionHandler;
-import space.npstr.sqlsauce.notifications.listeners.NotificationListener;
 
 import javax.annotation.Nullable;
 import java.sql.Connection;

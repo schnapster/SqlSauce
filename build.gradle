@@ -107,6 +107,9 @@ subprojects {
         //discord entities module
         jdaVersion = '3.5.0_329'
 
+        //notifications module
+        jsonOrgVersion = '20171018'
+
         //testing
         jUnitVersion = '5.0.2'
         apiGuardianVersion = '1.0.0'

@@ -290,6 +290,10 @@ Error level logs from Hibernate, so you should add your respective appenders for
 
 ## Changelog
 
+### v0.0.8
+- Add missing package-info.java files
+- Add a convenience method for creating parameters HashMap to DbUtils
+
 ### v0.0.7
 - Bintray publishing fix
 
