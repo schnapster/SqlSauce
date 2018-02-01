@@ -131,6 +131,7 @@ public class SshTunnel {
         private String host;
         private String user;
         private File keyFile;              //private key file for auth
+        @Nullable
         private String passphrase = null;  //optional passphase for the keyfile
         private int sshPort = 22;          //port of the ssh service running on the remote machine
         private int localPort = 5432;      //the local endpoint of the tunnel; make sure it's available

@@ -63,7 +63,7 @@ public class Hstore extends SaucedEntity<String, Hstore> {
     //you are responsible for using unique names when you want to access unique hstores
     @Id
     @Column(name = "name", columnDefinition = "text")
-    public String name;
+    public String name = DEFAULT_HSTORE_NAME;
 
     @Column(name = "hstorex", columnDefinition = "hstore")
     @Convert(converter = PostgresHStoreConverter.class)

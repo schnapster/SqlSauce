@@ -53,6 +53,7 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
     // see Hstore for an example implementation.
     // Creating a database connection will automatically set it as the default sauce.
     @Transient
+    @Nullable
     private static DatabaseWrapper defaultSauce;
 
     public static void setDefaultSauce(final DatabaseWrapper dbWrapper) {
@@ -70,6 +71,7 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
 
     //the sauce of this entity
     @Transient
+    @Nullable
     protected DatabaseWrapper dbWrapper;
 
 
@@ -103,6 +105,9 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
      */
     @CheckReturnValue
     public Self save() throws DatabaseException {
+        if (this.dbWrapper == null) {
+            throw new IllegalStateException("Cannot call save() on an entity without a source");
+        }
         synchronized (getEntityLock()) {
             checkWrapper();
             return this.dbWrapper.merge(getThis());
