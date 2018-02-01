@@ -9,7 +9,7 @@
 
 -- You can look at one of the tests to get a feel on how to set up your DB and trigger and receive notifications.
 
--- Requires Postgres 9.4+
+-- Requires Postgres 9.5+
 
 -- Check if a row or table has been modifed.
 CREATE OR REPLACE FUNCTION if_modified_func()
