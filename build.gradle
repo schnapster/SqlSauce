@@ -179,6 +179,7 @@ subprojects {
         }
         dryRun = false
         publish = true
+        override = true
         pkg {
             repo = 'SqlSauce'
             name = project.name

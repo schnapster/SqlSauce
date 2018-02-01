@@ -15,7 +15,7 @@ This module can then be added through this additional dependency:
 ###### Gradle build.gradle
 ```groovy
     dependencies {
-        compile group: 'space.npstr.SqlSauce', name: 'notifications', version: '0.0.6'
+        compile group: 'space.npstr.SqlSauce', name: 'notifications', version: '0.0.7'
     }
 ```
 
@@ -24,7 +24,7 @@ This module can then be added through this additional dependency:
     <dependency>
         <groupId>space.npstr.SqlSauce</groupId>
         <artifactId>notifications</artifactId>
-        <version>0.0.6</version>
+        <version>0.0.7</version>
     </dependency>
 ```
 
@@ -63,6 +63,9 @@ Receiving notifications:
 ```
 
 ## Changelog
+
+### v0.0.7
+- Bintray publishing fix
 
 ### v0.0.6
 - Initial release as its own module
