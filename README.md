@@ -30,6 +30,8 @@ This package is meant to embrace these specific tools to their fullest, e.g. the
 
 This package is not meant to make these tools exchangeable.
 
+Tests on [Travis](https://travis-ci.org/napstr/SqlSauce) are executed against **PostgreSQL 9.4**
+
 
 ## Features
 
