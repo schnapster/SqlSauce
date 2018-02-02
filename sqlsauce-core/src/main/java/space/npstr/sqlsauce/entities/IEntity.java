@@ -49,6 +49,10 @@ import java.io.Serializable;
  * <p>
  * Works best for entities where we have a natural id for (for example entities on a guild or channel scope cause we can use their snowflakeIds)
  * IEntities should have a constructor that sets them up with sensible defaults
+ *
+ * @param <S> Self - class of the actual, terminal entity that implements this interface or extends any other mapped
+ *            superclass that implements this interface. This is used for a fluent configuration of properties and
+ *            constructing new entities.
  */
 @TypeDefs({
         @TypeDef(
@@ -93,13 +97,13 @@ import java.io.Serializable;
         )
 })
 @MappedSuperclass
-public interface IEntity<I extends Serializable, Self extends IEntity<I, Self>> {
+public interface IEntity<I extends Serializable, S extends IEntity<I, S>> {
 
     @CheckReturnValue
-    Self setId(I id);
+    S setId(I id);
 
     I getId();
 
     @CheckReturnValue
-    Class<Self> getClazz();
+    Class<S> getClazz();
 }

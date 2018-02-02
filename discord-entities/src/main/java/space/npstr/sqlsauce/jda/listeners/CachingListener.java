@@ -35,8 +35,10 @@ import java.util.function.Consumer;
 
 /**
  * Created by napster on 30.10.17.
+ *
+ * @param <S> terminal class that is extending this listener for a fluent configuration
  */
-public abstract class CachingListener<E, Self extends CachingListener<E, Self>> extends ListenerAdapter {
+public abstract class CachingListener<E, S extends CachingListener<E, S>> extends ListenerAdapter {
 
     private final ThreadPoolExecutor cachePump;
     protected final Class<E> entityClass;
@@ -53,7 +55,7 @@ public abstract class CachingListener<E, Self extends CachingListener<E, Self>> 
      * Adjust the thread pool size of the cache pump of this listener.
      */
     @CheckReturnValue
-    public Self setWorkerSize(final int size) {
+    public S setWorkerSize(final int size) {
         this.cachePump.setCorePoolSize(size);
         return getThis();
     }
@@ -76,8 +78,8 @@ public abstract class CachingListener<E, Self extends CachingListener<E, Self>> 
     }
 
     @SuppressWarnings("unchecked")
-    protected Self getThis() {
-        return (Self) this;
+    protected S getThis() {
+        return (S) this;
     }
 
 }

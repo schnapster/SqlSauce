@@ -1,8 +1,10 @@
 # SqlSauce
 
-[![Release](https://jitpack.io/v/space.npstr/SqlSauce.svg?style=flat-square)](https://jitpack.io/#space.npstr/SqlSauce) release  
-[![Build Status Master Branch](https://img.shields.io/travis/napstr/SqlSauce/master.svg?style=flat-square)](https://travis-ci.org/napstr/SqlSauce/branches) master branch  
-[![Build Status Development Branch](https://img.shields.io/travis/napstr/SqlSauce/dev.svg?style=flat-square)](https://travis-ci.org/napstr/SqlSauce/branches) dev branch  
+[![Release](https://img.shields.io/github/tag/napstr/SqlSauce.svg?style=flat-square)](https://jitpack.io/#space.npstr/SqlSauce)
+[![Release](https://img.shields.io/bintray/v/napster/SqlSauce/sqlsauce-core.svg?style=flat-square)](https://img.shields.io/bintray/v/napster/SqlSauce/sqlsauce-core.svg)
+[![Build Status Development Branch](https://img.shields.io/travis/napstr/SqlSauce/dev.svg?style=flat-square)](https://travis-ci.org/napstr/SqlSauce/branches)
+[![license](https://img.shields.io/github/license/napstr/SqlSauce.svg?style=flat-square)]()
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/166017256c1846d4800880b95a57e431?style=flat)](https://www.codacy.com/app/napstr/SqlSauce)  
 
 
 Setting up and configuring database and ORM stuff has been identified by me as a major pain in the ass so this project has two main goals:

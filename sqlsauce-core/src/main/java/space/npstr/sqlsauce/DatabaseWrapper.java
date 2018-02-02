@@ -769,7 +769,7 @@ public class DatabaseWrapper {
         } catch (final ReflectiveOperationException e) {
             final String message = String.format("Could not construct an entity of class %s with id %s",
                     id.clazz.getName(), id.toString());
-            throw new RuntimeException(message, e);
+            throw new DatabaseException(message, e);
         }
     }
 

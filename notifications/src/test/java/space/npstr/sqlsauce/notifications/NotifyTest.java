@@ -42,7 +42,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 class NotifyTest extends BaseTest {
 
     @Test
-    void pgNotifyViaNotificationService() throws InterruptedException {
+    public void pgNotifyViaNotificationService() throws InterruptedException {
         int interval = 100;
         String channel = "foo";
         String payload = "bar";
@@ -72,7 +72,7 @@ class NotifyTest extends BaseTest {
     }
 
     @Test
-    void pgNotifyViaDatabaseWrapper() throws InterruptedException {
+    public void pgNotifyViaDatabaseWrapper() throws InterruptedException {
         DatabaseWrapper wrapper = new DatabaseWrapper(requireConnection());
 
         int interval = 100;

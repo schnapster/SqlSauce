@@ -46,7 +46,7 @@ import java.util.function.Function;
  * convenient af. In case you are wondering, sauce is internet slang for source.
  */
 @MappedSuperclass
-public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEntity<I, Self>> implements IEntity<I, Self> {
+public abstract class SaucedEntity<I extends Serializable, S extends SaucedEntity<I, S>> implements IEntity<I, S> {
 
     //for when you only use a single connection application-wide, this might provide some handy static methods after
     // setting it
@@ -76,19 +76,19 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
 
 
     @SuppressWarnings("unchecked")
-    protected Self getThis() {
-        return (Self) this;
+    protected S getThis() {
+        return (S) this;
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public Class<Self> getClazz() {
-        return (Class<Self>) this.getClass();
+    public Class<S> getClazz() {
+        return (Class<S>) this.getClass();
     }
 
     //when loading / creating with the DatabaseWrapper class, it will make sure to set this so that the convenience
     //methods may be used
-    public Self setSauce(final DatabaseWrapper dbWrapper) {
+    public S setSauce(final DatabaseWrapper dbWrapper) {
         this.dbWrapper = dbWrapper;
         return getThis();
     }
@@ -104,7 +104,7 @@ public abstract class SaucedEntity<I extends Serializable, Self extends SaucedEn
      * @return the updated entity
      */
     @CheckReturnValue
-    public Self save() throws DatabaseException {
+    public S save() throws DatabaseException {
         if (this.dbWrapper == null) {
             throw new IllegalStateException("Cannot call save() on an entity without a source");
         }

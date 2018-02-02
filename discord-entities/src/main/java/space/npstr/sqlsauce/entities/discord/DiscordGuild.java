@@ -57,7 +57,7 @@ import java.util.stream.Stream;
  * leave event is missed, so the left_timestamp and is_present fields will be incorrect.
  */
 @MappedSuperclass
-public abstract class DiscordGuild<Self extends BaseDiscordGuild<Self>> extends BaseDiscordGuild<Self> {
+public abstract class DiscordGuild<S extends BaseDiscordGuild<S>> extends BaseDiscordGuild<S> {
 
     @Transient
     private static final Logger log = LoggerFactory.getLogger(DiscordGuild.class);
@@ -138,7 +138,7 @@ public abstract class DiscordGuild<Self extends BaseDiscordGuild<Self>> extends 
     // ##                               Caching
     // ################################################################################
 
-    public Self set(@Nullable final Guild guild) {
+    public S set(@Nullable final Guild guild) {
         if (guild == null) {
             return getThis();//gracefully ignore null guilds
         }
@@ -289,14 +289,14 @@ public abstract class DiscordGuild<Self extends BaseDiscordGuild<Self>> extends 
     //setters for cached values
 
     @CheckReturnValue
-    public Self join() {
+    public S join() {
         this.joined = System.currentTimeMillis();
         this.present = true;
         return getThis();
     }
 
     @CheckReturnValue
-    public Self leave() {
+    public S leave() {
         this.left = System.currentTimeMillis();
         this.present = false;
         return getThis();

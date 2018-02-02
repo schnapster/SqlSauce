@@ -40,7 +40,7 @@ import java.util.Objects;
  * information about a guild, without the caching cruft of {@link DiscordUser}
  */
 @MappedSuperclass
-public abstract class BaseDiscordUser<Self extends SaucedEntity<Long, Self>> extends SaucedEntity<Long, Self> {
+public abstract class BaseDiscordUser<S extends SaucedEntity<Long, S>> extends SaucedEntity<Long, S> {
 
 
     @Id
@@ -50,7 +50,7 @@ public abstract class BaseDiscordUser<Self extends SaucedEntity<Long, Self>> ext
 
     @Override
     @CheckReturnValue
-    public Self setId(final Long userId) {
+    public S setId(final Long userId) {
         this.userId = userId;
         return getThis();
     }

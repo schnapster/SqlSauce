@@ -69,7 +69,7 @@ public class ChangefeedTest extends BaseTest {
 
 
     @Test
-    void insertTest() throws IOException, InterruptedException {
+    public void insertTest() throws IOException, InterruptedException {
         int interval = 100;
 
 
@@ -119,6 +119,7 @@ public class ChangefeedTest extends BaseTest {
         List<Object> ignored = wrapper.selectSqlQuery(watchSql, params);
         if (ignored.isEmpty()) {//todo implement native function calling properly
             //do nothing, this check only exists cause spotbugs is fucking retarded (and I'm a retard for insisting on running it on the test classes)
+            log.info("wubalubadubdub");
         }
 
 

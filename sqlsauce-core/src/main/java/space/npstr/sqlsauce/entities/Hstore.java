@@ -70,7 +70,7 @@ public class Hstore extends SaucedEntity<String, Hstore> {
     public final Map<String, String> hstore = new HashMap<>();
 
     //for jpa && sauced entity
-    //prefer to use Hstore.load() to create on of these to avoid overwriting an existing one
+    //use Hstore.load() to create one of these to avoid overwriting an existing one
     public Hstore() {
     }
 

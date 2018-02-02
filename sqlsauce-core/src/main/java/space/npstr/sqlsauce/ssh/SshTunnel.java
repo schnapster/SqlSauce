@@ -29,6 +29,7 @@ import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import space.npstr.sqlsauce.DatabaseException;
 
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
@@ -74,7 +75,7 @@ public class SshTunnel {
             this.currentSession.connect();
             log.info("SSH Connected");
         } catch (final Exception e) {
-            throw new RuntimeException("Failed to start SSH tunnel", e);
+            throw new DatabaseException("Failed to start SSH tunnel", e);
         }
         return this;
     }
@@ -123,7 +124,7 @@ public class SshTunnel {
 
             return session;
         } catch (final JSchException e) {
-            throw new RuntimeException("Failed to configure SSH tunnel", e);
+            throw new DatabaseException("Failed to configure SSH tunnel", e);
         }
     }
 

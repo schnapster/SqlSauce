@@ -63,7 +63,7 @@ import java.util.stream.Stream;
  * value.
  */
 @MappedSuperclass
-public abstract class DiscordUser<Self extends BaseDiscordUser<Self>> extends BaseDiscordUser<Self> {
+public abstract class DiscordUser<S extends BaseDiscordUser<S>> extends BaseDiscordUser<S> {
 
     @Transient
     private static final Logger log = LoggerFactory.getLogger(DiscordUser.class);
@@ -99,7 +99,7 @@ public abstract class DiscordUser<Self extends BaseDiscordUser<Self>> extends Ba
 
     //Good idea to call this each time you are loading one of these before saving.
     //set general user values
-    public Self set(@Nullable final User user) {
+    public S set(@Nullable final User user) {
         if (user == null) {
             return getThis();//gracefully ignore null users
         }
@@ -112,7 +112,7 @@ public abstract class DiscordUser<Self extends BaseDiscordUser<Self>> extends Ba
 
     //Good idea to call this each time you are loading one of these before saving.
     //set guild specific user values (additionally to user specific ones)
-    public Self set(@Nullable final Member member) {
+    public S set(@Nullable final Member member) {
         if (member == null) {
             return getThis();//gracefully ignore null members
         }
@@ -150,7 +150,7 @@ public abstract class DiscordUser<Self extends BaseDiscordUser<Self>> extends Ba
     public static <E extends DiscordUser<E>> DiscordUser<E> cache(final DatabaseWrapper dbWrapper, final Member member,
                                                                   final Class<E> clazz) throws DatabaseException {
         return dbWrapper.findApplyAndMerge(EntityKey.of(member.getUser().getIdLong(), clazz),
-                                           (discordUser) -> discordUser.set(member));
+                (discordUser) -> discordUser.set(member));
     }
 
     public static <E extends DiscordUser<E>> Collection<DatabaseException> cacheAll(final Stream<Member> members,
@@ -162,9 +162,13 @@ public abstract class DiscordUser<Self extends BaseDiscordUser<Self>> extends Ba
      * Cache a bunch of users.
      * Useful to keep data meaningful even after downtime (restarting or other reasons)
      *
-     * @param dbWrapper The database to run the sync on
-     * @param members   Stream over all members to be cached
-     * @param clazz     Class of the actual DiscordUser entity
+     * @param dbWrapper
+     *         The database to run the sync on
+     * @param members
+     *         Stream over all members to be cached
+     * @param clazz
+     *         Class of the actual DiscordUser entity
+     *
      * @return DatabaseExceptions caused by the execution of this method
      */
     public static <E extends DiscordUser<E>> Collection<DatabaseException> cacheAll(final DatabaseWrapper dbWrapper,
