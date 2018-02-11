@@ -69,9 +69,9 @@ public class Hstore extends SaucedEntity<String, Hstore> {
     @Convert(converter = PostgresHStoreConverter.class)
     public final Map<String, String> hstore = new HashMap<>();
 
-    //for jpa && sauced entity
-    //use Hstore.load() to create one of these to avoid overwriting an existing one
-    public Hstore() {
+    //for jpa / wrapper
+    //use Hstore.load() to create one of these
+    Hstore() {
     }
 
     @Override

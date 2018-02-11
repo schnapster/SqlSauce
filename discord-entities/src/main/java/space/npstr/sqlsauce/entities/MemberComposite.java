@@ -53,7 +53,7 @@ public class MemberComposite implements Serializable {
     private long userId;
 
     //for jpa & the database wrapper
-    public MemberComposite() {
+    MemberComposite() {
     }
 
     public MemberComposite(Member member) {

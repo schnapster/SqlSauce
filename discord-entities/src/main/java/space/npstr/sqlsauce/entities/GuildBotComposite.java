@@ -50,7 +50,7 @@ public class GuildBotComposite implements Serializable {
     private long botId;
 
     //for jpa & the database wrapper
-    public GuildBotComposite() {
+    GuildBotComposite() {
     }
 
     public GuildBotComposite(Guild guild, long botId) {

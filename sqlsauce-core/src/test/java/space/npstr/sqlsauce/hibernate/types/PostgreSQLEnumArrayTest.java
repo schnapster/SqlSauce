@@ -112,7 +112,7 @@ public class PostgreSQLEnumArrayTest extends BaseTest {
         @Column(name = "fortifications", nullable = false)
         private HashSet<Fortifications> fortifications = new HashSet<>();
 
-        public InfestedHouse() {
+        InfestedHouse() {
         }
 
         public InfestedHouse(long id, Collection<AlienParasites> alienParasites, Collection<Fortifications> fortifications) {

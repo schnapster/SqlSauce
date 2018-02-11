@@ -26,6 +26,7 @@ package space.npstr.sqlsauce;
 
 import org.hibernate.Session;
 import org.hibernate.internal.SessionImpl;
+import org.hibernate.internal.util.ReflectHelper;
 import org.hibernate.query.spi.QueryImplementor;
 import space.npstr.sqlsauce.entities.IEntity;
 import space.npstr.sqlsauce.entities.SaucedEntity;
@@ -39,6 +40,7 @@ import javax.persistence.PersistenceException;
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import java.io.Serializable;
+import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -772,7 +774,8 @@ public class DatabaseWrapper {
     private static <E extends SaucedEntity<I, E>, I extends Serializable> E newInstance(final DatabaseWrapper dbWrapper,
                                                                                         final EntityKey<I, E> id) {
         try {
-            final E entity = id.clazz.getConstructor().newInstance();
+            Constructor<E> constructor = ReflectHelper.getDefaultConstructor(id.clazz);
+            final E entity = constructor.newInstance((Object[]) null);
             return entity.setId(id.id)
                     .setSauce(dbWrapper);
         } catch (final ReflectiveOperationException e) {
