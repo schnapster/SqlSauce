@@ -607,6 +607,15 @@ public class DatabaseWrapper {
     }
 
     /**
+     * Run a good old SQL query
+     *
+     * @return the number of entities updated or deleted
+     */
+    public int executeSqlQuery(final String queryString) throws DatabaseException {
+        return executeSqlQuery(queryString, null);
+    }
+
+    /**
      * Results will be sauced if they are SaucedEntites
      *
      * @param resultEntityClass The result class needs to be an entity class, not a single property value like

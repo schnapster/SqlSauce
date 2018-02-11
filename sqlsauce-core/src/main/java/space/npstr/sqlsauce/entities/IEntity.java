@@ -35,6 +35,7 @@ import com.vladmihalcea.hibernate.type.json.JsonStringType;
 import org.hibernate.annotations.TypeDef;
 import org.hibernate.annotations.TypeDefs;
 import space.npstr.sqlsauce.hibernate.types.ArrayListLongUserType;
+import space.npstr.sqlsauce.hibernate.types.HashSetPostgreSQLEnumUserType;
 import space.npstr.sqlsauce.hibernate.types.LongArrayType;
 
 import javax.annotation.CheckReturnValue;
@@ -94,6 +95,10 @@ import java.io.Serializable;
         @TypeDef(
                 name = "array-list-long",
                 typeClass = ArrayListLongUserType.class
+        ),
+        @TypeDef(
+                name = "hash_set-pgsql_enum",
+                typeClass = HashSetPostgreSQLEnumUserType.class
         )
 })
 @MappedSuperclass

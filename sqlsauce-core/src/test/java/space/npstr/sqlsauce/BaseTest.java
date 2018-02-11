@@ -30,6 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.util.HashSet;
 
 /**
  * Created by napster on 20.01.18.
@@ -45,7 +46,7 @@ public abstract class BaseTest {
 
     // general purpose reusable sql statements
     //language=PostgreSQL
-    protected static final String DROP_TABLE_IF_EXISTS = "DROP TABLE IF EXISTS %s";
+    protected static final String DROP_TABLE_IF_EXISTS = "DROP TABLE IF EXISTS %s;";
     //language=PostgreSQL
     protected static final String CREATE_SIMPLE_TABLE
             = "CREATE TABLE %s "
@@ -85,5 +86,21 @@ public abstract class BaseTest {
         DatabaseConnection conn = getDbConn();
         Assertions.assertTrue(conn.isAvailable(), "Database connection is unavailable. Is the test database up and running?");
         return conn;
+    }
+
+    //properly compare elements of two sets
+    //empty sets are NOT allowed
+    public static <E> boolean hashSetsHaveEqualContent(HashSet<E> a, HashSet<E> b) {
+        if (a.size() == 0 || b.size() == 0 || a.size() != b.size()) {
+            return false;
+        }
+
+        HashSet<E> copyA = new HashSet<>(a);
+        HashSet<E> copyB = new HashSet<>(b);
+
+        copyA.removeAll(b);
+        copyB.removeAll(a);
+
+        return (copyA.isEmpty() && copyB.isEmpty());
     }
 }
