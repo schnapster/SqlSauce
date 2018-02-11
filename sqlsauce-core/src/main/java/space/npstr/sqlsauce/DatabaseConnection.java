@@ -73,7 +73,7 @@ public class DatabaseConnection {
     @Nullable
     private SshTunnel sshTunnel = null;
 
-    private final String dbName; //a comprehensible name for this connection
+    private final String connectionName; //a comprehensible name for this connection
 
     private volatile DatabaseState state = DatabaseState.UNINITIALIZED;
 
@@ -84,7 +84,7 @@ public class DatabaseConnection {
     private long lastConnected;
 
     /**
-     * @param dbName           name for this database connection, also used as the persistence unit name and other
+     * @param connectionName   name for this database connection, also used as the persistence unit name and other
      *                         places. Make sure it is unique across your application for best results.
      * @param jdbcUrl          where to find the db, which user, which pw, etc; see easy to find jdbc url docs on the web
      * @param dataSourceProps  properties for the underlying data source. see {@link Builder#getDefaultDataSourceProps()} for a start
@@ -111,7 +111,7 @@ public class DatabaseConnection {
      *                         DatabaseConnection. Flyway supports the use of a jdbcUrl instead of a datasource, and
      *                         you can also manually build a temporary ssh tunnel if need be.
      */
-    public DatabaseConnection(final String dbName,
+    public DatabaseConnection(final String connectionName,
                               final String jdbcUrl,
                               final Properties dataSourceProps,
                               final HikariConfig hikariConfig,
@@ -126,7 +126,7 @@ public class DatabaseConnection {
                               long tunnelForceReconnectAfter,
                               @Nullable final ProxyDataSourceBuilder proxyDataSourceBuilder,
                               @Nullable final Flyway flyway) throws DatabaseException {
-        this.dbName = dbName;
+        this.connectionName = connectionName;
         this.state = DatabaseState.INITIALIZING;
         this.tunnelForceReconnectAfter = tunnelForceReconnectAfter;
 
@@ -144,7 +144,7 @@ public class DatabaseConnection {
             if (poolName != null && !poolName.isEmpty()) {
                 hiConf.setPoolName(poolName);
             } else {
-                hiConf.setPoolName(dbName + "-DefaultPool");
+                hiConf.setPoolName(connectionName + "-DefaultPool");
             }
             if (hikariStats != null) {
                 hiConf.setMetricsTrackerFactory(hikariStats);
@@ -173,7 +173,7 @@ public class DatabaseConnection {
             entityPackages.add("space.npstr.sqlsauce.entities");
 
             // jpa
-            final PersistenceUnitInfo puInfo = new SimplePersistenceUnitInfo(dataSource, entityPackages, dbName);
+            final PersistenceUnitInfo puInfo = new SimplePersistenceUnitInfo(dataSource, entityPackages, connectionName);
 
             // hibernate
             if (hibernateStats != null) {
@@ -181,14 +181,14 @@ public class DatabaseConnection {
             }
             this.emf = new HibernatePersistenceProvider().createContainerEntityManagerFactory(puInfo, hibernateProps);
             if (hibernateStats != null) {
-                hibernateStats.add(this.emf.unwrap(SessionFactoryImpl.class), dbName);
+                hibernateStats.add(this.emf.unwrap(SessionFactoryImpl.class), connectionName);
             }
 
             this.state = DatabaseState.READY;
             if (checkConnection) {
                 this.connectionCheck = Executors.newSingleThreadScheduledExecutor(
                         runnable -> {
-                            Thread thread = new Thread(runnable, "db-connection-check-" + dbName);
+                            Thread thread = new Thread(runnable, "db-connection-check-" + connectionName);
                             thread.setUncaughtExceptionHandler((t, e) -> log.error("Uncaught exception in connection checker thread {}", t.getName(), e));
                             return thread;
                         }
@@ -209,7 +209,7 @@ public class DatabaseConnection {
 
     @CheckReturnValue
     public String getName() {
-        return this.dbName;
+        return this.connectionName;
     }
     
     public int getMaxPoolSize() {
@@ -347,7 +347,7 @@ public class DatabaseConnection {
     //builder pattern, duh
     public static class Builder {
 
-        private String dbName;
+        private String connectionName;
         private String jdbcUrl;
         private Properties dataSourceProps = getDefaultDataSourceProps();
         private HikariConfig hikariConfig = getDefaultHikariConfig();
@@ -435,9 +435,12 @@ public class DatabaseConnection {
 
         // absolute minimum needed config
 
+        /**
+         * Give this database connection a name - preferably unique inside your application.
+         */
         @CheckReturnValue
-        public Builder(final String dbName, final String jdbcUrl) {
-            this.dbName = dbName;
+        public Builder(final String connectionName, final String jdbcUrl) {
+            this.connectionName = connectionName;
             this.jdbcUrl = jdbcUrl;
         }
 
@@ -445,8 +448,17 @@ public class DatabaseConnection {
          * Give this database connection a name - preferably unique inside your application.
          */
         @CheckReturnValue
-        public Builder setDatabaseName(final String dbName) {
-            this.dbName = dbName;
+        @Deprecated
+        public Builder setDatabaseName(final String connectionName) {
+            return setConnectionName(connectionName);
+        }
+
+        /**
+         * Give this database connection a name - preferably unique inside your application.
+         */
+        @CheckReturnValue
+        public Builder setConnectionName(final String connectionName) {
+            this.connectionName = connectionName;
             return this;
         }
 
@@ -630,7 +642,7 @@ public class DatabaseConnection {
         @CheckReturnValue
         public DatabaseConnection build() throws DatabaseException {
             return new DatabaseConnection(
-                    this.dbName,
+                    this.connectionName,
                     this.jdbcUrl,
                     this.dataSourceProps,
                     this.hikariConfig,
