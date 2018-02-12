@@ -69,7 +69,7 @@ repo only provides released version builds. It may provide tested builds by comm
     }
 
     dependencies {
-        compile group: 'space.npstr.SqlSauce', name: 'sqlsauce-core', version: '0.0.9'
+        compile group: 'space.npstr.SqlSauce', name: 'sqlsauce-core', version: '0.0.10'
     }
 ```
 
@@ -90,7 +90,7 @@ repo only provides released version builds. It may provide tested builds by comm
     <dependency>
         <groupId>space.npstr.SqlSauce</groupId>
         <artifactId>sqlsauce-core</artifactId>
-        <version>0.0.9</version>
+        <version>0.0.10</version>
     </dependency>
 ```
 
@@ -293,6 +293,10 @@ Error level logs from Hibernate, so you should add your respective appenders for
 
 
 ## Changelog
+
+### v0.0.10
+- Fix locks to a) actually work and b) be used by the DatabaseWrapper for merges
+- Add a test for concurrent merges
 
 ### v0.0.9
 - Add Hibernate type: HashSets of Enums mapped as Arrays of enum types
