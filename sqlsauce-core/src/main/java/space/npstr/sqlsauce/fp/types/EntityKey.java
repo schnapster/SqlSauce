@@ -27,6 +27,7 @@ import space.npstr.sqlsauce.entities.IEntity;
 import space.npstr.sqlsauce.entities.SaucedEntity;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 /**
  * Created by napster on 29.11.17.
@@ -62,5 +63,10 @@ public class EntityKey<I, E> {
     @Override
     public String toString() {
         return "E:" + this.clazz.getSimpleName() + ":" + this.id;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(id);
     }
 }

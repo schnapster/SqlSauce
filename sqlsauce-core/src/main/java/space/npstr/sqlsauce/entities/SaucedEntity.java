@@ -108,10 +108,8 @@ public abstract class SaucedEntity<I extends Serializable, S extends SaucedEntit
         if (this.dbWrapper == null) {
             throw new IllegalStateException("Cannot call save() on an entity without a source");
         }
-        synchronized (getEntityLock()) {
-            checkWrapper();
-            return this.dbWrapper.merge(getThis());
-        }
+        checkWrapper();
+        return this.dbWrapper.merge(getThis());
     }
 
     /**
@@ -192,7 +190,7 @@ public abstract class SaucedEntity<I extends Serializable, S extends SaucedEntit
     private static final Map<Class, Object[]> entityLocks = new ConcurrentHashMap<>();
     // How many partitions the hashed entity locks shall have
     // The chosen, uncustomizable, value is considered good enough:tm: for the current implementation where locks are
-    // bound to classes (amount of hanging around locks is equal to implemented SaucedEntities * concurrencyLevel).
+    // bound to classes (amount of hanging around lock objects is equal to implemented SaucedEntities * concurrencyLevel).
     // Prime number to reduce possible collisions due to bad hashes.
     // TODO implement customizable amount
     private static final int concurrencyLevel = 17;

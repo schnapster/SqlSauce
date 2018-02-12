@@ -196,11 +196,13 @@ public class DatabaseWrapper {
     public <E extends SaucedEntity<I, E>, I extends Serializable> E merge(final E entity) throws DatabaseException {
         final EntityManager em = this.databaseConnection.getEntityManager();
         try {
-            em.getTransaction().begin();
-            final E managedEntity = em.merge(entity);
-            em.getTransaction().commit();
-            return managedEntity
-                    .setSauce(this);
+            synchronized (entity.getEntityLock()) {
+                em.getTransaction().begin();
+                final E managedEntity = em.merge(entity);
+                em.getTransaction().commit();
+                return managedEntity
+                        .setSauce(this);
+            }
         } catch (final PersistenceException e) {
             final String message = String.format("Failed to merge entity %s on DB %s",
                     entity.toString(), this.databaseConnection.getName());
