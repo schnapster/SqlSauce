@@ -107,7 +107,7 @@ public class ChangefeedTest extends BaseTest {
 
         //prepare a table
         wrapper.executeSqlQuery(String.format(DROP_TABLE_IF_EXISTS, schemaTable), null);
-        wrapper.executeSqlQuery(String.format(CREATE_SIMPLE_TABLE, schemaTable), null);
+        wrapper.executeSqlQuery(String.format(CREATE_SIMPLE_TABLE, tableName), null);
 
         //watch the table
         Map<String, Object> params = DbUtils.paramsOf(
