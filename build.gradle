@@ -90,7 +90,7 @@ subprojects {
 
     ext {
         postgresDriverVersion = '42.2.1'
-        hibernateVersion = '5.2.12.Final'
+        hibernateVersion = '5.2.13.Final'
         hikariVersion = '2.7.6'
         jschVersion = '0.1.54'
         hibTypesVersion = '1.2.0'
