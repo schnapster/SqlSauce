@@ -72,7 +72,7 @@ public abstract class SaucedEntity<I extends Serializable, S extends SaucedEntit
     //the sauce of this entity
     @Transient
     @Nullable
-    protected DatabaseWrapper dbWrapper;
+    protected transient DatabaseWrapper dbWrapper;
 
 
     @SuppressWarnings("unchecked")
