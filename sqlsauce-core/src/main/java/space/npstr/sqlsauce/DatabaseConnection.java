@@ -216,6 +216,13 @@ public class DatabaseConnection {
         return hikariDataSource.getMaximumPoolSize();
     }
 
+    public EntityManagerFactory getEntityManagerFactory() throws IllegalStateException {
+        if (this.state == DatabaseState.SHUTDOWN) {
+            throw new IllegalStateException("Database connection has been shutdown.");
+        }
+        return this.emf;
+    }
+
     @CheckReturnValue
     public EntityManager getEntityManager() throws IllegalStateException, DatabaseException {
         if (this.state == DatabaseState.SHUTDOWN) {
