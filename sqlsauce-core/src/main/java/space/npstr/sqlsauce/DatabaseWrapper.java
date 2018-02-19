@@ -36,6 +36,7 @@ import space.npstr.sqlsauce.fp.types.Transfiguration;
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
 import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
 import javax.persistence.PersistenceException;
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
@@ -56,14 +57,29 @@ import java.util.stream.Stream;
  * This class is all about saving/loading/deleting Sauced Entities / IEntities and executing JPQL and SQL queries
  */
 public class DatabaseWrapper {
-    private final DatabaseConnection databaseConnection;
 
-    public DatabaseWrapper(final DatabaseConnection database) {
-        this.databaseConnection = database;
+    private final EntityManagerFactory emf;
+    private final String name;
+
+    /**
+     * @param name
+     *         a name to be used for logs
+     */
+    public DatabaseWrapper(EntityManagerFactory entityManagerFactory, String name) {
+        this.emf = entityManagerFactory;
+        this.name = name;
     }
 
-    public DatabaseConnection unwrap() {
-        return this.databaseConnection;
+    public DatabaseWrapper(DatabaseConnection connection) {
+        this(connection.getEntityManagerFactory(), connection.getName());
+    }
+
+    public EntityManagerFactory getEntityManagerFactory() {
+        return this.emf;
+    }
+
+    public String getName() {
+        return name;
     }
 
     //################################################################################
@@ -90,7 +106,7 @@ public class DatabaseWrapper {
     @CheckReturnValue
     public <E extends IEntity<I, E>, I extends Serializable> E getEntity(final EntityKey<I, E> entityKey)
             throws DatabaseException {
-        final EntityManager em = this.databaseConnection.getEntityManager();
+        final EntityManager em = this.emf.createEntityManager();
         try {
             em.getTransaction().begin();
             @Nullable E result = em.find(entityKey.clazz, entityKey.id);
@@ -101,7 +117,7 @@ public class DatabaseWrapper {
             return result;
         } catch (final PersistenceException e) {
             final String message = String.format("Failed to find entity of class %s for id %s on DB %s",
-                    entityKey.clazz.getName(), entityKey.id.toString(), this.databaseConnection.getName());
+                    entityKey.clazz.getName(), entityKey.id.toString(), name);
             throw new DatabaseException(message, e);
         } finally {
             em.close();
@@ -116,7 +132,7 @@ public class DatabaseWrapper {
     //returns a list of sauced entities
     public <E extends SaucedEntity<I, E>, I extends Serializable> List<E> loadAll(final Class<E> clazz)
             throws DatabaseException {
-        final EntityManager em = this.databaseConnection.getEntityManager();
+        final EntityManager em = this.emf.createEntityManager();
         try {
             final String query = "SELECT c FROM " + clazz.getSimpleName() + " c";
             em.getTransaction().begin();
@@ -130,7 +146,7 @@ public class DatabaseWrapper {
                     .collect(Collectors.toList());
         } catch (final PersistenceException e) {
             final String message = String.format("Failed to load all %s entities on DB %s",
-                    clazz.getName(), this.databaseConnection.getName());
+                    clazz.getName(), this.name);
             throw new DatabaseException(message, e);
         } finally {
             em.close();
@@ -163,7 +179,7 @@ public class DatabaseWrapper {
             return Collections.emptyList();
         }
         final Class<E> clazz = entityKeys.get(0).clazz;
-        final EntityManager em = this.databaseConnection.getEntityManager();
+        final EntityManager em = this.emf.createEntityManager();
         try {
             em.getTransaction().begin();
             final List<E> results = em.unwrap(Session.class)
@@ -176,7 +192,7 @@ public class DatabaseWrapper {
                     .collect(Collectors.toList());
         } catch (final PersistenceException e) {
             final String message = String.format("Failed to bulk load %s entities of class %s on DB %s",
-                    entityKeys.size(), clazz.getName(), this.databaseConnection.getName());
+                    entityKeys.size(), clazz.getName(), this.name);
             throw new DatabaseException(message, e);
         } finally {
             em.close();
@@ -194,7 +210,7 @@ public class DatabaseWrapper {
     @CheckReturnValue
     //returns a sauced entity
     public <E extends SaucedEntity<I, E>, I extends Serializable> E merge(final E entity) throws DatabaseException {
-        final EntityManager em = this.databaseConnection.getEntityManager();
+        final EntityManager em = this.emf.createEntityManager();
         try {
             synchronized (entity.getEntityLock()) {
                 em.getTransaction().begin();
@@ -205,7 +221,7 @@ public class DatabaseWrapper {
             }
         } catch (final PersistenceException e) {
             final String message = String.format("Failed to merge entity %s on DB %s",
-                    entity.toString(), this.databaseConnection.getName());
+                    entity.toString(), this.name);
             throw new DatabaseException(message, e);
         } finally {
             em.close();
@@ -220,7 +236,7 @@ public class DatabaseWrapper {
     @CheckReturnValue
     //returns whatever was passed in, with a sauce if it was a sauced entity
     public <E> E persist(final E entity) throws DatabaseException {
-        final EntityManager em = this.databaseConnection.getEntityManager();
+        final EntityManager em = this.emf.createEntityManager();
         try {
             em.getTransaction().begin();
             em.persist(entity);
@@ -228,7 +244,7 @@ public class DatabaseWrapper {
             return setSauce(entity);
         } catch (final PersistenceException e) {
             final String message = String.format("Failed to persist entity %s on DB %s",
-                    entity.toString(), this.databaseConnection.getName());
+                    entity.toString(), this.name);
             throw new DatabaseException(message, e);
         } finally {
             em.close();
@@ -250,13 +266,13 @@ public class DatabaseWrapper {
      */
     public <E extends SaucedEntity<I, E>, I extends Serializable> E findApplyAndMerge(final Transfiguration<I, E> transfiguration)
             throws DatabaseException {
-        final EntityManager em = this.databaseConnection.getEntityManager();
+        final EntityManager em = this.emf.createEntityManager();
         try {
             return this.lockedWrappedTransformFunc(transfiguration).apply(em);
         } catch (final PersistenceException e) {
             final String message = String.format("Failed to find, apply and merge entity id %s of class %s on DB %s",
                     transfiguration.key.id.toString(), transfiguration.key.clazz.getName(),
-                    this.databaseConnection.getName());
+                    this.name);
             throw new DatabaseException(message, e);
         } finally {
             em.close();
@@ -282,13 +298,13 @@ public class DatabaseWrapper {
 
         transfigurations.forEach(transfiguration -> {
             try {
-                final EntityManager em = this.databaseConnection.getEntityManager();
+                final EntityManager em = this.emf.createEntityManager();
                 try {
                     this.lockedWrappedTransformFunc(transfiguration).apply(em);
                 } catch (final PersistenceException e) {
                     final String message = String.format("Failed to find, apply and merge entity id %s of class %s on DB %s",
                             transfiguration.key.id.toString(), transfiguration.key.clazz.getName(),
-                            this.databaseConnection.getName());
+                            this.name);
                     exceptions.add(new DatabaseException(message, e));
                 } finally {
                     em.close();
@@ -392,7 +408,7 @@ public class DatabaseWrapper {
      */
     public <E> int applyAndMergeAll(final String query, final boolean isNative, final Class<E> clazz,
                                     final Function<E, E> transformation) throws DatabaseException {
-        final EntityManager em = this.databaseConnection.getEntityManager();
+        final EntityManager em = this.emf.createEntityManager();
         final AtomicInteger i = new AtomicInteger(0);
         try {
             //take advantage of stream API for results which is part of Hibernate 5.2, and will come to JPA with 2.2
@@ -419,7 +435,7 @@ public class DatabaseWrapper {
             return i.get();
         } catch (final PersistenceException e) {
             final String message = String.format("Failed to transform entities of clazz %s from query %s on DB %s",
-                    clazz.getName(), query, this.databaseConnection.getName());
+                    clazz.getName(), query, this.name);
             throw new DatabaseException(message, e);
         } finally {
             em.close();
@@ -437,7 +453,7 @@ public class DatabaseWrapper {
 
     public <E extends IEntity<I, E>, I extends Serializable> void deleteEntity(final EntityKey<I, E> entityKey)
             throws DatabaseException {
-        final EntityManager em = this.databaseConnection.getEntityManager();
+        final EntityManager em = this.emf.createEntityManager();
         try {
             em.getTransaction().begin();
             final IEntity<I, E> entity = em.find(entityKey.clazz, entityKey.id);
@@ -447,7 +463,7 @@ public class DatabaseWrapper {
             em.getTransaction().commit();
         } catch (final PersistenceException e) {
             final String message = String.format("Failed to delete entity id %s of class %s on DB %s",
-                    entityKey.id.toString(), entityKey.clazz.getName(), this.databaseConnection.getName());
+                    entityKey.id.toString(), entityKey.clazz.getName(), this.name);
             throw new DatabaseException(message, e);
         } finally {
             em.close();
@@ -466,7 +482,7 @@ public class DatabaseWrapper {
      */
     public int executeJpqlQuery(final String queryString, @Nullable final Map<String, Object> parameters)
             throws DatabaseException {
-        final EntityManager em = this.databaseConnection.getEntityManager();
+        final EntityManager em = this.emf.createEntityManager();
         try {
             final Query query = em.createQuery(queryString);
             if (parameters != null) {
@@ -478,7 +494,7 @@ public class DatabaseWrapper {
             return updatedOrDeleted;
         } catch (final PersistenceException e) {
             final String message = String.format("Failed to execute JPQL query %s with %s parameters on DB %s",
-                    queryString, parameters != null ? parameters.size() : "null", this.databaseConnection.getName());
+                    queryString, parameters != null ? parameters.size() : "null", this.name);
             throw new DatabaseException(message, e);
         } finally {
             em.close();
@@ -491,7 +507,7 @@ public class DatabaseWrapper {
     @CheckReturnValue
     public <T> T selectJpqlQuerySingleResult(final String queryString, @Nullable final Map<String, Object> parameters,
                                              final Class<T> resultClass) throws DatabaseException {
-        final EntityManager em = this.databaseConnection.getEntityManager();
+        final EntityManager em = this.emf.createEntityManager();
         try {
             final Query q = em.createQuery(queryString);
             if (parameters != null) {
@@ -503,7 +519,7 @@ public class DatabaseWrapper {
             return setSauce(result);
         } catch (final PersistenceException | ClassCastException e) {
             final String message = String.format("Failed to select single result JPQL query %s with %s parameters for class %s on DB %s",
-                    queryString, parameters != null ? parameters.size() : "null", resultClass.getName(), this.databaseConnection.getName());
+                    queryString, parameters != null ? parameters.size() : "null", resultClass.getName(), this.name);
             throw new DatabaseException(message, e);
         } finally {
             em.close();
@@ -524,7 +540,7 @@ public class DatabaseWrapper {
     public <T> List<T> selectJpqlQuery(final String queryString, @Nullable final Map<String, Object> parameters,
                                        final Class<T> resultClass, final int offset, final int limit)
             throws DatabaseException {
-        final EntityManager em = this.databaseConnection.getEntityManager();
+        final EntityManager em = this.emf.createEntityManager();
         try {
             final TypedQuery<T> q = em.createQuery(queryString, resultClass);
             if (parameters != null) {
@@ -545,7 +561,7 @@ public class DatabaseWrapper {
                              .collect(Collectors.toList());
         } catch (final PersistenceException e) {
             final String message = String.format("Failed to select JPQL query %s with %s parameters, offset %s, limit %s, on DB %s",
-                    queryString, parameters != null ? parameters.size() : "null", offset, limit, this.databaseConnection.getName());
+                    queryString, parameters != null ? parameters.size() : "null", offset, limit, this.name);
             throw new DatabaseException(message, e);
         } finally {
             em.close();
@@ -591,7 +607,7 @@ public class DatabaseWrapper {
      */
     public int executeSqlQuery(final String queryString, @Nullable final Map<String, Object> parameters)
             throws DatabaseException {
-        final EntityManager em = this.databaseConnection.getEntityManager();
+        final EntityManager em = this.emf.createEntityManager();
         try {
             final Query q = em.createNativeQuery(queryString);
             if (parameters != null) {
@@ -603,7 +619,7 @@ public class DatabaseWrapper {
             return updated;
         } catch (final PersistenceException e) {
             final String message = String.format("Failed to execute plain SQL query %s with %s parameters on DB %s",
-                    queryString, parameters != null ? parameters.size() : "null", this.databaseConnection.getName());
+                    queryString, parameters != null ? parameters.size() : "null", this.name);
             throw new DatabaseException(message, e);
         } finally {
             em.close();
@@ -633,7 +649,7 @@ public class DatabaseWrapper {
             return selectSqlQuery((em) -> em.createNativeQuery(queryString, resultEntityClass), parameters);
         } catch (final PersistenceException | ClassCastException e) {
             final String message = String.format("Failed to select list result plain SQL query %s with %s parameters for class %s on DB %s",
-                    queryString, parameters != null ? parameters.size() : "null", resultEntityClass.getName(), this.databaseConnection.getName());
+                    queryString, parameters != null ? parameters.size() : "null", resultEntityClass.getName(), this.name);
             throw new DatabaseException(message, e);
         }
     }
@@ -652,7 +668,7 @@ public class DatabaseWrapper {
             return selectSqlQuery((em) -> em.createNativeQuery(queryString, resultEntityMapping), parameters);
         } catch (final PersistenceException | ClassCastException e) {
             final String message = String.format("Failed to select list result plain SQL query %s with %s parameters for result mapping %s on DB %s",
-                    queryString, parameters != null ? parameters.size() : "null", resultEntityMapping, this.databaseConnection.getName());
+                    queryString, parameters != null ? parameters.size() : "null", resultEntityMapping, this.name);
             throw new DatabaseException(message, e);
         }
     }
@@ -669,7 +685,7 @@ public class DatabaseWrapper {
             return selectSqlQuery((em) -> em.createNativeQuery(queryString), parameters);
         } catch (final PersistenceException | ClassCastException e) {
             final String message = String.format("Failed to select list result plain SQL query %s with %s parameters on DB %s",
-                    queryString, parameters != null ? parameters.size() : "null", this.databaseConnection.getName());
+                    queryString, parameters != null ? parameters.size() : "null", this.name);
             throw new DatabaseException(message, e);
         }
     }
@@ -679,7 +695,7 @@ public class DatabaseWrapper {
     private <T> List<T> selectSqlQuery(final Function<EntityManager, Query> queryFunc,
                                        @Nullable final Map<String, Object> parameters)
             throws DatabaseException, PersistenceException, ClassCastException {
-        final EntityManager em = this.databaseConnection.getEntityManager();
+        final EntityManager em = this.emf.createEntityManager();
         try {
             final Query q = queryFunc.apply(em);
             if (parameters != null) {
@@ -710,7 +726,7 @@ public class DatabaseWrapper {
     @CheckReturnValue
     public <T> T selectSqlQuerySingleResult(final String queryString, @Nullable final Map<String, Object> parameters,
                                             final Class<T> resultClass) throws DatabaseException {
-        final EntityManager em = this.databaseConnection.getEntityManager();
+        final EntityManager em = this.emf.createEntityManager();
         try {
             final Query q = em.createNativeQuery(queryString);
             if (parameters != null) {
@@ -722,7 +738,7 @@ public class DatabaseWrapper {
             return setSauce(result);
         } catch (final PersistenceException | ClassCastException e) {
             final String message = String.format("Failed to select single result plain SQL query %s with %s parameters for class %s on DB %s",
-                    queryString, parameters != null ? parameters.size() : "null", resultClass.getName(), this.databaseConnection.getName());
+                    queryString, parameters != null ? parameters.size() : "null", resultClass.getName(), this.name);
             throw new DatabaseException(message, e);
         } finally {
             em.close();
@@ -740,7 +756,7 @@ public class DatabaseWrapper {
      * See the notification module for a listener implementation
      */
     public void notif(String channel, @Nullable String payload) {
-        final EntityManager em = this.databaseConnection.getEntityManager();
+        final EntityManager em = this.emf.createEntityManager();
         try {
             em.getTransaction().begin();
             //the cast is necessary otherwise hibernate chokes on the void return type
@@ -753,7 +769,7 @@ public class DatabaseWrapper {
             em.getTransaction().commit();
         } catch (final PersistenceException e) {
             final String message = String.format("Failed to execute notification for channel %s with payload %s on DB %s",
-                    channel, payload, this.databaseConnection.getName());
+                    channel, payload, this.name);
             throw new DatabaseException(message, e);
         } finally {
             em.close();
