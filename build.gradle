@@ -94,6 +94,7 @@ subprojects {
         hikariVersion = '2.7.6'
         jschVersion = '0.1.54'
         hibTypesVersion = '1.2.0'
+        guavaVersion = '24.0-jre'
 
         dsProxyVersion = '1.4.5'
         flywayVersion = '5.0.6'

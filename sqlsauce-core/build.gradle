@@ -5,6 +5,7 @@ dependencies {
     compile group: 'com.zaxxer', name: 'HikariCP', version: hikariVersion               //connection pool
     compile group: 'com.jcraft', name: 'jsch', version: jschVersion                     //ssh tunnel
     compile group: 'com.vladmihalcea', name: 'hibernate-types-52', version: hibTypesVersion // moar hibernate types
+    compile group: 'com.google.guava', name: 'guava', version: guavaVersion             //used for class path scanning
 
     //optional db related deps
     compileOnly group: 'net.ttddyy', name: 'datasource-proxy', version: dsProxyVersion  //log proxy for queries
