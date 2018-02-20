@@ -69,7 +69,7 @@ repo only provides released version builds. It may provide tested builds by comm
     }
 
     dependencies {
-        compile group: 'space.npstr.SqlSauce', name: 'sqlsauce-core', version: '0.0.10'
+        compile group: 'space.npstr.SqlSauce', name: 'sqlsauce-core', version: '0.0.11'
     }
 ```
 
@@ -90,7 +90,7 @@ repo only provides released version builds. It may provide tested builds by comm
     <dependency>
         <groupId>space.npstr.SqlSauce</groupId>
         <artifactId>sqlsauce-core</artifactId>
-        <version>0.0.10</version>
+        <version>0.0.11</version>
     </dependency>
 ```
 
@@ -293,6 +293,12 @@ Error level logs from Hibernate, so you should add your respective appenders for
 
 
 ## Changelog
+
+### v0.0.11
+- Bump Hibernate to 5.2.13.Final
+- Fix non-transient wrapper in entity base class
+- Better support for using EntityManagerFactories
+- Replace classpath scanner 
 
 ### v0.0.10
 - Fix locks to a) actually work and b) be used by the DatabaseWrapper for merges
