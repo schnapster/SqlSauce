@@ -117,6 +117,7 @@ public class DatabaseConnection {
                               final HikariConfig hikariConfig,
                               final Properties hibernateProps,
                               final Collection<String> entityPackages,
+                              EntityManagerFactoryBuilder entityManagerFactoryBuilder,
                               @Nullable final String poolName,
                               @Nullable final SshTunnel.SshDetails sshDetails,
                               @Nullable final MetricsTrackerFactory hikariStats,
@@ -172,14 +173,12 @@ public class DatabaseConnection {
             //add entities provided by this lib
             entityPackages.add("space.npstr.sqlsauce.entities");
 
-            // jpa
-            final PersistenceUnitInfo puInfo = new SimplePersistenceUnitInfo(dataSource, entityPackages, connectionName);
-
             // hibernate
             if (hibernateStats != null) {
                 hibernateProps.put("hibernate.generate_statistics", "true");
             }
-            this.emf = new HibernatePersistenceProvider().createContainerEntityManagerFactory(puInfo, hibernateProps);
+
+            this.emf = entityManagerFactoryBuilder.build(connectionName, dataSource, hibernateProps, entityPackages);
             if (hibernateStats != null) {
                 hibernateStats.add(this.emf.unwrap(SessionFactoryImpl.class), connectionName);
             }
@@ -360,6 +359,11 @@ public class DatabaseConnection {
         private HikariConfig hikariConfig = getDefaultHikariConfig();
         private Properties hibernateProps = getDefaultHibernateProps();
         private Collection<String> entityPackages = new ArrayList<>();
+        private EntityManagerFactoryBuilder entityManagerFactoryBuilder
+                = (puName, dataSource, properties, entityPackages) -> {
+            final PersistenceUnitInfo puInfo = new SimplePersistenceUnitInfo(dataSource, entityPackages, puName);
+            return new HibernatePersistenceProvider().createContainerEntityManagerFactory(puInfo, properties);
+        };
         @Nullable
         private String poolName;
         @Nullable
@@ -563,6 +567,15 @@ public class DatabaseConnection {
         }
 
         /**
+         * Define how the EntityManagerFactory is built. See {@link EntityManagerFactoryBuilder}.
+         */
+        @CheckReturnValue
+        public Builder setEntityManagerFactoryBuilder(final EntityManagerFactoryBuilder entityManagerFactoryBuilder) {
+            this.entityManagerFactoryBuilder = entityManagerFactoryBuilder;
+            return this;
+        }
+
+        /**
          * Add all packages of your application that contain entities that you want to use with this connection.
          * Example: "com.example.yourorg.yourproject.db.entities"
          */
@@ -655,6 +668,7 @@ public class DatabaseConnection {
                     this.hikariConfig,
                     this.hibernateProps,
                     this.entityPackages,
+                    this.entityManagerFactoryBuilder,
                     this.poolName,
                     this.sshDetails,
                     this.hikariStats,
@@ -666,5 +680,15 @@ public class DatabaseConnection {
                     this.flyway
             );
         }
+    }
+
+    @FunctionalInterface
+    public interface EntityManagerFactoryBuilder {
+
+        EntityManagerFactory build(String persistenceUnitName,
+                                   DataSource dataSource,
+                                   Properties hibernateProperties,
+                                   Collection<String> packagesToScan);
+
     }
 }
