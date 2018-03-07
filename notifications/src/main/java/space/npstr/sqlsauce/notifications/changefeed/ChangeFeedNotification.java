@@ -28,7 +28,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.postgresql.PGNotification;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.time.OffsetDateTime;
 
@@ -62,7 +61,6 @@ public abstract class ChangeFeedNotification {
         }
     }
 
-    @Nonnull
     private static ChangeFeedNotification parseV1Notification(PGNotification notification, JSONObject payload)
             throws JSONException {
         String schemaName = payload.getString("schema_name");

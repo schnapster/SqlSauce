@@ -30,7 +30,6 @@ import org.hibernate.engine.spi.SharedSessionContractImplementor;
 import org.hibernate.usertype.DynamicParameterizedType;
 import org.hibernate.usertype.UserType;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.Serializable;
 import java.lang.annotation.Annotation;
@@ -164,7 +163,6 @@ public class HashSetPostgreSQLEnumUserType implements UserType, DynamicParameter
         return new int[]{SQLTYPE};
     }
 
-    @Nonnull
     private Class<? extends Enum> getEnumClass(ParameterType reader) {
         PostgreSQLEnum enumAnn = getAnnotation(reader.getAnnotationsMethod(), PostgreSQLEnum.class);
         if (enumAnn != null) {
@@ -174,7 +172,6 @@ public class HashSetPostgreSQLEnumUserType implements UserType, DynamicParameter
         }
     }
 
-    @Nonnull
     private String getTypeName(ParameterType reader) {
         PostgreSQLEnum enumAnn = getAnnotation(reader.getAnnotationsMethod(), PostgreSQLEnum.class);
         if (enumAnn != null) {
