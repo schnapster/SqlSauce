@@ -89,6 +89,7 @@ subprojects {
     }
 
     ext {
+        jpaVersion = '2.2'
         postgresDriverVersion = '42.2.1'
         hibernateVersion = '5.2.13.Final'
         hikariVersion = '2.7.6'
@@ -118,6 +119,7 @@ subprojects {
     }
 
     dependencies { //for each module
+        compile group: 'javax.persistence', name: 'javax.persistence-api', version: jpaVersion
 
         //optional various/QA deps
         compileOnly group: 'org.slf4j', name: 'slf4j-api', version: slf4jApiVersion   //logging framework
