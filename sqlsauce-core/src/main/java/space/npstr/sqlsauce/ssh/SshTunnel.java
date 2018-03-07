@@ -42,9 +42,9 @@ import java.util.Properties;
  * <p>
  * Class initially heavily inspired by the way FredBoat handles the SSH tunnel (MIT license)
  *
- * On connection loss, you want to call reconnect() as it creates a new session, because a session may not
- * always be recovered from a broken state by a disconnect() followed by a connect().
+ * @deprecated Use autossh instead: http://www.harding.motd.ca/autossh/
  */
+@Deprecated
 @NotThreadSafe
 public class SshTunnel {
 

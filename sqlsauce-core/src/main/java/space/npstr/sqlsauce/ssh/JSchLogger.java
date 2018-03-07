@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
  * <p>
  * Adapter for ssh logs. Originally written by Fre_d for FredBoat under MIT license.
  */
+@Deprecated
 public class JSchLogger implements com.jcraft.jsch.Logger {
 
     private static final Logger log = LoggerFactory.getLogger("JSch");

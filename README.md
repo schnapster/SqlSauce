@@ -39,8 +39,6 @@ Tests on [Travis](https://travis-ci.org/napstr/SqlSauce) are executed against **
 
 ![alt text](https://i.imgur.com/CuzucQL.gif "SHOW ME WHAT YOU GOT")
 
-- Ssh tunnel support with reconnect handling. Stay safe, don't expose your databases.
-
 - No EntityManager hassle
   A functional approach to the DatabaseWrapper allows you to describe an entity, define a transformation for it, and
 execute those without having to touch the persistence context at all.
@@ -116,13 +114,6 @@ DatabaseConnection databaseConnection = new DatabaseConnection.Builder("postgres
      "jdbc:postgresql://localhost:5432/db?user=johndoe&password=highlysecurepw")
         .addEntityPackage("com.example.myapp.db.entities")
         .setAppName("MyApp_v4.2.69_1337"))
-        .setSshDetails(new SshTunnel.SshDetails("db.example.com", "johndoe")
-                         .setSshPort(22)
-                         .setLocalPort(1111)
-                         .setRemotePort(5432)
-                         .setKeyFile("myapp_private_key_rsa")
-                         .setPassphrase("anotherhighlysecurepw")
-        )
         .build();
 ```
 
@@ -382,7 +373,6 @@ Migrations:
 
 ## TODOs
 
-- improve security of the ssh tunnels (read up on the ssh protocol, etc)
 - explore java 9 modularization
 - add hibernate enhancer plugin to documentation (? usage was hacky, maybe hold off on that one)
 - update docs with all the new stuff (LISTEN/NOTIFY, flyway, ds proxy, etc)

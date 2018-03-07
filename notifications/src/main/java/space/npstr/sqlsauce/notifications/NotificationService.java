@@ -68,7 +68,6 @@ import java.util.concurrent.Executors;
  * the time. Given this and connections being a costly resource, you are encouraged, but not required, to use a single
  * object of this class in your application to register all your listeners with.
  * <p>
- * todo support tunneling including connection checks out of the box
  * todo try async registering of listeners while listening to notifications
  */
 public class NotificationService {

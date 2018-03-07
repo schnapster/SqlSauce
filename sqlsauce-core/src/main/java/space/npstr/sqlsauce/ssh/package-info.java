@@ -22,8 +22,11 @@
  * SOFTWARE.
  */
 
+/**
+ * deprecated: Use autossh instead: http://www.harding.motd.ca/autossh/
+ */
 @space.npstr.annotations.FieldsAreNonNullByDefault
 @space.npstr.annotations.ParametersAreNonnullByDefault
 @space.npstr.annotations.ReturnTypesAreNonNullByDefault
-
+@Deprecated
 package space.npstr.sqlsauce.ssh;

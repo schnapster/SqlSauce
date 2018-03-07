@@ -80,7 +80,6 @@ version as shown on the core module readme.
 
 ## TODOs
 
-- full tunnel / healthcheck support
 - add trigger creation sql
 - add example usage for changefeed to this README
 

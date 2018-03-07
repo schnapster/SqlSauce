@@ -55,8 +55,6 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Created by napster on 29.05.17.
- * <p>
- * Connection to a database through an optional SSH tunnel
  */
 public class DatabaseConnection {
 
@@ -71,6 +69,7 @@ public class DatabaseConnection {
     private final ProxyDataSource proxiedDataSource;
 
     @Nullable
+    @Deprecated
     private SshTunnel sshTunnel = null;
 
     private final String connectionName; //a comprehensible name for this connection
@@ -367,6 +366,7 @@ public class DatabaseConnection {
         @Nullable
         private String poolName;
         @Nullable
+        @Deprecated
         private SshTunnel.SshDetails sshDetails;
         @Nullable
         private HibernateStatisticsCollector hibernateStats;
