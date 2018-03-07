@@ -67,7 +67,7 @@ repo only provides released version builds. It may provide tested builds by comm
     }
 
     dependencies {
-        compile group: 'space.npstr.SqlSauce', name: 'sqlsauce-core', version: '0.0.11'
+        compile group: 'space.npstr.SqlSauce', name: 'sqlsauce-core', version: '0.0.12'
     }
 ```
 
@@ -88,7 +88,7 @@ repo only provides released version builds. It may provide tested builds by comm
     <dependency>
         <groupId>space.npstr.SqlSauce</groupId>
         <artifactId>sqlsauce-core</artifactId>
-        <version>0.0.11</version>
+        <version>0.0.12</version>
     </dependency>
 ```
 
@@ -285,6 +285,11 @@ Error level logs from Hibernate, so you should add your respective appenders for
 
 ## Changelog
 
+### v0.0.12
+- Enforce JPA 2.2
+- Fix transactions not being rolled back, instead staying open and blocking the connection, in case of an exception in user code
+- Deprecate SshTunnel in facor of [autossh](http://www.harding.motd.ca/autossh/)
+
 ### v0.0.11
 - Bump Hibernate to 5.2.13.Final
 - Fix non-transient wrapper in entity base class
@@ -376,8 +381,7 @@ Migrations:
 - explore java 9 modularization
 - add hibernate enhancer plugin to documentation (? usage was hacky, maybe hold off on that one)
 - update docs with all the new stuff (LISTEN/NOTIFY, flyway, ds proxy, etc)
-- implement changefeed style notification support
-- unit tests - cant expect this to be taken serious without those
+- more unit tests - cant expect this to be taken serious without those
 
 
 ## Dependencies
