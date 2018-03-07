@@ -42,6 +42,7 @@ import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
+import javax.persistence.EntityTransaction;
 import javax.persistence.PersistenceException;
 import javax.persistence.spi.PersistenceUnitInfo;
 import javax.sql.DataSource;
@@ -276,10 +277,17 @@ public class DatabaseConnection {
     public boolean runTestQuery() {
         final EntityManager em = this.emf.createEntityManager();
         try {
-            em.getTransaction().begin();
-            em.createNativeQuery(TEST_QUERY).getResultList();
-            em.getTransaction().commit();
-            return true;
+            final EntityTransaction entityTransaction = em.getTransaction();
+            try {
+                entityTransaction.begin();
+                em.createNativeQuery(TEST_QUERY).getResultList();
+                entityTransaction.commit();
+                return true;
+            } finally {
+                if (entityTransaction.isActive()) {
+                    entityTransaction.rollback();
+                }
+            }
         } catch (final PersistenceException e) {
             log.error("Test query failed", e);
             return false;
