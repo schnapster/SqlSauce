@@ -24,7 +24,7 @@ allprojects {
     apply plugin: 'idea'
 
     ext {
-        gradleVers = '4.4.1'
+        gradleVers = '4.6'
     }
 
     group = 'space.npstr.SqlSauce'
