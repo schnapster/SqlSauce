@@ -37,7 +37,6 @@ import org.hibernate.jpa.HibernatePersistenceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import space.npstr.sqlsauce.entities.SaucedEntity;
-import space.npstr.sqlsauce.ssh.SshTunnel;
 
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
@@ -60,7 +59,6 @@ public class DatabaseConnection {
 
     private static final Logger log = LoggerFactory.getLogger(DatabaseConnection.class);
     private static final String TEST_QUERY = "SELECT 1;";
-    private static final long DEFAULT_FORCE_RECONNECT_TUNNEL_AFTER = TimeUnit.MINUTES.toNanos(1);
     private static final long DEFAULT_HEALTHCHECK_PERIOD = TimeUnit.SECONDS.toNanos(5);
 
     private final EntityManagerFactory emf;
@@ -68,19 +66,12 @@ public class DatabaseConnection {
     @Nullable
     private final ProxyDataSource proxiedDataSource;
 
-    @Nullable
-    @Deprecated
-    private SshTunnel sshTunnel = null;
-
     private final String connectionName; //a comprehensible name for this connection
 
-    private volatile DatabaseState state = DatabaseState.UNINITIALIZED;
+    private volatile DatabaseState state;
 
     @Nullable
     private final ScheduledExecutorService connectionCheck;
-
-    private final long tunnelForceReconnectAfter;
-    private long lastConnected;
 
     /**
      * @param connectionName   name for this database connection, also used as the persistence unit name and other
@@ -92,23 +83,19 @@ public class DatabaseConnection {
      * @param entityPackages   example: "space.npstr.wolfia.db.entity", the names of the packages containing your
      *                         annotated entities. root package names are fine, they will pick up all children
      * @param poolName         optional name for the connection pool; if null, a default name based on the db name will be picked
-     * @param sshDetails       optionally ssh tunnel the connection; highly recommended for all remote databases
      * @param hibernateStats   optional metrics for hibernate. make sure to register it after adding all connections to it
      * @param hikariStats      optional metrics for hikari
      * @param checkConnection  set to false to disable a periodic healthcheck and automatic reconnection of the connection.
      *                         only recommended if you run your own healthcheck and reconnection logic
      * @param healthCheckPeriod (nanos) period between health checks
-     * @param tunnelForceReconnectAfter (nanos) will forcefully reconnect a connected tunnel as part of the
-     *                                  healthcheck, if there was no successful test query for this time period.
      * @param proxyDataSourceBuilder optional datasource proxy that is useful for logging and intercepting queries, see
      *                               https://github.com/ttddyy/datasource-proxy. The hikari datasource will be set on it,
      *                               and the resulting proxy will be passed to hibernate.
      * @param flyway           optional Flyway migrations. This constructor will call Flyway#setDataSource and
-     *                         Flyway#migrate() after creating the ssh tunnel and hikari datasource, and before handing
+     *                         Flyway#migrate() after creating the hikari datasource, and before handing
      *                         the datasource over to the datasource proxy and hibernate. If you need tighter control
      *                         over the handling of migrations, consider running them manually before creating the
-     *                         DatabaseConnection. Flyway supports the use of a jdbcUrl instead of a datasource, and
-     *                         you can also manually build a temporary ssh tunnel if need be.
+     *                         DatabaseConnection, Flyway supports the use of a jdbcUrl instead of a datasource.
      */
     public DatabaseConnection(final String connectionName,
                               final String jdbcUrl,
@@ -118,25 +105,16 @@ public class DatabaseConnection {
                               final Collection<String> entityPackages,
                               EntityManagerFactoryBuilder entityManagerFactoryBuilder,
                               @Nullable final String poolName,
-                              @Nullable final SshTunnel.SshDetails sshDetails,
                               @Nullable final MetricsTrackerFactory hikariStats,
                               @Nullable final HibernateStatisticsCollector hibernateStats,
                               final boolean checkConnection,
                               long healthCheckPeriod,
-                              long tunnelForceReconnectAfter,
                               @Nullable final ProxyDataSourceBuilder proxyDataSourceBuilder,
                               @Nullable final Flyway flyway) throws DatabaseException {
         this.connectionName = connectionName;
         this.state = DatabaseState.INITIALIZING;
-        this.tunnelForceReconnectAfter = tunnelForceReconnectAfter;
 
         try {
-            // create ssh tunnel
-            if (sshDetails != null) {
-                this.sshTunnel = new SshTunnel(sshDetails).connect();
-                lastConnected = System.nanoTime();
-            }
-
             // hikari connection pool
             final HikariConfig hiConf = new HikariConfig();
             hikariConfig.copyStateTo(hiConf); //dont touch the provided config, it might get reused outside, instead use a copy
@@ -198,9 +176,6 @@ public class DatabaseConnection {
             SaucedEntity.setDefaultSauce(new DatabaseWrapper(this));
         } catch (final Exception e) {
             this.state = DatabaseState.FAILED;
-            if (sshTunnel != null) {
-                sshTunnel.disconnect();
-            }
             throw new DatabaseException("Failed to create database connection", e);
         }
     }
@@ -251,9 +226,6 @@ public class DatabaseConnection {
         this.state = DatabaseState.SHUTDOWN;
         this.emf.close();
         this.hikariDataSource.close();
-        if (this.sshTunnel != null) {
-            this.sshTunnel.disconnect();
-        }
     }
 
     /**
@@ -265,12 +237,12 @@ public class DatabaseConnection {
     }
 
     /**
-     * Perform a health check and try to reconnect in a blocking fashion if the health check fails
+     * Perform a health check and adjust the state of the connection accordingly.
      * <p>
-     * The healthcheck has to be called proactively, as the ssh tunnel does not provide any callback for detecting a
-     * disconnect. The default configuration of the database connection takes care of doing this every few seconds.
+     * The default configuration of the database connection calls this proactively every few seconds.
      *
-     * The period this is called should be smaller than the tunnel force reconnect time.
+     * The main benefit of this is fail-fast behaviour of this object, as calls to {@link DatabaseConnection#getEntityManager()}
+     * will throw an exception if the state is not {@link DatabaseConnection.DatabaseState#READY}.
      *
      * @return true if the database is healthy, false otherwise. Will return false if the database is shutdown, but not
      * attempt to restart/reconnect it.
@@ -279,30 +251,6 @@ public class DatabaseConnection {
     public synchronized boolean healthCheck() {
         if (this.state == DatabaseState.SHUTDOWN) {
             return false;
-        }
-
-        //is the ssh connection still alive?
-        if (this.sshTunnel != null) {
-            boolean reconnectTunnel = false;
-
-            if (!this.sshTunnel.isConnected()) {
-                log.error("SSH tunnel lost connection.");
-                reconnectTunnel = true;
-            } else if (tunnelForceReconnectAfter > 0 && System.nanoTime() - lastConnected > tunnelForceReconnectAfter) {
-                log.error("Last successful test query older than {}ms despite connected tunnel, forcefully reconnecting the tunnel.",
-                        tunnelForceReconnectAfter);
-                reconnectTunnel = true;
-            }
-
-            if (reconnectTunnel) {
-                this.state = DatabaseState.FAILED;
-                try {
-                    this.sshTunnel.reconnect();
-                    lastConnected = System.nanoTime();
-                } catch (Exception e) {
-                    log.error("Failed to reconnect tunnel during healthcheck", e);
-                }
-            }
         }
 
         boolean testQuerySuccess = false;
@@ -314,7 +262,6 @@ public class DatabaseConnection {
 
         if (testQuerySuccess) {
             this.state = DatabaseState.READY;
-            lastConnected = System.nanoTime();
             return true;
         } else {
             this.state = DatabaseState.FAILED;
@@ -342,7 +289,6 @@ public class DatabaseConnection {
     }
 
     public enum DatabaseState {
-        UNINITIALIZED,
         INITIALIZING,
         FAILED,
         READY,
@@ -366,15 +312,11 @@ public class DatabaseConnection {
         @Nullable
         private String poolName;
         @Nullable
-        @Deprecated
-        private SshTunnel.SshDetails sshDetails;
-        @Nullable
         private HibernateStatisticsCollector hibernateStats;
         @Nullable
         private MetricsTrackerFactory hikariStats;
         private boolean checkConnection = true;
         private long healthcheckPeriod = DEFAULT_HEALTHCHECK_PERIOD;
-        private long tunnelForceReconnectAfter = DEFAULT_FORCE_RECONNECT_TUNNEL_AFTER;
         @Nullable
         private ProxyDataSourceBuilder proxyDataSourceBuilder;
         @Nullable
@@ -453,15 +395,6 @@ public class DatabaseConnection {
         public Builder(final String connectionName, final String jdbcUrl) {
             this.connectionName = connectionName;
             this.jdbcUrl = jdbcUrl;
-        }
-
-        /**
-         * Give this database connection a name - preferably unique inside your application.
-         */
-        @CheckReturnValue
-        @Deprecated
-        public Builder setDatabaseName(final String connectionName) {
-            return setConnectionName(connectionName);
         }
 
         /**
@@ -586,18 +519,6 @@ public class DatabaseConnection {
         }
 
 
-        // ssh stuff
-
-        /**
-         * Set this to tunnel the database connection through the configured SSH tunnel. Provide a null object to reset.
-         */
-        @CheckReturnValue
-        public Builder setSshDetails(@Nullable final SshTunnel.SshDetails sshDetails) {
-            this.sshDetails = sshDetails;
-            return this;
-        }
-
-
         // metrics stuff
 
         @CheckReturnValue
@@ -643,16 +564,6 @@ public class DatabaseConnection {
             return this;
         }
 
-        /**
-         * Set to 0 to never force reconnect the tunnel. Other than that, the force reconnect period should be higher
-         * than the healthcheck period. Default is 1 minute.
-         */
-        @CheckReturnValue
-        public Builder setTunnelForceReconnectAfter(final long tunnelForceReconnectAfter, TimeUnit timeUnit) {
-            this.tunnelForceReconnectAfter = timeUnit.toNanos(tunnelForceReconnectAfter);
-            return this;
-        }
-
         @CheckReturnValue
         public Builder setProxyDataSourceBuilder(@Nullable final ProxyDataSourceBuilder proxyBuilder) {
             this.proxyDataSourceBuilder = proxyBuilder;
@@ -670,12 +581,10 @@ public class DatabaseConnection {
                     this.entityPackages,
                     this.entityManagerFactoryBuilder,
                     this.poolName,
-                    this.sshDetails,
                     this.hikariStats,
                     this.hibernateStats,
                     this.checkConnection,
                     this.healthcheckPeriod,
-                    this.tunnelForceReconnectAfter,
                     this.proxyDataSourceBuilder,
                     this.flyway
             );
