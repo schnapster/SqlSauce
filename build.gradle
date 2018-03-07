@@ -1,11 +1,6 @@
 import com.github.spotbugs.SpotBugsTask
 import org.gradle.api.tasks.wrapper.Wrapper.DistributionType
 
-buildscript {
-    dependencies {
-        classpath 'org.junit.platform:junit-platform-gradle-plugin:1.1.0-M1'
-    }
-}
 plugins {
     id 'com.github.spotbugs' version '1.6.0'
     id 'com.jfrog.bintray' version '1.8.0'
@@ -37,7 +32,6 @@ subprojects {
     apply plugin: 'java-library'
     apply plugin: 'maven-publish'
     apply plugin: 'com.github.spotbugs'
-    apply plugin: 'org.junit.platform.gradle.plugin'
     apply plugin: 'com.jfrog.bintray'
 
     sourceCompatibility = 8
@@ -73,6 +67,10 @@ subprojects {
 
     task sourceJar(type: Jar) {
         from sourceSets.main.allJava
+    }
+
+    test {
+        useJUnitPlatform()
     }
 
     // To generate an HTML report instead of XML
