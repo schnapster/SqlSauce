@@ -57,6 +57,10 @@ public abstract class BaseDiscordGuild<S extends SaucedEntity<Long, S>> extends 
 
     @Override
     public Long getId() {
+        return getGuildId();
+    }
+
+    public long getGuildId() {
         return this.guildId;
     }
 

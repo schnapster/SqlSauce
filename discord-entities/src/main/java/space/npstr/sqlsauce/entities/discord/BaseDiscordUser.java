@@ -57,6 +57,10 @@ public abstract class BaseDiscordUser<S extends SaucedEntity<Long, S>> extends S
 
     @Override
     public Long getId() {
+        return getUserId();
+    }
+
+    public long getUserId() {
         return this.userId;
     }
 
