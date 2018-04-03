@@ -67,7 +67,7 @@ repo only provides released version builds. It may provide tested builds by comm
     }
 
     dependencies {
-        compile group: 'space.npstr.SqlSauce', name: 'sqlsauce-core', version: '0.0.13'
+        compile group: 'space.npstr.SqlSauce', name: 'sqlsauce-core', version: '0.0.14'
     }
 ```
 
@@ -88,7 +88,7 @@ repo only provides released version builds. It may provide tested builds by comm
     <dependency>
         <groupId>space.npstr.SqlSauce</groupId>
         <artifactId>sqlsauce-core</artifactId>
-        <version>0.0.13</version>
+        <version>0.0.14</version>
     </dependency>
 ```
 
@@ -284,6 +284,9 @@ Error level logs from Hibernate, so you should add your respective appenders for
 
 
 ## Changelog
+
+### v0.0.14
+- Add HashSetStringUserType to save hash sets of strings as a postgres array of text.
 
 ### v0.0.13
 - Catch open transactions in the healthcheck
