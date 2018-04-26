@@ -123,7 +123,7 @@ public class ChangefeedTest extends BaseTest {
                 idColumn, insertId,
                 nameColumn, insertName
         );
-        Thread.sleep(interval); //make sure listener is set up
+        Thread.sleep(interval * 2); //make sure listener is set up
         //language=PostgreSQL
         wrapper.executeSqlQuery(String.format("INSERT INTO %s (%s, %s) VALUES (:id, :name);", schemaTable, idColumn, nameColumn), params);
         params.put(nameColumn, updateName);
@@ -131,7 +131,7 @@ public class ChangefeedTest extends BaseTest {
         wrapper.executeSqlQuery(String.format("UPDATE %s SET (%s, %s) = (:id, :name)", schemaTable, idColumn, nameColumn), params);
         //language=PostgreSQL
         wrapper.executeSqlQuery(String.format("DELETE FROM %s WHERE %s = :id AND %s = :name", schemaTable, idColumn, nameColumn), params);
-        Thread.sleep(interval); //make sure notifications are fetched
+        Thread.sleep(interval * 2); //make sure notifications are fetched
 
         for (Exception e : exceptions) {
             log.error("NotificationService threw exception", e);
