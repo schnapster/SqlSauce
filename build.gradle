@@ -32,6 +32,7 @@ subprojects {
     apply plugin: 'java-library'
     apply plugin: 'maven-publish'
     apply plugin: 'com.github.spotbugs'
+    apply plugin: 'jacoco'
     apply plugin: 'com.jfrog.bintray'
 
     sourceCompatibility = 8
