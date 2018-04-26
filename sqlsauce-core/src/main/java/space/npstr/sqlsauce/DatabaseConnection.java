@@ -221,6 +221,7 @@ public class DatabaseConnection {
             try {
                 this.connectionCheck.awaitTermination(30, TimeUnit.SECONDS);
             } catch (final InterruptedException ignored) {
+                Thread.currentThread().interrupt();
             }
         }
 
