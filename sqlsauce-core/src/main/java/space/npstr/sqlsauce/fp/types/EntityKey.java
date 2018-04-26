@@ -69,4 +69,13 @@ public class EntityKey<I, E> {
     public int hashCode() {
         return Objects.hashCode(id);
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof EntityKey)) {
+            return false;
+        }
+        EntityKey other = (EntityKey) obj;
+        return clazz.equals(other.clazz) && id.equals(other.id);
+    }
 }
