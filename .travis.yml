@@ -7,6 +7,8 @@ services:
   - postgresql
 addons:
   postgresql: "9.5"
+  sonarcloud:
+    organization: "napstr-github"
 
 env:
   global:
@@ -21,9 +23,11 @@ cache:
     - "$HOME/.gradle"
     - ".gradle/wrapper"
     - ".gradle/caches"
+    - "$HOME/.sonar/cache"
 
 before_script:
   - psql -c 'create database testing;' -U postgres
 
 script:
   - "./gradlew pub"
+  - "./gradlew sonarqube"
