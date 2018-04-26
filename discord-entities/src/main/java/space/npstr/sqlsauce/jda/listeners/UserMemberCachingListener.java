@@ -31,8 +31,9 @@ import net.dv8tion.jda.core.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.core.events.guild.member.GuildMemberLeaveEvent;
 import net.dv8tion.jda.core.events.guild.member.GuildMemberNickChangeEvent;
 import net.dv8tion.jda.core.events.user.GenericUserEvent;
-import net.dv8tion.jda.core.events.user.UserAvatarUpdateEvent;
-import net.dv8tion.jda.core.events.user.UserNameUpdateEvent;
+import net.dv8tion.jda.core.events.user.update.UserUpdateAvatarEvent;
+import net.dv8tion.jda.core.events.user.update.UserUpdateDiscriminatorEvent;
+import net.dv8tion.jda.core.events.user.update.UserUpdateNameEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import space.npstr.sqlsauce.entities.discord.DiscordUser;
@@ -57,15 +58,19 @@ public class UserMemberCachingListener<E extends DiscordUser<E>> extends Caching
     //user events
 
     @Override
-    public void onUserNameUpdate(final UserNameUpdateEvent event) {
+    public void onUserUpdateName(UserUpdateNameEvent event) {
         onUserEvent(event);
     }
 
     @Override
-    public void onUserAvatarUpdate(final UserAvatarUpdateEvent event) {
+    public void onUserUpdateDiscriminator(UserUpdateDiscriminatorEvent event) {
         onUserEvent(event);
     }
 
+    @Override
+    public void onUserUpdateAvatar(UserUpdateAvatarEvent event) {
+        onUserEvent(event);
+    }
 
     //member events
 
