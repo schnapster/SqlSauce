@@ -27,6 +27,8 @@ cache:
 
 before_script:
   - psql -c 'create database testing;' -U postgres
+  #for sonar cloud blame information
+  - git fetch --unshallow
 
 script:
   - "./gradlew pub"
