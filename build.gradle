@@ -89,7 +89,7 @@ subprojects {
         jpaVersion = '2.2'
         postgresDriverVersion = '42.2.2'
         hibernateVersion = '5.2.16.Final'
-        hikariVersion = '2.7.6'
+        hikariVersion = '3.1.0'
         hibTypesVersion = '2.2.0'
         guavaVersion = '24.1-jre'
 
