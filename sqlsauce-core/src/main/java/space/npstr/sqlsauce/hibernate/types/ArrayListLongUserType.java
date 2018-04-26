@@ -26,10 +26,8 @@ package space.npstr.sqlsauce.hibernate.types;
 
 
 import org.hibernate.engine.spi.SharedSessionContractImplementor;
-import org.hibernate.usertype.UserType;
 
 import javax.annotation.Nullable;
-import java.io.Serializable;
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -46,8 +44,7 @@ import java.util.Collections;
  * <p>
  * source: https://stackoverflow.com/a/41413296/
  */
-public class ArrayListLongUserType implements UserType {
-    protected static final int SQLTYPE = java.sql.Types.ARRAY;
+public class ArrayListLongUserType extends CommonArrayType {
 
     @Nullable
     @Override
@@ -73,16 +70,11 @@ public class ArrayListLongUserType implements UserType {
         } else {
             @SuppressWarnings("unchecked") ArrayList<Long> castObject = (ArrayList) value;
 
-            Long[] longs = castObject.toArray(new Long[castObject.size()]);
+            Long[] longs = castObject.toArray(new Long[0]);
             Array array = connection.createArrayOf("bigint", longs);
 
             st.setArray(index, array);
         }
-    }
-
-    @Override
-    public Object assemble(final Serializable cached, final Object owner) {
-        return cached;
     }
 
     @Nullable
@@ -92,37 +84,8 @@ public class ArrayListLongUserType implements UserType {
     }
 
     @Override
-    public Serializable disassemble(final Object o) {
-        return (Serializable) o;
-    }
-
-    @Override
-    public boolean equals(final Object x, final Object y) {
-        return x == null ? y == null : x.equals(y);
-    }
-
-    @Override
-    public int hashCode(final Object o) {
-        return o == null ? 0 : o.hashCode();
-    }
-
-    @Override
-    public boolean isMutable() {
-        return false;
-    }
-
-    @Override
-    public Object replace(final Object original, final Object target, final Object owner) {
-        return original;
-    }
-
-    @Override
     public Class<ArrayList> returnedClass() {
         return ArrayList.class;
     }
 
-    @Override
-    public int[] sqlTypes() {
-        return new int[]{SQLTYPE};
-    }
 }

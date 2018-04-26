@@ -26,17 +26,14 @@ package space.npstr.sqlsauce.hibernate.types;
 
 import org.hibernate.engine.spi.SharedSessionContractImplementor;
 import org.hibernate.usertype.DynamicParameterizedType;
-import org.hibernate.usertype.UserType;
 import space.npstr.sqlsauce.DbUtils;
 
 import javax.annotation.Nullable;
-import java.io.Serializable;
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Types;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Properties;
@@ -59,10 +56,7 @@ import java.util.Properties;
  * <p>
  * For enum support, look at {@link HashSetPostgreSQLEnumUserType}
  */
-public class HashSetBasicType implements UserType, DynamicParameterizedType {
-
-
-    protected static final int SQLTYPE = Types.ARRAY;
+public class HashSetBasicType extends HashSetArrayType implements DynamicParameterizedType {
 
     @Nullable
     private Class<?> basicType;
@@ -124,52 +118,6 @@ public class HashSetBasicType implements UserType, DynamicParameterizedType {
 
             st.setArray(index, array);
         }
-    }
-
-    @Override
-    public Object assemble(final Serializable cached, final Object owner) {
-        return cached;
-    }
-
-    @Nullable
-    @Override
-    public Object deepCopy(final Object o) {
-        return o == null ? null : ((HashSet) o).clone();
-    }
-
-    @Override
-    public Serializable disassemble(final Object o) {
-        return (Serializable) o;
-    }
-
-    @Override
-    public boolean equals(final Object x, final Object y) {
-        return x == null ? y == null : x.equals(y);
-    }
-
-    @Override
-    public int hashCode(final Object o) {
-        return o == null ? 0 : o.hashCode();
-    }
-
-    @Override
-    public boolean isMutable() {
-        return false;
-    }
-
-    @Override
-    public Object replace(final Object original, final Object target, final Object owner) {
-        return original;
-    }
-
-    @Override
-    public Class<HashSet> returnedClass() {
-        return HashSet.class;
-    }
-
-    @Override
-    public int[] sqlTypes() {
-        return new int[]{SQLTYPE};
     }
 
     private Class<?> getBasicType(ParameterType reader) {
