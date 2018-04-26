@@ -24,7 +24,6 @@
 
 package space.npstr.sqlsauce.notifications;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import space.npstr.sqlsauce.BaseTest;
 import space.npstr.sqlsauce.DatabaseWrapper;
@@ -35,6 +34,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Created by napster on 20.01.18.
@@ -66,9 +68,9 @@ class NotifyTest extends BaseTest {
         for (Exception e : exceptions) {
             log.error("NotificationService threw exception", e);
         }
-        Assertions.assertEquals(0, exceptions.size(), "NotificationService threw exceptions");
-        Assertions.assertEquals(1, notifications.get(), "Did not receive notification");
-        Assertions.assertTrue(isBar.get(), "Payload was wrong");
+        assertEquals(0, exceptions.size(), "NotificationService threw exceptions");
+        assertEquals(1, notifications.get(), "Did not receive notification");
+        assertTrue(isBar.get(), "Payload was wrong");
     }
 
     @Test
@@ -98,8 +100,8 @@ class NotifyTest extends BaseTest {
         for (Exception e : exceptions) {
             log.error("NotificationService threw exception", e);
         }
-        Assertions.assertEquals(0, exceptions.size(), "NotificationService threw exceptions");
-        Assertions.assertEquals(1, notifications.get(), "Did not receive notification");
-        Assertions.assertTrue(isBar.get(), "Payload was wrong");
+        assertEquals(0, exceptions.size(), "NotificationService threw exceptions");
+        assertEquals(1, notifications.get(), "Did not receive notification");
+        assertTrue(isBar.get(), "Payload was wrong");
     }
 }

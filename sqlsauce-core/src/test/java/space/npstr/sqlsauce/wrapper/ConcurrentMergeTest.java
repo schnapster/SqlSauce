@@ -24,9 +24,9 @@
 
 package space.npstr.sqlsauce.wrapper;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import space.npstr.sqlsauce.BaseTest;
+import space.npstr.sqlsauce.DatabaseException;
 import space.npstr.sqlsauce.DatabaseWrapper;
 import space.npstr.sqlsauce.entities.SaucedEntity;
 
@@ -41,6 +41,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * Created by napster on 12.02.18.
@@ -92,6 +95,7 @@ public class ConcurrentMergeTest extends BaseTest {
                 try {
                     InterdimensionalCableShow show = new InterdimensionalCableShow(NAMES.get(ThreadLocalRandom.current().nextInt(NAMES.size())));
                     InterdimensionalCableShow merge = wrapper.merge(show);
+                    assertNotNull(merge);//spotbugs and codacy warnings
                 } catch (Exception e) {
                     //expecting duplicate key exceptions here if the entity lock system is borked
                     log.error("Exception in {}", ConcurrentMergeTest.class.getSimpleName(), e);
@@ -105,11 +109,11 @@ public class ConcurrentMergeTest extends BaseTest {
         while (done.get() < tests) {
             Thread.sleep(100);
             if (System.currentTimeMillis() - waiting > TimeUnit.SECONDS.toMillis(60)) {
-                throw new RuntimeException(ConcurrentMergeTest.class.getSimpleName() + " took too long to finish");
+                throw new DatabaseException(ConcurrentMergeTest.class.getSimpleName() + " took too long to finish");
             }
         }
 
-        Assertions.assertEquals(0, exceptions.get(), "Exceptions in " + ConcurrentMergeTest.class.getSimpleName());
+        assertEquals(0, exceptions.get(), "Exceptions in " + ConcurrentMergeTest.class.getSimpleName());
     }
 
     @Entity

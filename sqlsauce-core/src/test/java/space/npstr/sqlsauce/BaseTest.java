@@ -24,13 +24,15 @@
 
 package space.npstr.sqlsauce;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.HashSet;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Created by napster on 20.01.18.
@@ -69,7 +71,7 @@ public abstract class BaseTest {
 
     protected static String getTestJdbcUrl() {
         String jdbc = System.getenv(TEST_JDBC_URL_ENV);
-        Assertions.assertNotNull(jdbc, String.format("Jdbc test url %s environment variable is null", TEST_JDBC_URL_ENV));
+        assertNotNull(jdbc, String.format("Jdbc test url %s environment variable is null", TEST_JDBC_URL_ENV));
         return jdbc;
     }
 
@@ -84,7 +86,7 @@ public abstract class BaseTest {
 
     public DatabaseConnection requireConnection() {
         DatabaseConnection conn = getDbConn();
-        Assertions.assertTrue(conn.isAvailable(), "Database connection is unavailable. Is the test database up and running?");
+        assertTrue(conn.isAvailable(), "Database connection is unavailable. Is the test database up and running?");
         return conn;
     }
 

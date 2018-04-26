@@ -26,7 +26,6 @@ package space.npstr.sqlsauce.wrapper;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import space.npstr.sqlsauce.BaseTest;
 import space.npstr.sqlsauce.DatabaseConnection;
@@ -38,6 +37,10 @@ import space.npstr.sqlsauce.fp.types.Transfiguration;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Created by napster on 02.03.18.
@@ -68,7 +71,7 @@ public class ApplyFindMergeTest extends BaseTest {
         wrapper.executeSqlQuery(String.format(CREATE_SIMPLE_TABLE, TABLE_NAME), null);
 
         E merged = wrapper.merge(new E().setId(42L).setName("unimportant"));
-        Assertions.assertNotNull(merged); //spotbugs please
+        assertNotNull(merged); //spotbugs please
 
         try {
             wrapper.findApplyAndMerge(Transfiguration.of(EntityKey.of(42L, E.class),
@@ -77,11 +80,11 @@ public class ApplyFindMergeTest extends BaseTest {
                     }));
         } catch (TestException e) {
             HikariDataSource dataSource = (HikariDataSource) databaseConnection.getDataSource();
-            Assertions.assertEquals(0, dataSource.getHikariPoolMXBean().getActiveConnections(), "Connection was not closed");
+            assertEquals(0, dataSource.getHikariPoolMXBean().getActiveConnections(), "Connection was not closed");
 
             return;//acceptable
         }
-        Assertions.fail("Uncaught Exception in findApplyAndMerge was eaten");
+        fail("Uncaught Exception in findApplyAndMerge was eaten");
     }
 
     private static class TestException extends RuntimeException {

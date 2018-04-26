@@ -666,6 +666,8 @@ public class DatabaseWrapper {
         }
     }
 
+    //remember to close the provided EntityManager and manage the transaction, as well as catch any exceptions
+    //Results will be sauced if they are SaucedEntites
     //callers of this should catch PersistenceExceptions and ClassCastExceptions and rethrow them as DatabaseExceptions
     @CheckReturnValue
     private <T> List<T> selectSqlQuery(final Function<EntityManager, Query> queryFunc,
@@ -676,15 +678,13 @@ public class DatabaseWrapper {
             if (parameters != null) {
                 parameters.forEach(q::setParameter);
             }
-            return selectNativeSqlQuery(em, q);
+            return selectNativeSqlQuery(q);
         });
     }
 
-    //remember to close the provided EntityManager and manage the transaction, as well as catch any exceptions
-    //Results will be sauced if they are SaucedEntites
     @CheckReturnValue
     @SuppressWarnings("unchecked")
-    private <T> List<T> selectNativeSqlQuery(final EntityManager em, final Query query) {
+    private <T> List<T> selectNativeSqlQuery(final Query query) {
         return (List<T>) query.getResultList().stream()
                 .peek(this::setSauce)
                 .collect(Collectors.toList());
