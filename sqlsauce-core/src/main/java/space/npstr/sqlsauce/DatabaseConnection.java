@@ -75,6 +75,8 @@ public class DatabaseConnection {
     private final ScheduledExecutorService connectionCheck;
 
     /**
+     * Use the builder to instantiate this class.
+     *
      * @param connectionName   name for this database connection, also used as the persistence unit name and other
      *                         places. Make sure it is unique across your application for best results.
      * @param jdbcUrl          where to find the db, which user, which pw, etc; see easy to find jdbc url docs on the web
@@ -100,20 +102,20 @@ public class DatabaseConnection {
      *
      * @throws DatabaseException if the connection could not be created due to [reasons]
      */
-    public DatabaseConnection(final String connectionName,
-                              final String jdbcUrl,
-                              final Properties dataSourceProps,
-                              final HikariConfig hikariConfig,
-                              final Properties hibernateProps,
-                              final Collection<String> entityPackages,
-                              EntityManagerFactoryBuilder entityManagerFactoryBuilder,
-                              @Nullable final String poolName,
-                              @Nullable final MetricsTrackerFactory hikariStats,
-                              @Nullable final HibernateStatisticsCollector hibernateStats,
-                              final boolean checkConnection,
-                              long healthCheckPeriod,
-                              @Nullable final ProxyDataSourceBuilder proxyDataSourceBuilder,
-                              @Nullable final Flyway flyway) {
+    private DatabaseConnection(final String connectionName,
+                               final String jdbcUrl,
+                               final Properties dataSourceProps,
+                               final HikariConfig hikariConfig,
+                               final Properties hibernateProps,
+                               final Collection<String> entityPackages,
+                               EntityManagerFactoryBuilder entityManagerFactoryBuilder,
+                               @Nullable final String poolName,
+                               @Nullable final MetricsTrackerFactory hikariStats,
+                               @Nullable final HibernateStatisticsCollector hibernateStats,
+                               final boolean checkConnection,
+                               long healthCheckPeriod,
+                               @Nullable final ProxyDataSourceBuilder proxyDataSourceBuilder,
+                               @Nullable final Flyway flyway) {
         this.connectionName = connectionName;
         this.state = DatabaseState.INITIALIZING;
 

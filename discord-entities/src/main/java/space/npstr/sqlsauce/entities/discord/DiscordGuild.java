@@ -140,6 +140,11 @@ public abstract class DiscordGuild<S extends BaseDiscordGuild<S>> extends BaseDi
         return super.equals(obj);
     }
 
+    @Override //to appease sonar cloud...the super method is fine, really.
+    public int hashCode() {
+        return super.hashCode();
+    }
+
 
     // ################################################################################
     // ##                               Caching

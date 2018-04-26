@@ -99,6 +99,12 @@ public abstract class DiscordUser<S extends BaseDiscordUser<S>> extends BaseDisc
         return super.equals(obj);
     }
 
+    @Override //to appease sonar cloud...the super method is fine, really.
+    public int hashCode() {
+        return super.hashCode();
+    }
+
+
     // ################################################################################
     // ##                               Caching
     // ################################################################################

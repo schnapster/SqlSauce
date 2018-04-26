@@ -57,8 +57,8 @@ public class DbUtils {
         }
 
         Map<String, Object> result = new HashMap<>();
-        for (int i = 0; i < stringObjectPairs.length - 1; ) { //loop inspired by apache commons MapUtils.putAll
-            result.put((String) stringObjectPairs[i++], stringObjectPairs[i++]);
+        for (int ii = 0; ii < stringObjectPairs.length - 1; ii += 2) {
+            result.put((String) stringObjectPairs[ii], stringObjectPairs[ii + 1]);
         }
         return result;
     }

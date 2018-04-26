@@ -293,18 +293,13 @@ public class DatabaseWrapper {
         final List<DatabaseException> exceptions = new ArrayList<>();
 
         transfigurations.forEach(transfiguration -> {
-            try {
-                final EntityManager em = this.emf.createEntityManager();
-                try {
-                    this.lockedWrappedTransformFunc(transfiguration).apply(em);
-                } catch (final PersistenceException e) {
-                    final String message = String.format("Failed to find, apply and merge entity id %s of class %s on DB %s",
-                            transfiguration.key.id.toString(), transfiguration.key.clazz.getName(),
-                            this.name);
-                    exceptions.add(new DatabaseException(message, e));
-                } finally {
-                    em.close();
-                }
+            try (Session em = this.emf.createEntityManager().unwrap(Session.class)) {
+                this.lockedWrappedTransformFunc(transfiguration).apply(em);
+            } catch (final PersistenceException e) {
+                final String message = String.format("Failed to find, apply and merge entity id %s of class %s on DB %s",
+                        transfiguration.key.id.toString(), transfiguration.key.clazz.getName(),
+                        this.name);
+                exceptions.add(new DatabaseException(message, e));
             } catch (final DatabaseException e) {
                 exceptions.add(e);
             }

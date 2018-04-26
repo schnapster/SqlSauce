@@ -204,14 +204,14 @@ public abstract class SaucedEntity<I extends Serializable, S extends SaucedEntit
     //################################################################################
 
     @Transient
-    private static transient final Map<Class, Object[]> ENTITY_LOCKS = new ConcurrentHashMap<>();
+    private static final transient Map<Class, Object[]> ENTITY_LOCKS = new ConcurrentHashMap<>();
     // How many partitions the hashed entity locks shall have
     // The chosen, uncustomizable, value is considered good enough:tm: for the current implementation where locks are
     // bound to classes (amount of hanging around lock objects is equal to implemented SaucedEntities * concurrencyLevel).
     // Prime number to reduce possible collisions due to bad hashes.
     // TODO implement customizable amount
     @Transient
-    private static transient final int CONCURRENCY_LEVEL = 17;
+    private static final transient int CONCURRENCY_LEVEL = 17;
 
 
     /**
