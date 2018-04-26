@@ -67,7 +67,7 @@ repo only provides released version builds. It may provide tested builds by comm
     }
 
     dependencies {
-        compile group: 'space.npstr.SqlSauce', name: 'sqlsauce-core', version: '0.0.15'
+        compile group: 'space.npstr.SqlSauce', name: 'sqlsauce-core', version: '0.1.0'
     }
 ```
 
@@ -88,7 +88,7 @@ repo only provides released version builds. It may provide tested builds by comm
     <dependency>
         <groupId>space.npstr.SqlSauce</groupId>
         <artifactId>sqlsauce-core</artifactId>
-        <version>0.0.15</version>
+        <version>0.1.0</version>
     </dependency>
 ```
 
@@ -284,6 +284,10 @@ Error level logs from Hibernate, so you should add your respective appenders for
 
 
 ## Changelog
+
+### v0.1.0
+- Deleted deprecated stuff (HashSetStringUserType)
+- All dependencies bumped
 
 ### v0.0.15
 - Add HashSetBasicType to save hash sets of ints, longs and strings as a postgres array of text.

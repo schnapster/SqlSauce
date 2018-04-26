@@ -37,7 +37,6 @@ import org.hibernate.annotations.TypeDefs;
 import space.npstr.sqlsauce.hibernate.types.ArrayListLongUserType;
 import space.npstr.sqlsauce.hibernate.types.HashSetBasicType;
 import space.npstr.sqlsauce.hibernate.types.HashSetPostgreSQLEnumUserType;
-import space.npstr.sqlsauce.hibernate.types.HashSetStringUserType;
 import space.npstr.sqlsauce.hibernate.types.LongArrayType;
 
 import javax.annotation.CheckReturnValue;
@@ -101,10 +100,6 @@ import java.io.Serializable;
         @TypeDef(
                 name = "hash_set-pgsql_enum",
                 typeClass = HashSetPostgreSQLEnumUserType.class
-        ),
-        @TypeDef(
-                name = "hash-set-string",
-                typeClass = HashSetStringUserType.class
         ),
         @TypeDef(
                 name = "hash-set-basic",
