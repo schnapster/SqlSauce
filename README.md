@@ -1,6 +1,7 @@
 # SqlSauce
 
 [![Release](https://img.shields.io/github/tag/napstr/SqlSauce.svg?style=flat-square)](https://jitpack.io/#space.npstr/SqlSauce)
+[![Bintray](https://api.bintray.com/packages/napster/SqlSauce/sqlsauce-core/images/download.svg) ](https://bintray.com/napster/SqlSauce/sqlsauce-core/_latestVersion)
 [![Release](https://img.shields.io/bintray/v/napster/SqlSauce/sqlsauce-core.svg?style=flat-square)](https://img.shields.io/bintray/v/napster/SqlSauce/sqlsauce-core.svg)
 [![Build Status Development Branch](https://img.shields.io/travis/napstr/SqlSauce/dev.svg?style=flat-square)](https://travis-ci.org/napstr/SqlSauce/branches)
 [![license](https://img.shields.io/github/license/napstr/SqlSauce.svg?style=flat-square)]()
@@ -39,14 +40,14 @@ Tests on [Travis](https://travis-ci.org/napstr/SqlSauce) are executed against **
 
 ![alt text](https://i.imgur.com/CuzucQL.gif "SHOW ME WHAT YOU GOT")
 
-- No EntityManager hassle
+- No EntityManager hassle:  
   A functional approach to the DatabaseWrapper allows you to describe an entity, define a transformation for it, and
 execute those without having to touch the persistence context at all.
 
-- Sauced Entities:
+- Sauced Entities:  
   Aware of their source, bringing convenience methods to handle them outside of transactions and persist them whenever needed
   
-- Listen/Notify:
+- Listen/Notify:  
   Support for sending and receiving PostgreSQL's asynchronous notifications, with proper changefeed support coming soon™
 
 
@@ -102,7 +103,7 @@ repo only provides released version builds. It may provide tested builds by comm
 Short descriptions of how to get started using this.
 
 Please also check out the comments and docs inside of the classes.
-They will always be more detailed / up to date than this README.
+They will always be more detailed / up to date than this readme.
 
 
 ### DatabaseConnection
@@ -203,7 +204,7 @@ CREATE TABLE IF NOT EXISTS public.hstorex
 ### Datasource Proxy
 
 The DatabaseConnection supports [datasource-proxy](https://github.com/ttddyy/datasource-proxy)
-This is a neat toole to identify slow queries for example, and many more things.
+This is a neat tool to identify slow queries for example, and many more things.
 
 Here is an example that will log any query run on the resulting database connection that exceeds 10 seconds as a warning:
 ```java
@@ -405,55 +406,56 @@ See the respective `build.gradle` for details.
 
 - **PostgreSQL JDBC Driver**:
   - [Website](https://jdbc.postgresql.org/)
-  - [GitHub](https://github.com/pgjdbc/pgjdbc)
+  - [Source Code](https://github.com/pgjdbc/pgjdbc)
   - [The PostgreSQL License](http://www.postgresql.org/about/licence/) & [BSD 2-clause "Simplified" License](https://jdbc.postgresql.org/about/license.html)
   - [Maven Repository](https://mvnrepository.com/artifact/org.postgresql/postgresql)
 
 - **Hibernate ORM**:
   - [Website](http://hibernate.org/orm/)
-  - [GitHub](https://github.com/hibernate/hibernate-orm)
+  - [Source Code](https://github.com/hibernate/hibernate-orm)
   - [GNU Lesser General Public License](http://hibernate.org/community/license/)
   - [Maven Repository](https://mvnrepository.com/artifact/org.hibernate/hibernate-core)
 
 - **Hikari CP**:
-  - [GitHub](https://github.com/brettwooldridge/HikariCP)
+  - [Source Code](https://github.com/brettwooldridge/HikariCP)
   - [Apache License 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt)
   - [Maven Repository](https://mvnrepository.com/artifact/com.zaxxer/HikariCP)
 
-- **Java Secure Channel**:
-  - [Website](http://www.jcraft.com/jsch/)
-  - [Revised BSD style license](http://www.jcraft.com/jsch/LICENSE.txt)
-  - [Maven Repository](https://mvnrepository.com/artifact/com.jcraft/jsch)
-
 - **Hibernate Types**:
-  - [GitHub](https://github.com/vladmihalcea/hibernate-types)
+  - [Source Code](https://github.com/vladmihalcea/hibernate-types)
   - [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt)
   - [Maven Repository](https://mvnrepository.com/artifact/com.vladmihalcea/hibernate-types-52)
-  
+
+- **Guava**
+  - [Source Code](https://github.com/google/guava)
+  - [Apache License 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt)
+  - [Maven Repository](https://mvnrepository.com/artifact/com.google.guava/guava)
+
 - **datasource-proxy**:
-  - [GitHub](https://github.com/ttddyy/datasource-proxy/)
+  - [Source Code](https://github.com/ttddyy/datasource-proxy/)
   - [MIT License](http://www.opensource.org/licenses/MIT)
   - [Maven Repository](https://mvnrepository.com/artifact/net.ttddyy/datasource-proxy)
 
 - **Flyway Core**:
   - [Website](https://flywaydb.org/)
-  - [GitHub](https://github.com/flyway/flyway)
+  - [Source Code](https://github.com/flyway/flyway)
   - [Apache License, Version 2.0](https://flywaydb.org/licenses/flyway-community.txt)
   - [Maven Repository](https://mvnrepository.com/artifact/org.flywaydb/flyway-core)
 
 - **Simple Logging Facade for Java**:
   - [Website](https://www.slf4j.org/)
+  - [Source Code](https://github.com/qos-ch/slf4j)
   - [MIT License](http://www.opensource.org/licenses/mit-license.php)
   - [Maven Repository](https://mvnrepository.com/artifact/org.slf4j/slf4j-api/)
 
 - **SpotBugs Annotations**:
   - [Website](https://spotbugs.github.io/)
-  - [GitHub](https://github.com/spotbugs/spotbugs)
+  - [Source Code](https://github.com/spotbugs/spotbugs)
   - [GNU LESSER GENERAL PUBLIC LICENSE, Version 2.1](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html)
   - [Maven Repository](https://mvnrepository.com/artifact/com.github.spotbugs/spotbugs-annotations)
 
 - **Prometheus Simpleclient Hibernate**:
   - [Website](https://prometheus.io/)
-  - [GitHub](https://github.com/prometheus/client_java)
+  - [Source Code](https://github.com/prometheus/client_java)
   - [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt)
   - [Maven Repository](https://mvnrepository.com/artifact/io.prometheus/simpleclient_hibernate)
