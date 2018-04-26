@@ -102,10 +102,25 @@ public class Hstore extends SaucedEntity<String, Hstore> {
      *
      * @throws DatabaseException
      *         Wraps any {@link PersistenceException} that may be thrown.
+     *
+     * @deprecated use {@link Hstore#setAndSave(DatabaseWrapper, String, String)}
      */
+    @Deprecated
     public Hstore setAndSave(final String key, final String value) {
         this.hstorex.put(key, value);
         return this.save();
+    }
+
+    /**
+     * Intended as a finishing move, so no @CheckReturnValue annotation. Manually check the return value if you want
+     * to keep using this Hstore
+     *
+     * @throws DatabaseException
+     *         Wraps any {@link PersistenceException} that may be thrown.
+     */
+    public Hstore setAndSave(DatabaseWrapper wrapper, final String key, final String value) {
+        this.hstorex.put(key, value);
+        return wrapper.merge(this);
     }
 
     /**
@@ -135,7 +150,10 @@ public class Hstore extends SaucedEntity<String, Hstore> {
      *
      * @throws DatabaseException
      *         Wraps any {@link PersistenceException} that may be thrown.
+     *
+     * @deprecated use {@link Hstore#loadAndGet(DatabaseWrapper, HstoreKey, String, String)}
      */
+    @Deprecated
     @CheckReturnValue
     public static String loadAndGet(final HstoreKey entityKey, final String key, final String defaultValue) {
         return Hstore.loadAndGet(getDefaultSauce(), entityKey, key, defaultValue);
@@ -146,7 +164,10 @@ public class Hstore extends SaucedEntity<String, Hstore> {
      *
      * @throws DatabaseException
      *         Wraps any {@link PersistenceException} that may be thrown.
+     *
+     * @deprecated use {@link Hstore#loadAndGet(DatabaseWrapper, String, String)}
      */
+    @Deprecated
     @CheckReturnValue
     public static String loadAndGet(final String key, final String defaultValue) {
         return Hstore.loadAndGet(getDefaultSauce(), HstoreKey.DEFAULT, key, defaultValue);
@@ -157,7 +178,10 @@ public class Hstore extends SaucedEntity<String, Hstore> {
      *
      * @throws DatabaseException
      *         Wraps any {@link PersistenceException} that may be thrown.
+     *
+     * @deprecated use {@link Hstore#load(DatabaseWrapper)}
      */
+    @Deprecated
     @CheckReturnValue
     public static Hstore load() {
         return SaucedEntity.load(getDefaultSauce(), HstoreKey.DEFAULT);
@@ -168,7 +192,10 @@ public class Hstore extends SaucedEntity<String, Hstore> {
      *
      * @throws DatabaseException
      *         Wraps any {@link PersistenceException} that may be thrown.
+     *
+     * @deprecated use {@link Hstore#loadSetAndSave(DatabaseWrapper, HstoreKey, String, String)}
      */
+    @Deprecated
     public static Hstore loadSetAndSave(final HstoreKey entityKey, final String key, final String value) {
         return loadSetAndSave(getDefaultSauce(), entityKey, key, value);
     }
@@ -178,7 +205,10 @@ public class Hstore extends SaucedEntity<String, Hstore> {
      *
      * @throws DatabaseException
      *         Wraps any {@link PersistenceException} that may be thrown.
+     *
+     * @deprecated use {@link Hstore#loadSetAndSave(DatabaseWrapper, String, String)}
      */
+    @Deprecated
     public static Hstore loadSetAndSave(final String key, final String value) {
         return loadSetAndSave(HstoreKey.DEFAULT, key, value);
     }
@@ -188,7 +218,10 @@ public class Hstore extends SaucedEntity<String, Hstore> {
      *
      * @throws DatabaseException
      *         Wraps any {@link PersistenceException} that may be thrown.
+     *
+     * @deprecated use {@link Hstore#loadApplyAndSave(DatabaseWrapper, Function)}
      */
+    @Deprecated
     public static Hstore loadApplyAndSave(final HstoreKey entityKey, final Function<Hstore, Hstore> transformation) {
         return loadApplyAndSave(getDefaultSauce(), entityKey, transformation);
     }
@@ -198,6 +231,8 @@ public class Hstore extends SaucedEntity<String, Hstore> {
      *
      * @throws DatabaseException
      *         Wraps any {@link PersistenceException} that may be thrown.
+     *
+     * @deprecated use {@link Hstore#loadApplyAndSave(DatabaseWrapper, Function)}
      */
     public static Hstore loadApplyAndSave(final Function<Hstore, Hstore> transformation) {
         return loadApplyAndSave(HstoreKey.DEFAULT, transformation);
@@ -216,7 +251,7 @@ public class Hstore extends SaucedEntity<String, Hstore> {
     @CheckReturnValue
     public static String loadAndGet(final DatabaseWrapper databaseWrapper, final HstoreKey entityKey, final String key,
                                     final String defaultValue) {
-        return SaucedEntity.load(databaseWrapper, entityKey).hstorex
+        return databaseWrapper.getOrCreate(entityKey).hstorex
                 .getOrDefault(key, defaultValue);
     }
 
@@ -240,7 +275,7 @@ public class Hstore extends SaucedEntity<String, Hstore> {
      */
     @CheckReturnValue
     public static Hstore load(final DatabaseWrapper databaseWrapper) {
-        return SaucedEntity.load(databaseWrapper, HstoreKey.DEFAULT);
+        return databaseWrapper.getOrCreate(HstoreKey.DEFAULT);
     }
 
     /**
@@ -251,7 +286,7 @@ public class Hstore extends SaucedEntity<String, Hstore> {
      */
     public static Hstore loadSetAndSave(final DatabaseWrapper databaseWrapper, final HstoreKey entityKey,
                                         final String key, final String value) {
-        return SaucedEntity.loadApplyAndSave(databaseWrapper, entityKey, setTransformation(key, value));
+        return databaseWrapper.findApplyAndMerge(entityKey, setTransformation(key, value));
     }
 
     /**
@@ -273,7 +308,7 @@ public class Hstore extends SaucedEntity<String, Hstore> {
      */
     public static Hstore loadApplyAndSave(final DatabaseWrapper databaseWrapper,
                                           final Function<Hstore, Hstore> transformation) {
-        return SaucedEntity.loadApplyAndSave(databaseWrapper, HstoreKey.DEFAULT, transformation);
+        return databaseWrapper.findApplyAndMerge(HstoreKey.DEFAULT, transformation);
     }
 
 

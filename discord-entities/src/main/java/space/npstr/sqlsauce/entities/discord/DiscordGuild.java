@@ -183,7 +183,10 @@ public abstract class DiscordGuild<S extends BaseDiscordGuild<S>> extends BaseDi
     /**
      * @throws DatabaseException
      *         Wraps any {@link PersistenceException} that may be thrown.
+     *
+     * @deprecated use {@link DiscordGuild#join(DatabaseWrapper, Guild, Class)}
      */
+    @Deprecated
     //joins
     public static <E extends DiscordGuild<E>> DiscordGuild<E> join(final Guild guild, final Class<E> clazz) {
         return join(getDefaultSauce(), guild, clazz);
@@ -201,7 +204,10 @@ public abstract class DiscordGuild<S extends BaseDiscordGuild<S>> extends BaseDi
     /**
      * @throws DatabaseException
      *         Wraps any {@link PersistenceException} that may be thrown.
+     *
+     * @deprecated use {@link DiscordGuild#leave(DatabaseWrapper, Guild, Class)}
      */
+    @Deprecated
     //leaves
     public static <E extends DiscordGuild<E>> DiscordGuild<E> leave(final Guild guild, final Class<E> clazz) {
         return leave(getDefaultSauce(), guild, clazz);
@@ -219,7 +225,10 @@ public abstract class DiscordGuild<S extends BaseDiscordGuild<S>> extends BaseDi
     /**
      * @throws DatabaseException
      *         Wraps any {@link PersistenceException} that may be thrown.
+     *
+     * @deprecated use {@link DiscordGuild#cache(DatabaseWrapper, Guild, Class)}
      */
+    @Deprecated
     //caching
     public static <E extends DiscordGuild<E>> DiscordGuild<E> cache(final Guild guild, final Class<E> clazz) {
         return cache(getDefaultSauce(), guild, clazz);
@@ -236,7 +245,10 @@ public abstract class DiscordGuild<S extends BaseDiscordGuild<S>> extends BaseDi
 
     /**
      * @return DatabaseExceptions caused by the execution of this method
+     *
+     * @deprecated use {@link DiscordGuild#sync(DatabaseWrapper, Stream, Function, Class)}
      */
+    @Deprecated
     //syncing
     public static <E extends DiscordGuild<E>> Collection<DatabaseException> sync(final Stream<Guild> guilds,
                                                                                  final Function<Long, Boolean> isPresent,
@@ -282,6 +294,10 @@ public abstract class DiscordGuild<S extends BaseDiscordGuild<S>> extends BaseDi
         return exceptions;
     }
 
+    /**
+     * @deprecated use {@link DiscordGuild#cacheAll(DatabaseWrapper, Stream, Class)}
+     */
+    @Deprecated
     public static <E extends DiscordGuild<E>> Collection<DatabaseException> cacheAll(final Stream<Guild> members,
                                                                                      final Class<E> clazz) {
         return cacheAll(getDefaultSauce(), members, clazz);

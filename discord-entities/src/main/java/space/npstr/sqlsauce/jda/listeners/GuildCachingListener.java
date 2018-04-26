@@ -32,6 +32,8 @@ import net.dv8tion.jda.core.events.guild.update.GenericGuildUpdateEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import space.npstr.sqlsauce.DatabaseException;
+import space.npstr.sqlsauce.DatabaseWrapper;
+import space.npstr.sqlsauce.entities.SaucedEntity;
 import space.npstr.sqlsauce.entities.discord.DiscordGuild;
 
 import java.util.Collection;
@@ -48,30 +50,41 @@ public class GuildCachingListener<E extends DiscordGuild<E>> extends CachingList
 
     private static final Logger log = LoggerFactory.getLogger(GuildCachingListener.class);
 
-    public GuildCachingListener(final Class<E> entityClass) {
+    private final DatabaseWrapper wrapper;
+
+    public GuildCachingListener(DatabaseWrapper wrapper, final Class<E> entityClass) {
         super(entityClass);
+        this.wrapper = wrapper;
+    }
+
+    /**
+     * @deprecated use {@link GuildCachingListener#GuildCachingListener(DatabaseWrapper, Class)}
+     */
+    @Deprecated
+    public GuildCachingListener(final Class<E> entityClass) {
+        this(SaucedEntity.getDefaultSauce(), entityClass);
     }
 
     @Override
     public void onGuildJoin(final GuildJoinEvent event) {
-        onGuildEvent(() -> DiscordGuild.join(event.getGuild(), this.entityClass), event);
+        onGuildEvent(() -> DiscordGuild.join(wrapper, event.getGuild(), this.entityClass), event);
     }
 
     @Override
     public void onGuildLeave(final GuildLeaveEvent event) {
-        onGuildEvent(() -> DiscordGuild.leave(event.getGuild(), this.entityClass), event);
+        onGuildEvent(() -> DiscordGuild.leave(wrapper, event.getGuild(), this.entityClass), event);
     }
 
     @Override
     public void onGenericGuildUpdate(final GenericGuildUpdateEvent event) {
-        onGuildEvent(() -> DiscordGuild.cache(event.getGuild(), this.entityClass), event);
+        onGuildEvent(() -> DiscordGuild.cache(wrapper, event.getGuild(), this.entityClass), event);
     }
 
     @Override
     public void onReconnect(ReconnectedEvent event) {
         submit(() -> {
                     Collection<DatabaseException> exceptions = DiscordGuild.cacheAll(
-                            event.getJDA().getGuildCache().stream(), this.entityClass);
+                            wrapper, event.getJDA().getGuildCache().stream(), this.entityClass);
                     for (DatabaseException e : exceptions) {
                         log.error("Exception when caching all guilds of shard {} on reconnect",
                                 event.getJDA().getShardInfo().getShardId(), e);
