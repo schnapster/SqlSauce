@@ -35,6 +35,7 @@ import javax.persistence.Column;
 import javax.persistence.Convert;
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import javax.persistence.PersistenceException;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 import java.util.HashMap;
@@ -67,7 +68,7 @@ public class Hstore extends SaucedEntity<String, Hstore> {
 
     @Column(name = "hstorex", columnDefinition = "hstore")
     @Convert(converter = PostgresHStoreConverter.class)
-    public final Map<String, String> hstore = new HashMap<>();
+    public final Map<String, String> hstorex = new HashMap<>();
 
     //for jpa / wrapper
     //use Hstore.load() to create one of these
@@ -91,16 +92,19 @@ public class Hstore extends SaucedEntity<String, Hstore> {
      */
     @CheckReturnValue
     public Hstore set(final String key, final String value) {
-        this.hstore.put(key, value);
+        this.hstorex.put(key, value);
         return this;
     }
 
     /**
      * Intended as a finishing move, so no @CheckReturnValue annotation. Manually check the return value if you want
      * to keep using this Hstore
+     *
+     * @throws DatabaseException
+     *         Wraps any {@link PersistenceException} that may be thrown.
      */
-    public Hstore setAndSave(final String key, final String value) throws DatabaseException {
-        this.hstore.put(key, value);
+    public Hstore setAndSave(final String key, final String value) {
+        this.hstorex.put(key, value);
         return this.save();
     }
 
@@ -109,7 +113,7 @@ public class Hstore extends SaucedEntity<String, Hstore> {
      */
     @CheckReturnValue
     public String get(final String key, final String defaultValue) {
-        return this.hstore.getOrDefault(key, defaultValue);
+        return this.hstorex.getOrDefault(key, defaultValue);
     }
 
     /**
@@ -118,7 +122,7 @@ public class Hstore extends SaucedEntity<String, Hstore> {
     @Nullable
     @CheckReturnValue
     public String get(final String key) {
-        return this.hstore.getOrDefault(key, null);
+        return this.hstorex.getOrDefault(key, null);
     }
 
 
@@ -128,56 +132,74 @@ public class Hstore extends SaucedEntity<String, Hstore> {
 
     /**
      * @return load a value from an hstore object
+     *
+     * @throws DatabaseException
+     *         Wraps any {@link PersistenceException} that may be thrown.
      */
     @CheckReturnValue
-    public static String loadAndGet(final HstoreKey entityKey, final String key, final String defaultValue)
-            throws DatabaseException {
+    public static String loadAndGet(final HstoreKey entityKey, final String key, final String defaultValue) {
         return Hstore.loadAndGet(getDefaultSauce(), entityKey, key, defaultValue);
     }
 
     /**
      * @return loads a value from the default hstore
+     *
+     * @throws DatabaseException
+     *         Wraps any {@link PersistenceException} that may be thrown.
      */
     @CheckReturnValue
-    public static String loadAndGet(final String key, final String defaultValue) throws DatabaseException {
+    public static String loadAndGet(final String key, final String defaultValue) {
         return Hstore.loadAndGet(getDefaultSauce(), HstoreKey.DEFAULT, key, defaultValue);
     }
 
     /**
      * @return the default Hstore object
+     *
+     * @throws DatabaseException
+     *         Wraps any {@link PersistenceException} that may be thrown.
      */
     @CheckReturnValue
-    public static Hstore load() throws DatabaseException {
+    public static Hstore load() {
         return SaucedEntity.load(getDefaultSauce(), HstoreKey.DEFAULT);
     }
 
     /**
      * Shortcut method to set a single value on a named hstore on the default database and save it
+     *
+     * @throws DatabaseException
+     *         Wraps any {@link PersistenceException} that may be thrown.
      */
-    public static Hstore loadSetAndSave(final HstoreKey entityKey, final String key, final String value)
-            throws DatabaseException {
+    public static Hstore loadSetAndSave(final HstoreKey entityKey, final String key, final String value) {
         return loadSetAndSave(getDefaultSauce(), entityKey, key, value);
     }
 
     /**
      * Shortcut method to set a single value on the default hstore on the default database and save it
+     *
+     * @throws DatabaseException
+     *         Wraps any {@link PersistenceException} that may be thrown.
      */
-    public static Hstore loadSetAndSave(final String key, final String value) throws DatabaseException {
+    public static Hstore loadSetAndSave(final String key, final String value) {
         return loadSetAndSave(HstoreKey.DEFAULT, key, value);
     }
 
     /**
      * Apply some functions to the default Hstore of the default database and save it
+     *
+     * @throws DatabaseException
+     *         Wraps any {@link PersistenceException} that may be thrown.
      */
-    public static Hstore loadApplyAndSave(final HstoreKey entityKey, final Function<Hstore, Hstore> transformation)
-            throws DatabaseException {
+    public static Hstore loadApplyAndSave(final HstoreKey entityKey, final Function<Hstore, Hstore> transformation) {
         return loadApplyAndSave(getDefaultSauce(), entityKey, transformation);
     }
 
     /**
      * Apply some functions to the default Hstore of the default database and save it
+     *
+     * @throws DatabaseException
+     *         Wraps any {@link PersistenceException} that may be thrown.
      */
-    public static Hstore loadApplyAndSave(final Function<Hstore, Hstore> transformation) throws DatabaseException {
+    public static Hstore loadApplyAndSave(final Function<Hstore, Hstore> transformation) {
         return loadApplyAndSave(HstoreKey.DEFAULT, transformation);
     }
 
@@ -187,54 +209,70 @@ public class Hstore extends SaucedEntity<String, Hstore> {
 
     /**
      * @return load a value from an hstore
+     *
+     * @throws DatabaseException
+     *         Wraps any {@link PersistenceException} that may be thrown.
      */
     @CheckReturnValue
     public static String loadAndGet(final DatabaseWrapper databaseWrapper, final HstoreKey entityKey, final String key,
-                                    final String defaultValue) throws DatabaseException {
-        return SaucedEntity.load(databaseWrapper, entityKey).hstore
+                                    final String defaultValue) {
+        return SaucedEntity.load(databaseWrapper, entityKey).hstorex
                 .getOrDefault(key, defaultValue);
     }
 
     /**
      * @return loads a value from the default hstore
+     *
+     * @throws DatabaseException
+     *         Wraps any {@link PersistenceException} that may be thrown.
      */
     @CheckReturnValue
-    public static String loadAndGet(final DatabaseWrapper databaseWrapper, final String key, final String defaultValue)
-            throws DatabaseException {
+    public static String loadAndGet(final DatabaseWrapper databaseWrapper, final String key, final String defaultValue) {
         return loadAndGet(databaseWrapper, HstoreKey.DEFAULT, key, defaultValue);
     }
 
 
     /**
      * @return the default Hstore object from the provided database
+     *
+     * @throws DatabaseException
+     *         Wraps any {@link PersistenceException} that may be thrown.
      */
     @CheckReturnValue
-    public static Hstore load(final DatabaseWrapper databaseWrapper) throws DatabaseException {
+    public static Hstore load(final DatabaseWrapper databaseWrapper) {
         return SaucedEntity.load(databaseWrapper, HstoreKey.DEFAULT);
     }
 
     /**
      * Shortcut method to set a single value on a named hstore on the provided database and save it
+     *
+     * @throws DatabaseException
+     *         Wraps any {@link PersistenceException} that may be thrown.
      */
     public static Hstore loadSetAndSave(final DatabaseWrapper databaseWrapper, final HstoreKey entityKey,
-                                        final String key, final String value) throws DatabaseException {
+                                        final String key, final String value) {
         return SaucedEntity.loadApplyAndSave(databaseWrapper, entityKey, setTransformation(key, value));
     }
 
     /**
      * Shortcut method to set a single value on the default hstore on the provided database and save it
+     *
+     * @throws DatabaseException
+     *         Wraps any {@link PersistenceException} that may be thrown.
      */
-    public static Hstore loadSetAndSave(final DatabaseWrapper databaseWrapper, final String key, final String value)
-            throws DatabaseException {
+    public static Hstore loadSetAndSave(final DatabaseWrapper databaseWrapper, final String key, final String value) {
         return Hstore.loadApplyAndSave(databaseWrapper, setTransformation(key, value));
     }
 
 
     /**
      * Apply some functions to the default Hstore of the provided database and save it
+     *
+     * @throws DatabaseException
+     *         Wraps any {@link PersistenceException} that may be thrown.
      */
     public static Hstore loadApplyAndSave(final DatabaseWrapper databaseWrapper,
-                                          final Function<Hstore, Hstore> transformation) throws DatabaseException {
+                                          final Function<Hstore, Hstore> transformation) {
         return SaucedEntity.loadApplyAndSave(databaseWrapper, HstoreKey.DEFAULT, transformation);
     }
 
@@ -248,7 +286,7 @@ public class Hstore extends SaucedEntity<String, Hstore> {
      * Function that set a key to a value on the applied hstore
      */
     public static Function<Hstore, Hstore> setTransformation(final String key, final String value) {
-        return (hstore) -> hstore.set(key, value);
+        return hstore -> hstore.set(key, value);
     }
 
 

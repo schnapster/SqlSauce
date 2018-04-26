@@ -42,6 +42,9 @@ public class DbUtils {
 
     private static final Logger log = LoggerFactory.getLogger(DbUtils.class);
 
+    private DbUtils() {
+    }
+
     /**
      * Build parameters for queries like the true lazy bastard you are.
      * <p>

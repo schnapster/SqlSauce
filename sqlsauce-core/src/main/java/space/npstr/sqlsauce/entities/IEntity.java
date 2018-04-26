@@ -33,7 +33,6 @@ import com.vladmihalcea.hibernate.type.json.JsonNodeBinaryType;
 import com.vladmihalcea.hibernate.type.json.JsonNodeStringType;
 import com.vladmihalcea.hibernate.type.json.JsonStringType;
 import org.hibernate.annotations.TypeDef;
-import org.hibernate.annotations.TypeDefs;
 import space.npstr.sqlsauce.hibernate.types.ArrayListLongUserType;
 import space.npstr.sqlsauce.hibernate.types.HashSetBasicType;
 import space.npstr.sqlsauce.hibernate.types.HashSetPostgreSQLEnumUserType;
@@ -56,56 +55,20 @@ import java.io.Serializable;
  *            superclass that implements this interface. This is used for a fluent configuration of properties and
  *            constructing new entities.
  */
-@TypeDefs({
-        @TypeDef(
-                name = "string-array",
-                typeClass = StringArrayType.class
-        ),
-        @TypeDef(
-                name = "int-array",
-                typeClass = IntArrayType.class
-        ),
-        @TypeDef(
-                name = "json-node",
-                typeClass = JsonNodeStringType.class
-        ),
-        @TypeDef(
-                name = "jsonb-node",
-                typeClass = JsonNodeBinaryType.class
-        ),
-        @TypeDef(
-                name = "json",
-                typeClass = JsonStringType.class
-        ),
-        @TypeDef(
-                name = "jsonb",
-                typeClass = JsonBinaryType.class
-        ),
-        @TypeDef(
-                name = "pgsql_enum",
-                typeClass = PostgreSQLEnumType.class
-        ),
-        @TypeDef(
-                name = "nullable-char",
-                typeClass = NullableCharacterType.class
-        ),
-        @TypeDef(
-                name = "long-array",
-                typeClass = LongArrayType.class
-        ),
-        @TypeDef(
-                name = "array-list-long",
-                typeClass = ArrayListLongUserType.class
-        ),
-        @TypeDef(
-                name = "hash_set-pgsql_enum",
-                typeClass = HashSetPostgreSQLEnumUserType.class
-        ),
-        @TypeDef(
-                name = "hash-set-basic",
-                typeClass = HashSetBasicType.class
-        )
-})
+//@formatter:off
+@TypeDef(name = "string-array",         typeClass = StringArrayType.class)
+@TypeDef(name = "int-array",            typeClass = IntArrayType.class)
+@TypeDef(name = "json-node",            typeClass = JsonNodeStringType.class)
+@TypeDef(name = "jsonb-node",           typeClass = JsonNodeBinaryType.class)
+@TypeDef(name = "json",                 typeClass = JsonStringType.class)
+@TypeDef(name = "jsonb",                typeClass = JsonBinaryType.class)
+@TypeDef(name = "pgsql_enum",           typeClass = PostgreSQLEnumType.class)
+@TypeDef(name = "nullable-char",        typeClass = NullableCharacterType.class)
+@TypeDef(name = "long-array",           typeClass = LongArrayType.class)
+@TypeDef(name = "array-list-long",      typeClass = ArrayListLongUserType.class)
+@TypeDef(name = "hash_set-pgsql_enum",  typeClass = HashSetPostgreSQLEnumUserType.class)
+@TypeDef(name = "hash-set-basic",       typeClass = HashSetBasicType.class)
+//@formatter:on
 @MappedSuperclass
 public interface IEntity<I extends Serializable, S extends IEntity<I, S>> {
 

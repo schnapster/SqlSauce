@@ -25,7 +25,6 @@
 package space.npstr.sqlsauce.hibernate.types;
 
 
-import org.hibernate.HibernateException;
 import org.hibernate.engine.spi.SharedSessionContractImplementor;
 import org.hibernate.usertype.DynamicParameterizedType;
 import org.hibernate.usertype.UserType;
@@ -72,7 +71,7 @@ public class HashSetPostgreSQLEnumUserType implements UserType, DynamicParameter
     @Nullable
     @Override
     public Object nullSafeGet(ResultSet rs, String[] names, SharedSessionContractImplementor session, Object owner)
-            throws HibernateException, SQLException {
+            throws SQLException {
         Array array = rs.getArray(names[0]);
         if (rs.wasNull() || array == null) {
             return null;
@@ -95,7 +94,7 @@ public class HashSetPostgreSQLEnumUserType implements UserType, DynamicParameter
 
     @Override
     public void nullSafeSet(PreparedStatement st, Object value, int index, SharedSessionContractImplementor session)
-            throws HibernateException, SQLException {
+            throws SQLException {
         if (value == null) {
             st.setNull(index, sqlTypes()[0]);
         } else {
@@ -118,28 +117,28 @@ public class HashSetPostgreSQLEnumUserType implements UserType, DynamicParameter
     }
 
     @Override
-    public Object assemble(final Serializable cached, final Object owner) throws HibernateException {
+    public Object assemble(final Serializable cached, final Object owner) {
         return cached;
     }
 
     @Nullable
     @Override
-    public Object deepCopy(final Object o) throws HibernateException {
+    public Object deepCopy(final Object o) {
         return o == null ? null : ((HashSet) o).clone();
     }
 
     @Override
-    public Serializable disassemble(final Object o) throws HibernateException {
+    public Serializable disassemble(final Object o) {
         return (Serializable) o;
     }
 
     @Override
-    public boolean equals(final Object x, final Object y) throws HibernateException {
+    public boolean equals(final Object x, final Object y) {
         return x == null ? y == null : x.equals(y);
     }
 
     @Override
-    public int hashCode(final Object o) throws HibernateException {
+    public int hashCode(final Object o) {
         return o == null ? 0 : o.hashCode();
     }
 
@@ -149,7 +148,7 @@ public class HashSetPostgreSQLEnumUserType implements UserType, DynamicParameter
     }
 
     @Override
-    public Object replace(final Object original, final Object target, final Object owner) throws HibernateException {
+    public Object replace(final Object original, final Object target, final Object owner) {
         return original;
     }
 

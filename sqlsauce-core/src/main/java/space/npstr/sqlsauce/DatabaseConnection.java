@@ -97,6 +97,8 @@ public class DatabaseConnection {
      *                         the datasource over to the datasource proxy and hibernate. If you need tighter control
      *                         over the handling of migrations, consider running them manually before creating the
      *                         DatabaseConnection, Flyway supports the use of a jdbcUrl instead of a datasource.
+     *
+     * @throws DatabaseException if the connection could not be created due to [reasons]
      */
     public DatabaseConnection(final String connectionName,
                               final String jdbcUrl,
@@ -111,7 +113,7 @@ public class DatabaseConnection {
                               final boolean checkConnection,
                               long healthCheckPeriod,
                               @Nullable final ProxyDataSourceBuilder proxyDataSourceBuilder,
-                              @Nullable final Flyway flyway) throws DatabaseException {
+                              @Nullable final Flyway flyway) {
         this.connectionName = connectionName;
         this.state = DatabaseState.INITIALIZING;
 
@@ -190,15 +192,29 @@ public class DatabaseConnection {
         return hikariDataSource.getMaximumPoolSize();
     }
 
-    public EntityManagerFactory getEntityManagerFactory() throws IllegalStateException {
+    /**
+     * @return The entity manager factory of this connection.
+     *
+     * @throws IllegalStateException
+     *         If the connection has been shutdown.
+     */
+    public EntityManagerFactory getEntityManagerFactory() {
         if (this.state == DatabaseState.SHUTDOWN) {
             throw new IllegalStateException("Database connection has been shutdown.");
         }
         return this.emf;
     }
 
+    /**
+     * @return An EntityManager that can be used to do EntityManager things.
+     *
+     * @throws IllegalStateException
+     *         If the connection has been shutdown.
+     * @throws DatabaseException
+     *         If the connection is not connected. This can be treated as a fail-fast return, retrying later is possible.
+     */
     @CheckReturnValue
-    public EntityManager getEntityManager() throws IllegalStateException, DatabaseException {
+    public EntityManager getEntityManager() {
         if (this.state == DatabaseState.SHUTDOWN) {
             throw new IllegalStateException("Database connection has been shutdown.");
         } else if (this.state != DatabaseState.READY) {
@@ -314,8 +330,8 @@ public class DatabaseConnection {
         private Properties hibernateProps = getDefaultHibernateProps();
         private Collection<String> entityPackages = new ArrayList<>();
         private EntityManagerFactoryBuilder entityManagerFactoryBuilder
-                = (puName, dataSource, properties, entityPackages) -> {
-            final PersistenceUnitInfo puInfo = new SimplePersistenceUnitInfo(dataSource, entityPackages, puName);
+                = (puName, dataSource, properties, packages) -> {
+            final PersistenceUnitInfo puInfo = new SimplePersistenceUnitInfo(dataSource, packages, puName);
             return new HibernatePersistenceProvider().createContainerEntityManagerFactory(puInfo, properties);
         };
         @Nullable
@@ -374,10 +390,10 @@ public class DatabaseConnection {
             //pl0x no log spam
             //NOTE: despite those logs turned off, hibernate still spams tons of debug logs, so you really want to turn
             // those completely off in the slf4j implementation you are using
-            hibernateProps.put("hibernate.show_sql", "false");
-            hibernateProps.put("hibernate.session.events.log", "false");
+            hibernateProps.put("hibernate.show_sql", Boolean.FALSE.toString());
+            hibernateProps.put("hibernate.session.events.log", Boolean.FALSE.toString());
             //dont generate statistics; this will be overridden to true if a HibernateStatisticsCollector is provided
-            hibernateProps.put("hibernate.generate_statistics", "false");
+            hibernateProps.put("hibernate.generate_statistics", Boolean.FALSE.toString());
 
             //sane batch sizes
             hibernateProps.put("hibernate.default_batch_fetch_size", 100);
@@ -387,8 +403,8 @@ public class DatabaseConnection {
             // see https://vladmihalcea.com/2017/05/17/why-you-should-always-use-hibernate-connection-provider_disables_autocommit-for-resource-local-jpa-transactions/
             // this also means all EntityManager interactions need to be wrapped into em.getTransaction.begin() and
             // em.getTransaction.commit() to prevent a rollback spam at the database
-            hibernateProps.put("hibernate.connection.autocommit", "false");
-            hibernateProps.put("hibernate.connection.provider_disables_autocommit", "true");
+            hibernateProps.put("hibernate.connection.autocommit", Boolean.FALSE.toString());
+            hibernateProps.put("hibernate.connection.provider_disables_autocommit", Boolean.TRUE.toString());
 
 
             return hibernateProps;
@@ -579,8 +595,14 @@ public class DatabaseConnection {
             return this;
         }
 
+        /**
+         * @return The built {@link DatabaseConnection}
+         *
+         * @throws DatabaseException
+         *         If the connection failed to be created.
+         */
         @CheckReturnValue
-        public DatabaseConnection build() throws DatabaseException {
+        public DatabaseConnection build() {
             return new DatabaseConnection(
                     this.connectionName,
                     this.jdbcUrl,

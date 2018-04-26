@@ -25,7 +25,6 @@
 package space.npstr.sqlsauce.jda.listeners;
 
 import net.dv8tion.jda.core.hooks.ListenerAdapter;
-import space.npstr.sqlsauce.DatabaseTask;
 
 import javax.annotation.CheckReturnValue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -67,7 +66,7 @@ public abstract class CachingListener<E, S extends CachingListener<E, S>> extend
         return cachePump.getQueue().size();
     }
 
-    protected void submit(final DatabaseTask task, final Consumer<Exception> onFail) {
+    protected void submit(final Runnable task, final Consumer<Exception> onFail) {
         this.cachePump.execute(() -> {
             try {
                 task.run();

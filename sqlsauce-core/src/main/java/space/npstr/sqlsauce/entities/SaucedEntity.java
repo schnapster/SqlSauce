@@ -32,6 +32,7 @@ import space.npstr.sqlsauce.fp.types.Transfiguration;
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
 import javax.persistence.MappedSuperclass;
+import javax.persistence.PersistenceException;
 import javax.persistence.Transient;
 import java.io.Serializable;
 import java.util.Map;
@@ -54,12 +55,16 @@ public abstract class SaucedEntity<I extends Serializable, S extends SaucedEntit
     // Creating a database connection will automatically set it as the default sauce.
     @Transient
     @Nullable
-    private static DatabaseWrapper defaultSauce;
+    private static transient DatabaseWrapper defaultSauce;
 
     public static void setDefaultSauce(final DatabaseWrapper dbWrapper) {
         SaucedEntity.defaultSauce = dbWrapper;
     }
 
+    /**
+     * @throws IllegalStateException
+     *         If no database connection has been created yet.
+     */
     public static DatabaseWrapper getDefaultSauce() {
         if (defaultSauce == null) {
             throw new IllegalStateException("Default DatabaseWrapper not set. Make sure to create at least one " +
@@ -102,14 +107,15 @@ public abstract class SaucedEntity<I extends Serializable, S extends SaucedEntit
      * Merge an entity into the database it came from. Call this after setting any values on a detached entity.
      *
      * @return the updated entity
+     *
+     * @throws IllegalStateException
+     *         if this entity has no sauce set
+     * @throws DatabaseException
+     *         Wraps any {@link PersistenceException} that may be thrown.
      */
     @CheckReturnValue
-    public S save() throws DatabaseException {
-        if (this.dbWrapper == null) {
-            throw new IllegalStateException("Cannot call save() on an entity without a source");
-        }
-        checkWrapper();
-        return this.dbWrapper.merge(getThis());
+    public S save() {
+        return checkWrapper().merge(getThis());
     }
 
     /**
@@ -119,11 +125,13 @@ public abstract class SaucedEntity<I extends Serializable, S extends SaucedEntit
      * @param <E>       Concrete implementation class E of the SaucedEntity to load
      * @return The requested entity from the provided database, or a new instance of the requested class if no such
      * entity is found
+     *
+     * @throws DatabaseException
+     *         Wraps any {@link PersistenceException} that may be thrown.
      */
     @CheckReturnValue
     public static <E extends SaucedEntity<I, E>, I extends Serializable> E load(final DatabaseWrapper dbWrapper,
-                                                                                final EntityKey<I, E> entityKey)
-            throws DatabaseException {
+                                                                                final EntityKey<I, E> entityKey) {
         return dbWrapper.getOrCreate(entityKey);
     }
 
@@ -133,10 +141,12 @@ public abstract class SaucedEntity<I extends Serializable, S extends SaucedEntit
      * @param <E>       Concrete implementation class E of the SaucedEntity to load
      * @return The requested entity from the default database, or a new instance of the requested class if no such
      * entity is found
+     *
+     * @throws DatabaseException
+     *         Wraps any {@link PersistenceException} that may be thrown.
      */
     @CheckReturnValue
-    public static <E extends SaucedEntity<I, E>, I extends Serializable> E load(final EntityKey<I, E> entityKey)
-            throws DatabaseException {
+    public static <E extends SaucedEntity<I, E>, I extends Serializable> E load(final EntityKey<I, E> entityKey) {
         return load(getDefaultSauce(), entityKey);
     }
 
@@ -146,12 +156,14 @@ public abstract class SaucedEntity<I extends Serializable, S extends SaucedEntit
      * @param <I>       Id I of the SaucedEntity to look up
      * @param <E>       Concrete implementation class E of the SaucedEntity to look up
      * @return The requested entity from the provided database, or null if no such entity is found
+     *
+     * @throws DatabaseException
+     *         Wraps any {@link PersistenceException} that may be thrown.
      */
     @Nullable
     @CheckReturnValue
     public static <E extends SaucedEntity<I, E>, I extends Serializable> E lookUp(final DatabaseWrapper dbWrapper,
-                                                                                  final EntityKey<I, E> entityKey)
-            throws DatabaseException {
+                                                                                  final EntityKey<I, E> entityKey) {
         return dbWrapper.getEntity(entityKey);
     }
 
@@ -160,11 +172,13 @@ public abstract class SaucedEntity<I extends Serializable, S extends SaucedEntit
      * @param <I>       Id I of the SaucedEntity to look up
      * @param <E>       Concrete implementation class E of the SaucedEntity to look up
      * @return The requested entity from the default database, or null if no such entity is found
+     *
+     * @throws DatabaseException
+     *         Wraps any {@link PersistenceException} that may be thrown.
      */
     @Nullable
     @CheckReturnValue
-    public static <E extends SaucedEntity<I, E>, I extends Serializable> E lookUp(final EntityKey<I, E> entityKey)
-            throws DatabaseException {
+    public static <E extends SaucedEntity<I, E>, I extends Serializable> E lookUp(final EntityKey<I, E> entityKey) {
         return lookUp(getDefaultSauce(), entityKey);
     }
 
@@ -175,11 +189,13 @@ public abstract class SaucedEntity<I extends Serializable, S extends SaucedEntit
      * @param entityKey       the entity to load, transform, and save
      * @param transformation  the transformation to apply to the entity
      * @return the detached entity after saving it
+     *
+     * @throws DatabaseException
+     *         Wraps any {@link PersistenceException} that may be thrown.
      */
     public static <E extends SaucedEntity<I, E>, I extends Serializable> E loadApplyAndSave(final DatabaseWrapper databaseWrapper,
                                                                                             final EntityKey<I, E> entityKey,
-                                                                                            final Function<E, E> transformation)
-            throws DatabaseException {
+                                                                                            final Function<E, E> transformation) {
         return databaseWrapper.findApplyAndMerge(Transfiguration.of(entityKey, transformation));
     }
 
@@ -187,13 +203,15 @@ public abstract class SaucedEntity<I extends Serializable, S extends SaucedEntit
     //                                  Locking
     //################################################################################
 
-    private static final Map<Class, Object[]> entityLocks = new ConcurrentHashMap<>();
+    @Transient
+    private static transient final Map<Class, Object[]> ENTITY_LOCKS = new ConcurrentHashMap<>();
     // How many partitions the hashed entity locks shall have
     // The chosen, uncustomizable, value is considered good enough:tm: for the current implementation where locks are
     // bound to classes (amount of hanging around lock objects is equal to implemented SaucedEntities * concurrencyLevel).
     // Prime number to reduce possible collisions due to bad hashes.
     // TODO implement customizable amount
-    private static final int concurrencyLevel = 17;
+    @Transient
+    private static transient final int CONCURRENCY_LEVEL = 17;
 
 
     /**
@@ -217,7 +235,7 @@ public abstract class SaucedEntity<I extends Serializable, S extends SaucedEntit
      */
     @CheckReturnValue
     public static Object getEntityLock(final EntityKey id) {
-        Object[] hashedClasslocks = entityLocks.computeIfAbsent(id.clazz, k -> createObjectArray(concurrencyLevel));
+        Object[] hashedClasslocks = ENTITY_LOCKS.computeIfAbsent(id.clazz, k -> createObjectArray(CONCURRENCY_LEVEL));
         return hashedClasslocks[Math.floorMod(Objects.hash(id), hashedClasslocks.length)];
     }
 
@@ -225,11 +243,14 @@ public abstract class SaucedEntity<I extends Serializable, S extends SaucedEntit
     //                                  Internals
     //################################################################################
 
-    private void checkWrapper() {
+    //returns the nonnull wrapper
+    @CheckReturnValue
+    private DatabaseWrapper checkWrapper() {
         if (this.dbWrapper == null) {
             throw new IllegalStateException("DatabaseWrapper not set. Make sure to load entity through a " +
                     "DatabaseWrapper or manually set it by calling SaucedEntity#setSauce");
         }
+        return dbWrapper;
     }
 
     @CheckReturnValue

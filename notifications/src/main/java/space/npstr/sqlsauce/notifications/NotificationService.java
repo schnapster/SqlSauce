@@ -316,11 +316,7 @@ public class NotificationService {
                             }
 
                             for (NotificationListener listener : channelListeners) {
-                                try {
-                                    listener.notif(notification);
-                                } catch (Exception e) {
-                                    exceptionHandler.handleListenerException(e);
-                                }
+                                notifListener(listener, notification);
                             }
                         }
                     }
@@ -330,9 +326,19 @@ public class NotificationService {
             }
         }
 
-
         //if we reach this place, we need to shutdown our resources
+        workLoopDone();
+    }
 
+    private void notifListener(NotificationListener listener, PGNotification notification) {
+        try {
+            listener.notif(notification);
+        } catch (Exception e) {
+            exceptionHandler.handleListenerException(e);
+        }
+    }
+
+    private void workLoopDone() {
         // send out any outstanding notifications first though
         drainNotifs();
         // tell the database to unlisten

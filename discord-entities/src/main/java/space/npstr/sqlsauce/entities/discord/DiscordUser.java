@@ -41,6 +41,7 @@ import javax.annotation.Nullable;
 import javax.persistence.Column;
 import javax.persistence.Convert;
 import javax.persistence.MappedSuperclass;
+import javax.persistence.PersistenceException;
 import javax.persistence.Transient;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -93,6 +94,11 @@ public abstract class DiscordUser<S extends BaseDiscordUser<S>> extends BaseDisc
     protected final Map<String, String> nicks = new HashMap<>();
 
 
+    @Override //to appease sonar cloud...the super method is fine, really.
+    public boolean equals(Object obj) {
+        return super.equals(obj);
+    }
+
     // ################################################################################
     // ##                               Caching
     // ################################################################################
@@ -131,26 +137,40 @@ public abstract class DiscordUser<S extends BaseDiscordUser<S>> extends BaseDisc
 
     //convenience static setters for cached values
 
-    public static <E extends DiscordUser<E>> DiscordUser<E> cache(final User user, final Class<E> clazz)
-            throws DatabaseException {
+    /**
+     * @throws DatabaseException
+     *         Wraps any {@link PersistenceException} that may be thrown.
+     */
+    public static <E extends DiscordUser<E>> DiscordUser<E> cache(final User user, final Class<E> clazz) {
         return cache(getDefaultSauce(), user, clazz);
     }
 
+    /**
+     * @throws DatabaseException
+     *         Wraps any {@link PersistenceException} that may be thrown.
+     */
     public static <E extends DiscordUser<E>> DiscordUser<E> cache(final DatabaseWrapper dbWrapper, final User user,
-                                                                  final Class<E> clazz) throws DatabaseException {
+                                                                  final Class<E> clazz) {
         return dbWrapper.findApplyAndMerge(EntityKey.of(user.getIdLong(), clazz),
-                (discordUser) -> discordUser.set(user));
+                discordUser -> discordUser.set(user));
     }
 
-    public static <E extends DiscordUser<E>> DiscordUser<E> cache(final Member member, final Class<E> clazz)
-            throws DatabaseException {
+    /**
+     * @throws DatabaseException
+     *         Wraps any {@link PersistenceException} that may be thrown.
+     */
+    public static <E extends DiscordUser<E>> DiscordUser<E> cache(final Member member, final Class<E> clazz) {
         return cache(getDefaultSauce(), member, clazz);
     }
 
+    /**
+     * @throws DatabaseException
+     *         Wraps any {@link PersistenceException} that may be thrown.
+     */
     public static <E extends DiscordUser<E>> DiscordUser<E> cache(final DatabaseWrapper dbWrapper, final Member member,
-                                                                  final Class<E> clazz) throws DatabaseException {
+                                                                  final Class<E> clazz) {
         return dbWrapper.findApplyAndMerge(EntityKey.of(member.getUser().getIdLong(), clazz),
-                (discordUser) -> discordUser.set(member));
+                discordUser -> discordUser.set(member));
     }
 
     public static <E extends DiscordUser<E>> Collection<DatabaseException> cacheAll(final Stream<Member> members,
@@ -177,7 +197,7 @@ public abstract class DiscordUser<S extends BaseDiscordUser<S>> extends BaseDisc
         final long started = System.currentTimeMillis();
         final AtomicInteger streamed = new AtomicInteger(0);
 
-        final Function<Member, Function<E, E>> cache = (member) -> (discorduser) -> discorduser.set(member);
+        final Function<Member, Function<E, E>> cache = member -> discorduser -> discorduser.set(member);
 
 
         final Stream<Transfiguration<Long, E>> transfigurations = members.map(
@@ -233,7 +253,7 @@ public abstract class DiscordUser<S extends BaseDiscordUser<S>> extends BaseDisc
     @Nullable
     public String getAvatarUrl() { //ty JDA
         return this.avatarId == null ? null : "https://cdn.discordapp.com/avatars/" + this.userId + "/" + this.avatarId
-                + (this.avatarId.startsWith("a_") ? ".gif" : ".png");
+                + getAvatarEnding(this.avatarId);
     }
 
     public String getEffectiveAvatarUrl() { //ty JDA
@@ -290,5 +310,9 @@ public abstract class DiscordUser<S extends BaseDiscordUser<S>> extends BaseDisc
         } else {
             return getName();
         }
+    }
+
+    private static String getAvatarEnding(String avatarId) {
+        return avatarId.startsWith("a_") ? ".gif" : ".png";
     }
 }

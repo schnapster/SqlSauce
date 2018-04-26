@@ -48,7 +48,7 @@ public abstract class ChangeFeedNotification {
      *         if the passed payload did not fit our expectations
      */
     @Nullable
-    public static ChangeFeedNotification parse(PGNotification notification) throws JSONException {
+    public static ChangeFeedNotification parse(PGNotification notification) {
 
         JSONObject asJsonObject = new JSONObject(notification.getParameter());
         int sqlsauceNotificationsVersion = asJsonObject.optInt("sqlsauce_notifications_version", 0);
@@ -61,8 +61,11 @@ public abstract class ChangeFeedNotification {
         }
     }
 
-    private static ChangeFeedNotification parseV1Notification(PGNotification notification, JSONObject payload)
-            throws JSONException {
+    /**
+     * @throws JSONException
+     *         if the passed payload did not fit our expectations
+     */
+    private static ChangeFeedNotification parseV1Notification(PGNotification notification, JSONObject payload) {
         String schemaName = payload.getString("schema_name");
         String tableName = payload.getString("table_name");
         Operation operation = Operation.valueOf(payload.getString("operation"));

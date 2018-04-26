@@ -32,7 +32,6 @@ import net.dv8tion.jda.core.events.guild.update.GenericGuildUpdateEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import space.npstr.sqlsauce.DatabaseException;
-import space.npstr.sqlsauce.DatabaseTask;
 import space.npstr.sqlsauce.entities.discord.DiscordGuild;
 
 import java.util.Collection;
@@ -83,7 +82,7 @@ public class GuildCachingListener<E extends DiscordGuild<E>> extends CachingList
         );
     }
 
-    private void onGuildEvent(final DatabaseTask task, final GenericGuildEvent event) {
+    private void onGuildEvent(final Runnable task, final GenericGuildEvent event) {
         submit(task, e -> log.error("Failed to cache event {} for guild {}",
                 event.getClass().getSimpleName(), event.getGuild().getIdLong(), e));
     }

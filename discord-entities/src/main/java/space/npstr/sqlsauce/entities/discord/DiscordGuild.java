@@ -38,6 +38,7 @@ import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
 import javax.persistence.Column;
 import javax.persistence.MappedSuperclass;
+import javax.persistence.PersistenceException;
 import javax.persistence.Transient;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -134,10 +135,20 @@ public abstract class DiscordGuild<S extends BaseDiscordGuild<S>> extends BaseDi
     protected int afkTimeoutSeconds;
 
 
+    @Override //to appease sonar cloud...the super method is fine, really.
+    public boolean equals(Object obj) {
+        return super.equals(obj);
+    }
+
+
     // ################################################################################
     // ##                               Caching
     // ################################################################################
 
+    /**
+     * @throws NullPointerException
+     *         In rare cases when Discord sent us bad data. This has happened more than once.
+     */
     public S set(@Nullable final Guild guild) {
         if (guild == null) {
             return getThis();//gracefully ignore null guilds
@@ -164,39 +175,63 @@ public abstract class DiscordGuild<S extends BaseDiscordGuild<S>> extends BaseDi
 
     //convenience static setters for cached values
 
+    /**
+     * @throws DatabaseException
+     *         Wraps any {@link PersistenceException} that may be thrown.
+     */
     //joins
-    public static <E extends DiscordGuild<E>> DiscordGuild<E> join(final Guild guild, final Class<E> clazz)
-            throws DatabaseException {
+    public static <E extends DiscordGuild<E>> DiscordGuild<E> join(final Guild guild, final Class<E> clazz) {
         return join(getDefaultSauce(), guild, clazz);
     }
 
+    /**
+     * @throws DatabaseException
+     *         Wraps any {@link PersistenceException} that may be thrown.
+     */
     public static <E extends DiscordGuild<E>> DiscordGuild<E> join(final DatabaseWrapper dbWrapper, final Guild guild,
-                                                                   final Class<E> clazz) throws DatabaseException {
-        return dbWrapper.findApplyAndMerge(EntityKey.of(guild.getIdLong(), clazz), (discordGuild) -> discordGuild.set(guild).join());
+                                                                   final Class<E> clazz) {
+        return dbWrapper.findApplyAndMerge(EntityKey.of(guild.getIdLong(), clazz), discordGuild -> discordGuild.set(guild).join());
     }
 
+    /**
+     * @throws DatabaseException
+     *         Wraps any {@link PersistenceException} that may be thrown.
+     */
     //leaves
-    public static <E extends DiscordGuild<E>> DiscordGuild<E> leave(final Guild guild, final Class<E> clazz)
-            throws DatabaseException {
+    public static <E extends DiscordGuild<E>> DiscordGuild<E> leave(final Guild guild, final Class<E> clazz) {
         return leave(getDefaultSauce(), guild, clazz);
     }
 
+    /**
+     * @throws DatabaseException
+     *         Wraps any {@link PersistenceException} that may be thrown.
+     */
     public static <E extends DiscordGuild<E>> DiscordGuild<E> leave(final DatabaseWrapper dbWrapper, final Guild guild,
-                                                                    final Class<E> clazz) throws DatabaseException {
-        return dbWrapper.findApplyAndMerge(EntityKey.of(guild.getIdLong(), clazz), (discordGuild) -> discordGuild.set(guild).leave());
+                                                                    final Class<E> clazz) {
+        return dbWrapper.findApplyAndMerge(EntityKey.of(guild.getIdLong(), clazz), discordGuild -> discordGuild.set(guild).leave());
     }
 
+    /**
+     * @throws DatabaseException
+     *         Wraps any {@link PersistenceException} that may be thrown.
+     */
     //caching
-    public static <E extends DiscordGuild<E>> DiscordGuild<E> cache(final Guild guild, final Class<E> clazz)
-            throws DatabaseException {
+    public static <E extends DiscordGuild<E>> DiscordGuild<E> cache(final Guild guild, final Class<E> clazz) {
         return cache(getDefaultSauce(), guild, clazz);
     }
 
+    /**
+     * @throws DatabaseException
+     *         Wraps any {@link PersistenceException} that may be thrown.
+     */
     public static <E extends DiscordGuild<E>> DiscordGuild<E> cache(final DatabaseWrapper dbWrapper, final Guild guild,
-                                                                    final Class<E> clazz) throws DatabaseException {
-        return dbWrapper.findApplyAndMerge(EntityKey.of(guild.getIdLong(), clazz), (discordGuild) -> discordGuild.set(guild));
+                                                                    final Class<E> clazz) {
+        return dbWrapper.findApplyAndMerge(EntityKey.of(guild.getIdLong(), clazz), discordGuild -> discordGuild.set(guild));
     }
 
+    /**
+     * @return DatabaseExceptions caused by the execution of this method
+     */
     //syncing
     public static <E extends DiscordGuild<E>> Collection<DatabaseException> sync(final Stream<Guild> guilds,
                                                                                  final Function<Long, Boolean> isPresent,
@@ -212,6 +247,7 @@ public abstract class DiscordGuild<S extends BaseDiscordGuild<S>> extends BaseDi
      * @param guilds    Stream over all guilds to be cached and set to be present
      * @param isPresent Returns true if we are present in a guild (by guildId), used to sync guilds that we left
      * @param clazz     Class of the actual DiscordGuild entity
+     *
      * @return DatabaseExceptions caused by the execution of this method
      */
     public static <E extends DiscordGuild<E>> Collection<DatabaseException> sync(final DatabaseWrapper dbWrapper,
@@ -222,7 +258,7 @@ public abstract class DiscordGuild<S extends BaseDiscordGuild<S>> extends BaseDi
         //leave guilds that we arent part of first
         final AtomicInteger left = new AtomicInteger(0);
         long started = System.currentTimeMillis();
-        final Function<E, E> leaveIfNotPresent = (discordguild) -> {
+        final Function<E, E> leaveIfNotPresent = discordguild -> {
             if (discordguild.isPresent() && !isPresent.apply(discordguild.guildId)) {
                 left.incrementAndGet();
                 return discordguild.leave();
@@ -262,7 +298,7 @@ public abstract class DiscordGuild<S extends BaseDiscordGuild<S>> extends BaseDi
         long started = System.currentTimeMillis();
         final AtomicInteger joined = new AtomicInteger(0);
         final AtomicInteger streamed = new AtomicInteger(0);
-        final Function<Guild, Function<E, E>> cacheAndJoin = (guild) -> (discordguild) -> {
+        final Function<Guild, Function<E, E>> cacheAndJoin = guild -> discordguild -> {
             E result = discordguild.set(guild);
             if (!result.present) {
                 result = result.join();

@@ -117,11 +117,7 @@ public class ChangefeedTest extends BaseTest {
         //language=PostgreSQL
         String watchSql = "SELECT cast(watch_table(cast(:table_name AS REGCLASS), :channel) AS TEXT);";
         List<Object> ignored = wrapper.selectSqlQuery(watchSql, params);
-        if (ignored.isEmpty()) {//todo implement native function calling properly
-            //do nothing, this check only exists cause spotbugs is fucking retarded (and I'm a retard for insisting on running it on the test classes)
-            log.info("wubalubadubdub");
-        }
-
+        assertNotNull(ignored);//just spotbugs things
 
         params = DbUtils.paramsOf(
                 idColumn, insertId,
