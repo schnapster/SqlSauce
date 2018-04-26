@@ -24,7 +24,6 @@
 
 package space.npstr.sqlsauce.hibernate.types;
 
-
 import org.hibernate.HibernateException;
 import org.hibernate.engine.spi.SharedSessionContractImplementor;
 import org.hibernate.usertype.DynamicParameterizedType;
@@ -44,29 +43,35 @@ import java.util.HashSet;
 import java.util.Properties;
 
 /**
- * Created by napster on 11.02.18.
+ * Created by napster on 26.04.18.
  * <p>
- * This makes PostgreSQL enum type arrays inside a single column usable instead of ElementCollections.
- * Cause Hibernates/JPAs ElementCollections are really, really slow, especially the bigger they get.
+ * Use PostgreSQL's native arrays to stare HashMaps inside a single column, instead of {@link javax.persistence.ElementCollection}s
+ * because Hibernates/JPAs ElementCollections are really, really slow, especially the bigger they get.
  * <p>
- * Requires the field to be annotated with {@link PostgreSQLEnum} retaining the information of the enum class at runtime
+ * Supports Integer, Long, String.
+ * <p>
+ * Mappings:
+ * Java    <-> PostgreSQL
+ * Integer  -  integer
+ * Long     -  bigint
+ * String   -  text
+ * <p>
+ * This requires using the {@link BasicType} annotation to retain the otherwise erased generics information.
+ * <p>
+ * For enum support, look at {@link HashSetPostgreSQLEnumUserType}
  */
-public class HashSetPostgreSQLEnumUserType implements UserType, DynamicParameterizedType {
+public class HashSetBasicType implements UserType, DynamicParameterizedType {
+
 
     protected static final int SQLTYPE = Types.ARRAY;
 
     @Nullable
-    private Class<? extends Enum> enumClass;
-
-    @Nullable
-    private String typeName;
+    private Class<?> basicType;
 
     @Override
     public void setParameterValues(Properties parameters) {
         final ParameterType reader = (ParameterType) parameters.get(PARAMETER_TYPE);
-        @SuppressWarnings("unchecked") Class<? extends Enum> suppress = getEnumClass(reader);
-        this.enumClass = suppress;
-        this.typeName = getTypeName(reader);
+        this.basicType = getBasicType(reader);
     }
 
     @Nullable
@@ -77,20 +82,19 @@ public class HashSetPostgreSQLEnumUserType implements UserType, DynamicParameter
         if (rs.wasNull() || array == null) {
             return null;
         }
-        String[] javaArray = (String[]) array.getArray();
-
-        if (this.enumClass == null) {
-            throw new IllegalStateException("Not properly initialized, missing the enum class");
+        if (this.basicType == null) {
+            throw new IllegalStateException("Not properly initialized, missing the basic type");
         }
 
-        return Arrays.stream(javaArray)
-                .map(value -> stringToEnum(this.enumClass, value.trim()))
-                .<HashSet<Enum>>collect(HashSet::new, HashSet::add, HashSet::addAll);
-    }
-
-    private static Enum stringToEnum(Class<? extends Enum> enumClass, String value) {
-        @SuppressWarnings("unchecked") Enum anEnum = Enum.valueOf(enumClass, value.trim());
-        return anEnum;
+        if (basicType.equals(Integer.class)) {
+            return new HashSet<>(Arrays.asList((Integer[]) array.getArray()));
+        } else if (basicType.equals(Long.class)) {
+            return new HashSet<>(Arrays.asList((Long[]) array.getArray()));
+        } else if (basicType.equals(String.class)) {
+            return new HashSet<>(Arrays.asList((String[]) array.getArray()));
+        } else {
+            throw new IllegalArgumentException("Unsupported type: " + basicType.getSimpleName());
+        }
     }
 
     @Override
@@ -99,19 +103,25 @@ public class HashSetPostgreSQLEnumUserType implements UserType, DynamicParameter
         if (value == null) {
             st.setNull(index, sqlTypes()[0]);
         } else {
+            if (this.basicType == null) {
+                throw new IllegalStateException("Not properly initialized, missing the basic type");
+            }
+
             Connection connection = st.getConnection();
-            @SuppressWarnings("unchecked") HashSet<? extends Enum> castObject = (HashSet) value;
+            Array array;
 
-            if (this.enumClass == null) {
-                throw new IllegalStateException("Not properly initialized, missing the enum class");
+            if (basicType.equals(Integer.class)) {
+                @SuppressWarnings("unchecked") Integer[] ints = ((HashSet<Integer>) value).toArray(new Integer[0]);
+                array = connection.createArrayOf("integer", ints);
+            } else if (basicType.equals(Long.class)) {
+                @SuppressWarnings("unchecked") Long[] longs = ((HashSet<Long>) value).toArray(new Long[0]);
+                array = connection.createArrayOf("bigint", longs);
+            } else if (basicType.equals(String.class)) {
+                @SuppressWarnings("unchecked") String[] strings = ((HashSet<String>) value).toArray(new String[0]);
+                array = connection.createArrayOf("text", strings);
+            } else {
+                throw new IllegalArgumentException("Unsupported type: " + basicType.getSimpleName());
             }
-            if (this.typeName == null) {
-                throw new IllegalStateException("Not properly initialized, missing the type name");
-            }
-
-            Enum[] enums = castObject.toArray(new Enum[castObject.size()]);
-            String type = this.typeName.isEmpty() ? this.enumClass.getSimpleName() : this.typeName;
-            Array array = connection.createArrayOf(type, enums);
 
             st.setArray(index, array);
         }
@@ -163,21 +173,13 @@ public class HashSetPostgreSQLEnumUserType implements UserType, DynamicParameter
         return new int[]{SQLTYPE};
     }
 
-    private Class<? extends Enum> getEnumClass(ParameterType reader) {
-        PostgreSQLEnum enumAnn = DbUtils.getAnnotation(reader.getAnnotationsMethod(), PostgreSQLEnum.class);
-        if (enumAnn != null) {
-            return enumAnn.enumClass();
+    private Class<?> getBasicType(ParameterType reader) {
+        BasicType annotation = DbUtils.getAnnotation(reader.getAnnotationsMethod(), BasicType.class);
+        if (annotation != null) {
+            return annotation.value();
         } else {
-            throw new IllegalStateException("Missing @" + PostgreSQLEnum.class.getSimpleName() + " annotation");
+            throw new IllegalStateException("Missing @" + BasicType.class.getSimpleName() + " annotation");
         }
     }
 
-    private String getTypeName(ParameterType reader) {
-        PostgreSQLEnum enumAnn = DbUtils.getAnnotation(reader.getAnnotationsMethod(), PostgreSQLEnum.class);
-        if (enumAnn != null) {
-            return enumAnn.typeName();
-        } else {
-            throw new IllegalStateException("Missing @" + PostgreSQLEnum.class.getSimpleName() + " annotation");
-        }
-    }
 }

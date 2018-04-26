@@ -46,7 +46,10 @@ import java.util.HashSet;
  * Cause Hibernates/JPAs ElementCollections are really, really slow, especially the bigger they get.
  * <p>
  * source: https://stackoverflow.com/a/41413296/
+ *
+ * @deprecated Use {@link HashSetBasicType} instead.
  */
+@Deprecated
 public class HashSetStringUserType implements UserType {
     protected static final int SQLTYPE = java.sql.Types.ARRAY;
 

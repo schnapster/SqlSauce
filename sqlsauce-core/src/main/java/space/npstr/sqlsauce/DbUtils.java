@@ -29,7 +29,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.CheckReturnValue;
+import javax.annotation.Nullable;
 import javax.persistence.EntityManager;
+import java.lang.annotation.Annotation;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSetMetaData;
@@ -69,6 +71,17 @@ public class DbUtils {
             result.put((String) stringObjectPairs[i++], stringObjectPairs[i++]);
         }
         return result;
+    }
+
+    @Nullable
+    public static <T extends Annotation> T getAnnotation(Annotation[] annotations, Class<T> anClass) {
+        for (Annotation annotation : annotations) {
+            if (anClass.isInstance(annotation)) {
+                @SuppressWarnings("unchecked") T result = (T) annotation;
+                return result;
+            }
+        }
+        return null;
     }
 
 

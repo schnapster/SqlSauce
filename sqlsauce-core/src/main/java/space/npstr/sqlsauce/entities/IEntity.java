@@ -35,6 +35,7 @@ import com.vladmihalcea.hibernate.type.json.JsonStringType;
 import org.hibernate.annotations.TypeDef;
 import org.hibernate.annotations.TypeDefs;
 import space.npstr.sqlsauce.hibernate.types.ArrayListLongUserType;
+import space.npstr.sqlsauce.hibernate.types.HashSetBasicType;
 import space.npstr.sqlsauce.hibernate.types.HashSetPostgreSQLEnumUserType;
 import space.npstr.sqlsauce.hibernate.types.HashSetStringUserType;
 import space.npstr.sqlsauce.hibernate.types.LongArrayType;
@@ -104,6 +105,10 @@ import java.io.Serializable;
         @TypeDef(
                 name = "hash-set-string",
                 typeClass = HashSetStringUserType.class
+        ),
+        @TypeDef(
+                name = "hash-set-basic",
+                typeClass = HashSetBasicType.class
         )
 })
 @MappedSuperclass
