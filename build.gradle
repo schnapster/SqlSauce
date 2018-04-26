@@ -1,5 +1,4 @@
 import com.github.spotbugs.SpotBugsTask
-import org.gradle.api.tasks.wrapper.Wrapper.DistributionType
 
 plugins {
     id 'com.github.spotbugs' version '1.6.0'
@@ -19,7 +18,7 @@ allprojects {
     apply plugin: 'idea'
 
     ext {
-        gradleVers = '4.6'
+        gradleVers = '4.7'
     }
 
     group = 'space.npstr.SqlSauce'
@@ -199,7 +198,8 @@ subprojects {
 
 task wrapper(type: Wrapper) {
     gradleVersion = gradleVers
-    distributionType = DistributionType.ALL
+    //noinspection UnnecessaryQualifiedReference
+    distributionType = Wrapper.DistributionType.ALL
 }
 
 //returns either a git tag if there is one on this commit, or the commit hash, to be used as a version
