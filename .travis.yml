@@ -25,11 +25,24 @@ cache:
     - ".gradle/caches"
     - "$HOME/.sonar/cache"
 
-before_script:
-  - psql -c 'create database testing;' -U postgres
-  #for sonar cloud blame information
-  - git fetch --unshallow
+jobs:
+  include:
+    - stage: build
+      before_script:
+        - "psql -c 'create database testing;' -U postgres"
+        #for sonar cloud blame information
+        - "git fetch --unshallow"
+      script:
+        # this includes tests
+        - "./gradlew build"
+      after_success:
+        - "./gradlew sonarqube"
 
-script:
-  - "./gradlew pub"
-  - "./gradlew sonarqube"
+    - stage: publish
+      script:
+        - "./gradlew pub"
+
+stages:
+  - build
+  - name: publish
+    if: tag IS present

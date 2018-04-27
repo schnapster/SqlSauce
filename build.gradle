@@ -51,16 +51,15 @@ subprojects {
         dependsOn publishToMavenLocal
     }
 
-    task pub {
+    build {
         dependsOn install
         dependsOn test
-        dependsOn bintrayUpload
+    }
 
-        bintrayUpload.mustRunAfter install
-        bintrayUpload.mustRunAfter test
-        bintrayUpload.onlyIf {
-            !version.toString().contains('SNASHOT')
-        }
+    task pub {
+        dependsOn build
+        dependsOn bintrayUpload
+        bintrayUpload.mustRunAfter build
     }
 
     task sourceJar(type: Jar) {
