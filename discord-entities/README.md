@@ -83,6 +83,9 @@ Setting the entity up to be automatically cached with [JDA](https://github.com/D
 Omitted versions mean there were no changes to this module. It is still recommended to use the latest
 version as shown on the core module readme.
 
+### v0.1.1 and v0.1.2
+- Deprecate static abuse of the entities
+
 ### v0.1.0
 - Replaced deprecated events in the UserMemberCachingListener
 

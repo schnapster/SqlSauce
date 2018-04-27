@@ -287,6 +287,9 @@ Error level logs from Hibernate, so you should add your respective appenders for
 
 ## Changelog
 
+### v0.1.1 and v0.1.2
+- Deprecate static abuse of SaucedEntities, Hstore
+
 ### v0.1.0
 - Deleted deprecated stuff (HashSetStringUserType)
 - All dependencies bumped
