@@ -49,9 +49,6 @@ subprojects {
 
     task install {
         dependsOn publishToMavenLocal
-        doLast {
-            println "Version: " + version
-        }
     }
 
     task pub {
@@ -61,8 +58,8 @@ subprojects {
 
         bintrayUpload.mustRunAfter install
         bintrayUpload.mustRunAfter test
-        doLast {
-            println "Version: " + version
+        bintrayUpload.onlyIf {
+            !version.toString().contains('SNASHOT')
         }
     }
 
@@ -203,17 +200,22 @@ task wrapper(type: Wrapper) {
     distributionType = Wrapper.DistributionType.ALL
 }
 
-//returns either a git tag if there is one on this commit, or the commit hash, to be used as a version
+//returns either a git tag if there is one on this commit in the form of MAJOR.MINOR.PATCH,
+//or the last such tag with "-SNAPSHOT" appended.
 @SuppressWarnings("GrMethodMayBeStatic")
 String getMyVersion() {
+    def matcher = /^([0-9]+\.[0-9]+\.[0-9]+)-(.*)$/
+    def match = ("${grgit.describe()}" =~ matcher)[0]
 
-    def headTag = grgit.tag.list().find {
-        it.commit == grgit.head()
+    //noinspection GroovyAssignabilityCheck
+    def result = match[1]
+    //noinspection GroovyAssignabilityCheck
+    def dirty = match[2]
+
+    if (dirty.length() > 0) {
+        result += '-SNAPSHOT'
     }
 
-    if (headTag) {
-        headTag.getName()
-    } else {
-        "${grgit.head().id}"
-    }
+    println("Version: " + result)
+    return result
 }
