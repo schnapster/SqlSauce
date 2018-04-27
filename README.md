@@ -68,7 +68,7 @@ repo only provides released version builds. It may provide tested builds by comm
     }
 
     dependencies {
-        compile group: 'space.npstr.SqlSauce', name: 'sqlsauce-core', version: '0.2.0'
+        compile group: 'space.npstr.SqlSauce', name: 'sqlsauce-core', version: '0.2.1'
     }
 ```
 
@@ -89,7 +89,7 @@ repo only provides released version builds. It may provide tested builds by comm
     <dependency>
         <groupId>space.npstr.SqlSauce</groupId>
         <artifactId>sqlsauce-core</artifactId>
-        <version>0.2.0</version>
+        <version>0.2.1</version>
     </dependency>
 ```
 
@@ -280,6 +280,10 @@ Error level logs from Hibernate, so you should add your respective appenders for
 
 
 ## Changelog
+
+### v0.2.1
+- Fix broken rollbacks in case of exceptions
+- Add tests for fetching, merging, deleting entities
 
 ### v0.2.0
 - Delete deprecated code (mostly static SaucedEntity abuse)
