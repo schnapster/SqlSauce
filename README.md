@@ -68,7 +68,7 @@ repo only provides released version builds. It may provide tested builds by comm
     }
 
     dependencies {
-        compile group: 'space.npstr.SqlSauce', name: 'sqlsauce-core', version: '0.2.1'
+        compile group: 'space.npstr.SqlSauce', name: 'sqlsauce-core', version: '0.2.2'
     }
 ```
 
@@ -89,7 +89,7 @@ repo only provides released version builds. It may provide tested builds by comm
     <dependency>
         <groupId>space.npstr.SqlSauce</groupId>
         <artifactId>sqlsauce-core</artifactId>
-        <version>0.2.1</version>
+        <version>0.2.2</version>
     </dependency>
 ```
 
@@ -280,6 +280,9 @@ Error level logs from Hibernate, so you should add your respective appenders for
 
 
 ## Changelog
+
+### v0.2.2
+- Resolve some mostly cosmetic sonarcloud issues
 
 ### v0.2.1
 - Fix broken rollbacks in case of exceptions

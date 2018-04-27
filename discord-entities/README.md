@@ -16,7 +16,7 @@ This module can then be added through this additional dependency:
 ###### Gradle build.gradle
 ```groovy
     dependencies {
-        compile group: 'space.npstr.SqlSauce', name: 'discord-entities', version: '0.2.1'
+        compile group: 'space.npstr.SqlSauce', name: 'discord-entities', version: '0.2.2'
     }
 ```
 
@@ -25,7 +25,7 @@ This module can then be added through this additional dependency:
     <dependency>
         <groupId>space.npstr.SqlSauce</groupId>
         <artifactId>discord-entities</artifactId>
-        <version>0.2.1</version>
+        <version>0.2.2</version>
     </dependency>
 ```
 

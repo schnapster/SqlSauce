@@ -37,7 +37,6 @@ import net.dv8tion.jda.core.events.user.update.UserUpdateNameEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import space.npstr.sqlsauce.DatabaseWrapper;
-import space.npstr.sqlsauce.entities.SaucedEntity;
 import space.npstr.sqlsauce.entities.discord.DiscordUser;
 
 /**

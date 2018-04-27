@@ -832,7 +832,7 @@ public class DatabaseWrapper {
                 transaction.commit();
                 return result;
             } finally {
-                if (transaction != null && transaction.isActive()) {
+                if (transaction.isActive()) {
                     transaction.rollback();
                 }
             }

@@ -33,7 +33,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import space.npstr.sqlsauce.DatabaseException;
 import space.npstr.sqlsauce.DatabaseWrapper;
-import space.npstr.sqlsauce.entities.SaucedEntity;
 import space.npstr.sqlsauce.entities.discord.DiscordGuild;
 
 import java.util.Collection;
