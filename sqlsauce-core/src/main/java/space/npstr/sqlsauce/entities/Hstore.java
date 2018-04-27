@@ -234,6 +234,7 @@ public class Hstore extends SaucedEntity<String, Hstore> {
      *
      * @deprecated use {@link Hstore#loadApplyAndSave(DatabaseWrapper, Function)}
      */
+    @Deprecated
     public static Hstore loadApplyAndSave(final Function<Hstore, Hstore> transformation) {
         return loadApplyAndSave(HstoreKey.DEFAULT, transformation);
     }
