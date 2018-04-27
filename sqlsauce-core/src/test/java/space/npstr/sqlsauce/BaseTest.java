@@ -78,6 +78,7 @@ public abstract class BaseTest {
     private synchronized static DatabaseConnection getDbConn() {
         if (dbConn == null) {
             dbConn = new DatabaseConnection.Builder(BaseTest.class.getSimpleName(), getTestJdbcUrl())
+                    .addEntityPackage("space.npstr.sqlsauce.test.entities")
                     .setHibernateProperty("hibernate.hbm2ddl.auto", "none")
                     .build();
         }
