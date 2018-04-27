@@ -57,9 +57,7 @@ subprojects {
     }
 
     task pub {
-        dependsOn build
         dependsOn bintrayUpload
-        bintrayUpload.mustRunAfter build
     }
 
     task sourceJar(type: Jar) {

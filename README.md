@@ -2,9 +2,8 @@
 
 [![Release](https://img.shields.io/github/tag/napstr/SqlSauce.svg?style=flat-square)](https://jitpack.io/#space.npstr/SqlSauce)
 [![Bintray](https://api.bintray.com/packages/napster/SqlSauce/sqlsauce-core/images/download.svg) ](https://bintray.com/napster/SqlSauce/sqlsauce-core/_latestVersion)
-[![Release](https://img.shields.io/bintray/v/napster/SqlSauce/sqlsauce-core.svg?style=flat-square)](https://img.shields.io/bintray/v/napster/SqlSauce/sqlsauce-core.svg)
 [![Build Status Development Branch](https://img.shields.io/travis/napstr/SqlSauce/dev.svg?style=flat-square)](https://travis-ci.org/napstr/SqlSauce/branches)
-[![license](https://img.shields.io/github/license/napstr/SqlSauce.svg?style=flat-square)]()
+[![License](https://img.shields.io/github/license/napstr/SqlSauce.svg?style=flat-square)]()
 [![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=space.npstr.SqlSauce%3ASqlSauce&metric=alert_status)](https://sonarcloud.io/dashboard?id=space.npstr.SqlSauce%3ASqlSauce)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/166017256c1846d4800880b95a57e431?style=flat)](https://www.codacy.com/app/napstr/SqlSauce)  
 
@@ -69,7 +68,7 @@ repo only provides released version builds. It may provide tested builds by comm
     }
 
     dependencies {
-        compile group: 'space.npstr.SqlSauce', name: 'sqlsauce-core', version: '0.1.3'
+        compile group: 'space.npstr.SqlSauce', name: 'sqlsauce-core', version: '0.1.4'
     }
 ```
 
@@ -90,7 +89,7 @@ repo only provides released version builds. It may provide tested builds by comm
     <dependency>
         <groupId>space.npstr.SqlSauce</groupId>
         <artifactId>sqlsauce-core</artifactId>
-        <version>0.1.3</version>
+        <version>0.1.4</version>
     </dependency>
 ```
 
@@ -287,7 +286,7 @@ Error level logs from Hibernate, so you should add your respective appenders for
 
 ## Changelog
 
-### v0.1.1 through v0.1.3
+### v0.1.1 through v0.1.4
 - Deprecate static abuse of SaucedEntities, Hstore
 
 ### v0.1.0
