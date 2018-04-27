@@ -25,7 +25,6 @@
 package space.npstr.sqlsauce;
 
 import org.hibernate.Session;
-import org.hibernate.Transaction;
 import org.hibernate.internal.SessionImpl;
 import org.hibernate.internal.util.ReflectHelper;
 import org.hibernate.query.spi.QueryImplementor;
@@ -282,13 +281,18 @@ public class DatabaseWrapper {
         final List<DatabaseException> exceptions = new ArrayList<>();
 
         transfigurations.forEach(transfiguration -> {
-            try (Session em = this.emf.createEntityManager().unwrap(Session.class)) {
-                this.lockedWrappedTransformFunc(transfiguration).apply(em);
-            } catch (final PersistenceException e) {
-                final String message = String.format("Failed to find, apply and merge entity id %s of class %s on DB %s",
-                        transfiguration.key.id.toString(), transfiguration.key.clazz.getName(),
-                        this.name);
-                exceptions.add(new DatabaseException(message, e));
+            try {
+                final EntityManager em = this.emf.createEntityManager();
+                try {
+                    this.lockedWrappedTransformFunc(transfiguration).apply(em);
+                } catch (final PersistenceException e) {
+                    final String message = String.format("Failed to find, apply and merge entity id %s of class %s on DB %s",
+                            transfiguration.key.id.toString(), transfiguration.key.clazz.getName(),
+                            this.name);
+                    exceptions.add(new DatabaseException(message, e));
+                } finally {
+                    em.close();
+                }
             } catch (final DatabaseException e) {
                 exceptions.add(e);
             }
@@ -819,17 +823,21 @@ public class DatabaseWrapper {
 
     @Nullable
     private <R> R executeNullableTransaction(Function<EntityManager, R> closure) {
-        Transaction transaction = null;
-        try (Session entityManager = emf.createEntityManager().unwrap(Session.class)) {
-            transaction = entityManager.getTransaction();
-            transaction.begin();
-            R result = closure.apply(entityManager);
-            transaction.commit();
-            return result;
-        } finally {
-            if (transaction != null && transaction.isActive()) {
-                transaction.rollback();
+        EntityManager entityManager = emf.createEntityManager();
+        try {
+            EntityTransaction transaction = entityManager.getTransaction();
+            try {
+                transaction.begin();
+                R result = closure.apply(entityManager);
+                transaction.commit();
+                return result;
+            } finally {
+                if (transaction != null && transaction.isActive()) {
+                    transaction.rollback();
+                }
             }
+        } finally {
+            entityManager.close();
         }
     }
 
