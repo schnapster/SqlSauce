@@ -57,14 +57,6 @@ public class GuildCachingListener<E extends DiscordGuild<E>> extends CachingList
         this.wrapper = wrapper;
     }
 
-    /**
-     * @deprecated use {@link GuildCachingListener#GuildCachingListener(DatabaseWrapper, Class)}
-     */
-    @Deprecated
-    public GuildCachingListener(final Class<E> entityClass) {
-        this(SaucedEntity.getDefaultSauce(), entityClass);
-    }
-
     @Override
     public void onGuildJoin(final GuildJoinEvent event) {
         onGuildEvent(() -> DiscordGuild.join(wrapper, event.getGuild(), this.entityClass), event);

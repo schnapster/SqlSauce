@@ -59,15 +59,6 @@ public class UserMemberCachingListener<E extends DiscordUser<E>> extends Caching
         this.wrapper = wrapper;
     }
 
-    /**
-     * @deprecated use {@link UserMemberCachingListener#UserMemberCachingListener(DatabaseWrapper, Class)}
-     */
-    @Deprecated
-    public UserMemberCachingListener(final Class<E> entityClass) {
-        this(SaucedEntity.getDefaultSauce(), entityClass);
-    }
-
-
     //user events
 
     @Override

@@ -24,70 +24,24 @@
 
 package space.npstr.sqlsauce.entities;
 
-import space.npstr.sqlsauce.DatabaseException;
 import space.npstr.sqlsauce.DatabaseWrapper;
 import space.npstr.sqlsauce.fp.types.EntityKey;
-import space.npstr.sqlsauce.fp.types.Transfiguration;
 
 import javax.annotation.CheckReturnValue;
-import javax.annotation.Nullable;
 import javax.persistence.MappedSuperclass;
-import javax.persistence.PersistenceException;
 import javax.persistence.Transient;
 import java.io.Serializable;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
 
 /**
  * Created by napster on 10.10.17.
  * <p>
- * Sauced entities may have the database source where they come from / should be written to attached which is
- * convenient af. In case you are wondering, sauce is internet slang for source.
+ * Sauced entities have a locking mechanism that is used by the {@link DatabaseWrapper} to ensure safe merges.
  */
 @MappedSuperclass
 public abstract class SaucedEntity<I extends Serializable, S extends SaucedEntity<I, S>> implements IEntity<I, S> {
-
-    //for when you only use a single connection application-wide, this might provide some handy static methods after
-    // setting it
-    // see Hstore for an example implementation.
-    // Creating a database connection will automatically set it as the default sauce.
-    @Transient
-    @Nullable
-    @Deprecated
-    private static transient DatabaseWrapper defaultSauce;
-
-    /**
-     * @deprecated Please manage the wrapper yourself instead of relying on this static aboose.
-     */
-    @Deprecated
-    public static void setDefaultSauce(final DatabaseWrapper dbWrapper) {
-        SaucedEntity.defaultSauce = dbWrapper;
-    }
-
-    /**
-     * @throws IllegalStateException
-     *         If no database connection has been created yet.
-     *
-     * @deprecated Please manage the wrapper yourself instead of relying on this static aboose.
-     */
-    @Deprecated
-    public static DatabaseWrapper getDefaultSauce() {
-        if (defaultSauce == null) {
-            throw new IllegalStateException("Default DatabaseWrapper not set. Make sure to create at least one " +
-                    "database connection.");
-        }
-        return defaultSauce;
-    }
-
-
-    //the sauce of this entity
-    @Transient
-    @Nullable
-    @Deprecated
-    protected transient DatabaseWrapper dbWrapper;
-
 
     @SuppressWarnings("unchecked")
     protected S getThis() {
@@ -100,136 +54,6 @@ public abstract class SaucedEntity<I extends Serializable, S extends SaucedEntit
         return (Class<S>) this.getClass();
     }
 
-    //when loading / creating with the DatabaseWrapper class, it will make sure to set this so that the convenience
-    //methods may be used
-
-    /**
-     * @deprecated manage the wrapper yourself instead of tugging it along with every entity
-     */
-    @Deprecated
-    public S setSauce(final DatabaseWrapper dbWrapper) {
-        this.dbWrapper = dbWrapper;
-        return getThis();
-    }
-
-
-    //################################################################################
-    //                              Convenience stuff
-    //################################################################################
-
-    /**
-     * Merge an entity into the database it came from. Call this after setting any values on a detached entity.
-     *
-     * @return the updated entity
-     *
-     * @throws IllegalStateException
-     *         if this entity has no sauce set
-     * @throws DatabaseException
-     *         Wraps any {@link PersistenceException} that may be thrown.
-     *
-     * @deprecated manage your wrapper yourself, and use {@link DatabaseWrapper#merge(SaucedEntity)}
-     */
-    @Deprecated
-    @CheckReturnValue
-    public S save() {
-        return checkWrapper().merge(getThis());
-    }
-
-    /**
-     * @param dbWrapper The database to load from
-     * @param entityKey Key of the entity to load
-     * @param <I>       Id I of the SaucedEntity to load
-     * @param <E>       Concrete implementation class E of the SaucedEntity to load
-     * @return The requested entity from the provided database, or a new instance of the requested class if no such
-     * entity is found
-     *
-     * @throws DatabaseException
-     *         Wraps any {@link PersistenceException} that may be thrown.
-     *
-     * @deprecated use {@link DatabaseWrapper#getOrCreate(EntityKey)}
-     */
-    @Deprecated
-    @CheckReturnValue
-    public static <E extends SaucedEntity<I, E>, I extends Serializable> E load(final DatabaseWrapper dbWrapper,
-                                                                                final EntityKey<I, E> entityKey) {
-        return dbWrapper.getOrCreate(entityKey);
-    }
-
-    /**
-     * @param entityKey Key of the entity to load
-     * @param <I>       Id I of the SaucedEntity to load
-     * @param <E>       Concrete implementation class E of the SaucedEntity to load
-     * @return The requested entity from the default database, or a new instance of the requested class if no such
-     * entity is found
-     *
-     * @throws DatabaseException
-     *         Wraps any {@link PersistenceException} that may be thrown.
-     *
-     * @deprecated use {@link SaucedEntity#load(DatabaseWrapper, EntityKey)}
-     */
-    @Deprecated
-    @CheckReturnValue
-    public static <E extends SaucedEntity<I, E>, I extends Serializable> E load(final EntityKey<I, E> entityKey) {
-        return load(getDefaultSauce(), entityKey);
-    }
-
-    /**
-     * @param dbWrapper The database to look up from
-     * @param entityKey Key of the entity to load
-     * @param <I>       Id I of the SaucedEntity to look up
-     * @param <E>       Concrete implementation class E of the SaucedEntity to look up
-     * @return The requested entity from the provided database, or null if no such entity is found
-     *
-     * @throws DatabaseException
-     *         Wraps any {@link PersistenceException} that may be thrown.
-     *
-     * @deprecated use {@link DatabaseWrapper#getEntity(EntityKey)}
-     */
-    @Deprecated
-    @Nullable
-    @CheckReturnValue
-    public static <E extends SaucedEntity<I, E>, I extends Serializable> E lookUp(final DatabaseWrapper dbWrapper,
-                                                                                  final EntityKey<I, E> entityKey) {
-        return dbWrapper.getEntity(entityKey);
-    }
-
-    /**
-     * @param entityKey Key of the entity to load
-     * @param <I>       Id I of the SaucedEntity to look up
-     * @param <E>       Concrete implementation class E of the SaucedEntity to look up
-     * @return The requested entity from the default database, or null if no such entity is found
-     *
-     * @throws DatabaseException
-     *         Wraps any {@link PersistenceException} that may be thrown.
-     *
-     * @deprecated use {@link SaucedEntity#lookUp(DatabaseWrapper, EntityKey)}
-     */
-    @Deprecated
-    @Nullable
-    @CheckReturnValue
-    public static <E extends SaucedEntity<I, E>, I extends Serializable> E lookUp(final EntityKey<I, E> entityKey) {
-        return lookUp(getDefaultSauce(), entityKey);
-    }
-
-    /**
-     * Apply some functions to an entity (creating it if nonexistent) of the provided database and save it back
-     *
-     * @param databaseWrapper database to use for this
-     * @param entityKey       the entity to load, transform, and save
-     * @param transformation  the transformation to apply to the entity
-     * @return the detached entity after saving it
-     *
-     * @throws DatabaseException
-     *         Wraps any {@link PersistenceException} that may be thrown.
-     *
-     * @deprecated user {@link DatabaseWrapper#findApplyAndMerge(EntityKey, Function)}
-     */
-    @Deprecated
-    public static <E extends SaucedEntity<I, E>, I extends Serializable> E loadApplyAndSave(final DatabaseWrapper databaseWrapper,
-                                                                                            final EntityKey<I, E> entityKey,
-                                                                                            final Function<E, E> transformation) {
-        return databaseWrapper.findApplyAndMerge(Transfiguration.of(entityKey, transformation));
-    }
 
     //################################################################################
     //                                  Locking
@@ -274,17 +98,6 @@ public abstract class SaucedEntity<I extends Serializable, S extends SaucedEntit
     //################################################################################
     //                                  Internals
     //################################################################################
-
-    //returns the nonnull wrapper
-    @CheckReturnValue
-    @Deprecated
-    private DatabaseWrapper checkWrapper() {
-        if (this.dbWrapper == null) {
-            throw new IllegalStateException("DatabaseWrapper not set. Make sure to load entity through a " +
-                    "DatabaseWrapper or manually set it by calling SaucedEntity#setSauce");
-        }
-        return dbWrapper;
-    }
 
     @CheckReturnValue
     private static Object[] createObjectArray(final int size) {

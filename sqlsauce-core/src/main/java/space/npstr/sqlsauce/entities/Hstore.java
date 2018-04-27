@@ -102,21 +102,6 @@ public class Hstore extends SaucedEntity<String, Hstore> {
      *
      * @throws DatabaseException
      *         Wraps any {@link PersistenceException} that may be thrown.
-     *
-     * @deprecated use {@link Hstore#setAndSave(DatabaseWrapper, String, String)}
-     */
-    @Deprecated
-    public Hstore setAndSave(final String key, final String value) {
-        this.hstorex.put(key, value);
-        return this.save();
-    }
-
-    /**
-     * Intended as a finishing move, so no @CheckReturnValue annotation. Manually check the return value if you want
-     * to keep using this Hstore
-     *
-     * @throws DatabaseException
-     *         Wraps any {@link PersistenceException} that may be thrown.
      */
     public Hstore setAndSave(DatabaseWrapper wrapper, final String key, final String value) {
         this.hstorex.put(key, value);
@@ -142,105 +127,7 @@ public class Hstore extends SaucedEntity<String, Hstore> {
 
 
     //################################################################################
-    //                 Static single connection convenience stuff
-    //################################################################################
-
-    /**
-     * @return load a value from an hstore object
-     *
-     * @throws DatabaseException
-     *         Wraps any {@link PersistenceException} that may be thrown.
-     *
-     * @deprecated use {@link Hstore#loadAndGet(DatabaseWrapper, HstoreKey, String, String)}
-     */
-    @Deprecated
-    @CheckReturnValue
-    public static String loadAndGet(final HstoreKey entityKey, final String key, final String defaultValue) {
-        return Hstore.loadAndGet(getDefaultSauce(), entityKey, key, defaultValue);
-    }
-
-    /**
-     * @return loads a value from the default hstore
-     *
-     * @throws DatabaseException
-     *         Wraps any {@link PersistenceException} that may be thrown.
-     *
-     * @deprecated use {@link Hstore#loadAndGet(DatabaseWrapper, String, String)}
-     */
-    @Deprecated
-    @CheckReturnValue
-    public static String loadAndGet(final String key, final String defaultValue) {
-        return Hstore.loadAndGet(getDefaultSauce(), HstoreKey.DEFAULT, key, defaultValue);
-    }
-
-    /**
-     * @return the default Hstore object
-     *
-     * @throws DatabaseException
-     *         Wraps any {@link PersistenceException} that may be thrown.
-     *
-     * @deprecated use {@link Hstore#load(DatabaseWrapper)}
-     */
-    @Deprecated
-    @CheckReturnValue
-    public static Hstore load() {
-        return SaucedEntity.load(getDefaultSauce(), HstoreKey.DEFAULT);
-    }
-
-    /**
-     * Shortcut method to set a single value on a named hstore on the default database and save it
-     *
-     * @throws DatabaseException
-     *         Wraps any {@link PersistenceException} that may be thrown.
-     *
-     * @deprecated use {@link Hstore#loadSetAndSave(DatabaseWrapper, HstoreKey, String, String)}
-     */
-    @Deprecated
-    public static Hstore loadSetAndSave(final HstoreKey entityKey, final String key, final String value) {
-        return loadSetAndSave(getDefaultSauce(), entityKey, key, value);
-    }
-
-    /**
-     * Shortcut method to set a single value on the default hstore on the default database and save it
-     *
-     * @throws DatabaseException
-     *         Wraps any {@link PersistenceException} that may be thrown.
-     *
-     * @deprecated use {@link Hstore#loadSetAndSave(DatabaseWrapper, String, String)}
-     */
-    @Deprecated
-    public static Hstore loadSetAndSave(final String key, final String value) {
-        return loadSetAndSave(HstoreKey.DEFAULT, key, value);
-    }
-
-    /**
-     * Apply some functions to the default Hstore of the default database and save it
-     *
-     * @throws DatabaseException
-     *         Wraps any {@link PersistenceException} that may be thrown.
-     *
-     * @deprecated use {@link Hstore#loadApplyAndSave(DatabaseWrapper, Function)}
-     */
-    @Deprecated
-    public static Hstore loadApplyAndSave(final HstoreKey entityKey, final Function<Hstore, Hstore> transformation) {
-        return loadApplyAndSave(getDefaultSauce(), entityKey, transformation);
-    }
-
-    /**
-     * Apply some functions to the default Hstore of the default database and save it
-     *
-     * @throws DatabaseException
-     *         Wraps any {@link PersistenceException} that may be thrown.
-     *
-     * @deprecated use {@link Hstore#loadApplyAndSave(DatabaseWrapper, Function)}
-     */
-    @Deprecated
-    public static Hstore loadApplyAndSave(final Function<Hstore, Hstore> transformation) {
-        return loadApplyAndSave(HstoreKey.DEFAULT, transformation);
-    }
-
-    //################################################################################
-    //                  Static convenience stuff with custom sauce
+    //                  Static convenience stuff with custom wrapper
     //################################################################################
 
     /**

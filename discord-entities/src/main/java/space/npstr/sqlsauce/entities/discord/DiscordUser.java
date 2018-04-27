@@ -143,16 +143,6 @@ public abstract class DiscordUser<S extends BaseDiscordUser<S>> extends BaseDisc
 
     //convenience static setters for cached values
 
-    /**
-     * @throws DatabaseException
-     *         Wraps any {@link PersistenceException} that may be thrown.
-     *
-     * @deprecated use {@link DiscordUser#cache(DatabaseWrapper, User, Class)}
-     */
-    @Deprecated
-    public static <E extends DiscordUser<E>> DiscordUser<E> cache(final User user, final Class<E> clazz) {
-        return cache(getDefaultSauce(), user, clazz);
-    }
 
     /**
      * @throws DatabaseException
@@ -164,16 +154,6 @@ public abstract class DiscordUser<S extends BaseDiscordUser<S>> extends BaseDisc
                 discordUser -> discordUser.set(user));
     }
 
-    /**
-     * @throws DatabaseException
-     *         Wraps any {@link PersistenceException} that may be thrown.
-     *
-     * @deprecated use {@link DiscordUser#cache(DatabaseWrapper, Member, Class)}
-     */
-    @Deprecated
-    public static <E extends DiscordUser<E>> DiscordUser<E> cache(final Member member, final Class<E> clazz) {
-        return cache(getDefaultSauce(), member, clazz);
-    }
 
     /**
      * @throws DatabaseException
@@ -185,14 +165,6 @@ public abstract class DiscordUser<S extends BaseDiscordUser<S>> extends BaseDisc
                 discordUser -> discordUser.set(member));
     }
 
-    /**
-     * @deprecated use {@link DiscordUser#cacheAll(DatabaseWrapper, Stream, Class)}
-     */
-    @Deprecated
-    public static <E extends DiscordUser<E>> Collection<DatabaseException> cacheAll(final Stream<Member> members,
-                                                                                    final Class<E> clazz) {
-        return cacheAll(getDefaultSauce(), members, clazz);
-    }
 
     /**
      * Cache a bunch of users.

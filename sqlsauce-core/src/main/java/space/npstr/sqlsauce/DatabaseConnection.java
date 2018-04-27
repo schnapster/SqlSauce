@@ -36,7 +36,6 @@ import org.hibernate.internal.SessionFactoryImpl;
 import org.hibernate.jpa.HibernatePersistenceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import space.npstr.sqlsauce.entities.SaucedEntity;
 
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
@@ -178,7 +177,6 @@ public class DatabaseConnection {
             } else {
                 this.connectionCheck = null;
             }
-            SaucedEntity.setDefaultSauce(new DatabaseWrapper(this));
         } catch (final Exception e) {
             this.state = DatabaseState.FAILED;
             throw new DatabaseException("Failed to create database connection", e);

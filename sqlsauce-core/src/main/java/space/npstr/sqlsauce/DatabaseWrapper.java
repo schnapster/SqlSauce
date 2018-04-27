@@ -114,11 +114,7 @@ public class DatabaseWrapper {
     @CheckReturnValue
     public <E extends IEntity<I, E>, I extends Serializable> E getEntity(final EntityKey<I, E> entityKey) {
         try {
-            @Nullable E result = executeNullableTransaction(em -> em.find(entityKey.clazz, entityKey.id));
-            if (result != null) {
-                result = setSauce(result);
-            }
-            return result;
+            return executeNullableTransaction(em -> em.find(entityKey.clazz, entityKey.id));
         } catch (final PersistenceException e) {
             final String message = String.format("Failed to find entity of class %s for id %s on DB %s",
                     entityKey.clazz.getName(), entityKey.id.toString(), name);
@@ -139,10 +135,7 @@ public class DatabaseWrapper {
         final String query = "SELECT c FROM " + clazz.getSimpleName() + " c";
         try {
             return executeTransaction(em -> em.createQuery(query, clazz)
-                    .getResultList())
-                    .stream()
-                    .map(s -> s.setSauce(this))
-                    .collect(Collectors.toList());
+                    .getResultList());
         } catch (final PersistenceException e) {
             final String message = String.format("Failed to load all %s entities on DB %s",
                     clazz.getName(), this.name);
@@ -183,10 +176,7 @@ public class DatabaseWrapper {
         try {
             return executeTransaction(em -> em.unwrap(Session.class)
                     .byMultipleIds(clazz)
-                    .multiLoad(entityKeys.stream().map(key -> key.id).collect(Collectors.toList())))
-                    .stream()
-                    .map(s -> s != null ? s.setSauce(this) : null)
-                    .collect(Collectors.toList());
+                    .multiLoad(entityKeys.stream().map(key -> key.id).collect(Collectors.toList())));
         } catch (final PersistenceException e) {
             final String message = String.format("Failed to bulk load %s entities of class %s on DB %s",
                     entityKeys.size(), clazz.getName(), this.name);
@@ -210,8 +200,7 @@ public class DatabaseWrapper {
     public <E extends SaucedEntity<I, E>, I extends Serializable> E merge(final E entity) {
         try {
             synchronized (entity.getEntityLock()) {
-                return executeTransaction(em -> em.merge(entity))
-                        .setSauce(this);
+                return executeTransaction(em -> em.merge(entity));
             }
         } catch (final PersistenceException e) {
             final String message = String.format("Failed to merge entity %s on DB %s",
@@ -234,7 +223,7 @@ public class DatabaseWrapper {
         try {
             return executeTransaction(em -> {
                 em.persist(entity);
-                return setSauce(entity);
+                return entity;
             });
         } catch (final PersistenceException e) {
             final String message = String.format("Failed to persist entity %s on DB %s",
@@ -528,7 +517,7 @@ public class DatabaseWrapper {
                 if (parameters != null) {
                     parameters.forEach(q::setParameter);
                 }
-                return setSauce(resultClass.cast(q.getSingleResult()));
+                return resultClass.cast(q.getSingleResult());
             });
         } catch (final PersistenceException | ClassCastException e) {
             final String message = String.format("Failed to select single result JPQL query %s with %s parameters for class %s on DB %s",
@@ -571,9 +560,7 @@ public class DatabaseWrapper {
                     q.setMaxResults(limit);
                 }
 
-                return q.getResultList().stream()
-                        .peek(this::setSauce)
-                        .collect(Collectors.toList());
+                return q.getResultList();
             });
         } catch (final PersistenceException e) {
             final String message = String.format("Failed to select JPQL query %s with %s parameters, offset %s, limit %s, on DB %s",
@@ -758,9 +745,7 @@ public class DatabaseWrapper {
     @CheckReturnValue
     @SuppressWarnings("unchecked")
     private <T> List<T> selectNativeSqlQuery(final Query query) {
-        return (List<T>) query.getResultList().stream()
-                .peek(this::setSauce)
-                .collect(Collectors.toList());
+        return (List<T>) query.getResultList();
     }
 
     /**
@@ -781,7 +766,7 @@ public class DatabaseWrapper {
             em.getTransaction().begin();
             final T result = resultClass.cast(q.getSingleResult());
             em.getTransaction().commit();
-            return setSauce(result);
+            return result;
         } catch (final PersistenceException | ClassCastException e) {
             final String message = String.format("Failed to select single result plain SQL query %s with %s parameters for class %s on DB %s",
                     queryString, parameters != null ? parameters.size() : "null", resultClass.getName(), this.name);
@@ -861,19 +846,11 @@ public class DatabaseWrapper {
         try {
             Constructor<E> constructor = ReflectHelper.getDefaultConstructor(id.clazz);
             final E entity = constructor.newInstance((Object[]) null);
-            return entity.setId(id.id)
-                    .setSauce(dbWrapper);
+            return entity.setId(id.id);
         } catch (final ReflectiveOperationException e) {
             final String message = String.format("Could not construct an entity of class %s with id %s",
                     id.clazz.getName(), id.toString());
             throw new DatabaseException(message, e);
         }
-    }
-
-    private <T> T setSauce(final T t) {
-        if (t instanceof SaucedEntity) {
-            ((SaucedEntity) t).setSauce(this);
-        }
-        return t;
     }
 }
