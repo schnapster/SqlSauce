@@ -66,6 +66,10 @@ public abstract class CachingListener<E, S extends CachingListener<E, S>> extend
         return cachePump.getQueue().size();
     }
 
+    public ThreadPoolExecutor getCachePump() {
+        return cachePump;
+    }
+
     protected void submit(final Runnable task, final Consumer<Exception> onFail) {
         this.cachePump.execute(() -> {
             try {
