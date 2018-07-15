@@ -107,8 +107,7 @@ subprojects {
         jsonOrgVersion = '20180130'
 
         //testing
-        jUnitVersion = '5.1.1'
-        apiGuardianVersion = '1.0.0'
+        jUnitVersion = '5.2.0'
         logbackVersion = '1.2.3'
     }
 
@@ -123,8 +122,6 @@ subprojects {
         //testing
         testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: jUnitVersion
         testRuntime group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: jUnitVersion
-        // To avoid compiler warnings about @API annotations in JUnit code.
-        testCompileOnly group: 'org.apiguardian', name: 'apiguardian-api', version: apiGuardianVersion
 
         testCompile group: 'ch.qos.logback', name: 'logback-classic', version: logbackVersion
     }
