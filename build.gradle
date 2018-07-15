@@ -92,7 +92,7 @@ subprojects {
         guavaVersion = '25.1-jre'
 
         dsProxyVersion = '1.4.8'
-        flywayVersion = '5.0.7'
+        flywayVersion = '5.1.4'
 
         jaxbApiVersion = '2.3.0'
         slf4jApiVersion = '1.7.25'
