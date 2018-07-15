@@ -19,7 +19,7 @@ allprojects {
     apply plugin: 'idea'
 
     ext {
-        gradleVers = '4.7'
+        gradleVers = '4.8.1'
     }
 
     group = 'space.npstr.SqlSauce'
@@ -64,6 +64,7 @@ subprojects {
 
     task sourceJar(type: Jar) {
         from sourceSets.main.allJava
+        classifier 'sources'
     }
 
     test {
@@ -126,41 +127,34 @@ subprojects {
         testCompile group: 'ch.qos.logback', name: 'logback-classic', version: logbackVersion
     }
 
-    def pomConfig = {
-        licenses {
-            license {
-                name "MIT License"
-                url "https://opensource.org/licenses/MIT"
-                distribution "repo"
-            }
-        }
-        developers {
-            developer {
-                name "Napster"
-                email "napster@npstr.space"
-            }
-        }
-        scm {
-            url "https://github.com/napstr/SqlSauce"
-        }
-    }
-
     publishing {
         publications {
             mavenJava(MavenPublication) {
                 from components.java
-                artifact sourceJar {
-                    classifier "sources"
-                }
+                artifact sourceJar
                 groupId project.group
                 artifactId project.name
                 version project.version
-                pom.withXml {
-                    def root = asNode()
-                    root.appendNode('description', 'SQL tech stack on top of PostgreSQL, HikariCP, Hibernate')
-                    root.appendNode('name', 'SqlSauce')
-                    root.appendNode('url', 'https://github.com/napstr/SqlSauce')
-                    root.children().last() + pomConfig
+                pom {
+                    name = 'SqlSauce'
+                    description = 'SQL tech stack on top of PostgreSQL, HikariCP, Hibernate'
+                    url = 'https://github.com/napstr/SqlSauce'
+                    licenses {
+                        license {
+                            name = 'MIT License'
+                            url = 'https://opensource.org/licenses/MIT'
+                            distribution = 'repo'
+                        }
+                    }
+                    developers {
+                        developer {
+                            name = 'Napster'
+                            email = 'napster@npstr.space'
+                        }
+                    }
+                    scm {
+                        url = 'https://github.com/napstr/SqlSauce'
+                    }
                 }
             }
         }
@@ -190,7 +184,7 @@ subprojects {
     }
 }
 
-task wrapper(type: Wrapper) {
+wrapper {
     gradleVersion = gradleVers
     //noinspection UnnecessaryQualifiedReference
     distributionType = Wrapper.DistributionType.ALL
