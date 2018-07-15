@@ -101,7 +101,7 @@ subprojects {
         prometheusVersion = '0.4.0'
 
         //discord entities module
-        jdaVersion = '3.6.0_359'
+        jdaVersion = '3.7.0_382'
 
         //notifications module
         jsonOrgVersion = '20180130'
