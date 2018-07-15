@@ -91,7 +91,7 @@ subprojects {
         hibTypesVersion = '2.2.2'
         guavaVersion = '25.1-jre'
 
-        dsProxyVersion = '1.4.8'
+        dsProxyVersion = '1.4.9'
         flywayVersion = '5.1.4'
 
         jaxbApiVersion = '2.3.0'
