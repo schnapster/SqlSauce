@@ -293,6 +293,12 @@ Error level logs from Hibernate, so you should add your respective appenders for
 
 ## Changelog
 
+### v0.3.0
+- Bump Hibernate to 5.3.x. This can break applications of end users depending on additional 5.2.x Hibernate packages. 
+
+### v0.2.5
+- Bump backwards compatible dependencies
+
 ### v0.2.4
 - Introduce the `AsyncDatabaseWrapper` contract
 
