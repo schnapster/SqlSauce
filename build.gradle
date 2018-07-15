@@ -97,7 +97,7 @@ subprojects {
         jaxbApiVersion = '2.3.0'
         slf4jApiVersion = '1.7.25'
         annotationsVersion = '0.0.1'
-        spotbugsVersion = '3.1.3'
+        spotbugsVersion = '3.1.5'
         prometheusVersion = '0.4.0'
 
         //discord entities module
