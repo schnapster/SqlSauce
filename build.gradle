@@ -88,7 +88,7 @@ subprojects {
         postgresDriverVersion = '42.2.2'
         hibernateVersion = '5.2.16.Final'
         hikariVersion = '3.1.0'
-        hibTypesVersion = '2.2.0'
+        hibTypesVersion = '2.2.2'
         guavaVersion = '25.1-jre'
 
         dsProxyVersion = '1.4.8'
