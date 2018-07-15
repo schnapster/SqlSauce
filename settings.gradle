@@ -1,3 +1,4 @@
+enableFeaturePreview('STABLE_PUBLISHING') // remove when bumping to Gradle 5
 rootProject.name = 'SqlSauce'
 include 'discord-entities'
 include 'sqlsauce-core'
