@@ -148,6 +148,18 @@ already supported by Hibernate.
   When modifying `SaucedEntity`s via the `DatabaseWrapper`, the transactions will be locked by hashes of the ids of the entities,
 to prevent concurrent INSERTs, as Hibernate does not support PostgreSQL's UPSERT.
 
+#### Asynchronous Requests
+
+JDBC is blocking at its core. This can impact performance of applications when running database requests on the main threads,
+especially when the database is located somewhere far away over the network, or when dealing with long running queries.
+To deal with this, a very simple contract is offered by SqlSauce in the form of `AsyncDatabaseWrapper`. This contract will be 
+accepted by other users of database actions, like the [Discord Entities](https://github.com/napstr/SqlSauce/blob/master/discord-entities)
+module.  
+A basic implementation `BaseAsyncDatabaseWrapper` is provided, but creating an implementation that fits the end users needs
+is encouraged.  
+Running all requests through an `AsyncDatabaseWrapper` also allows the end user to implement some kind of retry logic 
+or general exception handling for `DatabaseException`s, just to give some ideas.
+
 ### Advanced Hibernate Types
 
 SqlSauce supports [advanced types for Hibernate](https://github.com/vladmihalcea/hibernate-types) by the glorious Vlad Mihalcea,
@@ -280,6 +292,9 @@ Error level logs from Hibernate, so you should add your respective appenders for
 
 
 ## Changelog
+
+### v0.2.4
+- Introduce the `AsyncDatabaseWrapper` contract
 
 ### v0.2.2
 - Resolve some mostly cosmetic sonarcloud issues

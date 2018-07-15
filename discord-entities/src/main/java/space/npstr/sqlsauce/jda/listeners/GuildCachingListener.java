@@ -31,11 +31,14 @@ import net.dv8tion.jda.core.events.guild.GuildLeaveEvent;
 import net.dv8tion.jda.core.events.guild.update.GenericGuildUpdateEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import space.npstr.sqlsauce.AsyncDatabaseWrapper;
 import space.npstr.sqlsauce.DatabaseException;
 import space.npstr.sqlsauce.DatabaseWrapper;
 import space.npstr.sqlsauce.entities.discord.DiscordGuild;
 
 import java.util.Collection;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Created by napster on 20.10.17.
@@ -49,45 +52,57 @@ public class GuildCachingListener<E extends DiscordGuild<E>> extends CachingList
 
     private static final Logger log = LoggerFactory.getLogger(GuildCachingListener.class);
 
-    private final DatabaseWrapper wrapper;
+    private final Consumer<Consumer<DatabaseWrapper>> wrapperAdapter;
 
     public GuildCachingListener(DatabaseWrapper wrapper, final Class<E> entityClass) {
         super(entityClass);
-        this.wrapper = wrapper;
+        this.wrapperAdapter = wrapperConsumer -> wrapperConsumer.accept(wrapper);
+    }
+
+    public GuildCachingListener(AsyncDatabaseWrapper asyncWrapper, final Class<E> entityClass) {
+        super(entityClass);
+        this.wrapperAdapter = wrapperConsumer -> {
+            Function<DatabaseWrapper, Void> consumerAdapter = wrapper -> {
+                wrapperConsumer.accept(wrapper);
+                return null;
+            };
+            asyncWrapper.execute(consumerAdapter);
+        };
     }
 
     @Override
     public void onGuildJoin(final GuildJoinEvent event) {
-        onGuildEvent(() -> DiscordGuild.join(wrapper, event.getGuild(), this.entityClass), event);
+        onGuildEvent(wrapper -> DiscordGuild.join(wrapper, event.getGuild(), this.entityClass), event);
     }
 
     @Override
     public void onGuildLeave(final GuildLeaveEvent event) {
-        onGuildEvent(() -> DiscordGuild.leave(wrapper, event.getGuild(), this.entityClass), event);
+        onGuildEvent(wrapper -> DiscordGuild.leave(wrapper, event.getGuild(), this.entityClass), event);
     }
 
     @Override
     public void onGenericGuildUpdate(final GenericGuildUpdateEvent event) {
-        onGuildEvent(() -> DiscordGuild.cache(wrapper, event.getGuild(), this.entityClass), event);
+        onGuildEvent(wrapper -> DiscordGuild.cache(wrapper, event.getGuild(), this.entityClass), event);
     }
 
     @Override
     public void onReconnect(ReconnectedEvent event) {
-        submit(() -> {
-                    Collection<DatabaseException> exceptions = DiscordGuild.cacheAll(
-                            wrapper, event.getJDA().getGuildCache().stream(), this.entityClass);
-                    for (DatabaseException e : exceptions) {
-                        log.error("Exception when caching all guilds of shard {} on reconnect",
-                                event.getJDA().getShardInfo().getShardId(), e);
-                    }
-                },
+        Consumer<DatabaseWrapper> action = wrapper -> {
+            Collection<DatabaseException> exceptions = DiscordGuild.cacheAll(
+                    wrapper, event.getJDA().getGuildCache().stream(), this.entityClass);
+            for (DatabaseException e : exceptions) {
+                log.error("Exception when caching all guilds of shard {} on reconnect",
+                        event.getJDA().getShardInfo().getShardId(), e);
+            }
+        };
+        submit(() -> this.wrapperAdapter.accept(action),
                 e -> log.error("Failed to cache all guilds of shard {} on reconnect",
                         event.getJDA().getShardInfo().getShardId(), e)
         );
     }
 
-    private void onGuildEvent(final Runnable task, final GenericGuildEvent event) {
-        submit(task, e -> log.error("Failed to cache event {} for guild {}",
+    private void onGuildEvent(final Consumer<DatabaseWrapper> action, final GenericGuildEvent event) {
+        submit(() -> this.wrapperAdapter.accept(action), e -> log.error("Failed to cache event {} for guild {}",
                 event.getClass().getSimpleName(), event.getGuild().getIdLong(), e));
     }
 }

@@ -83,8 +83,11 @@ Setting the entity up to be automatically cached with [JDA](https://github.com/D
 Omitted versions mean there were no changes to this module. It is still recommended to use the latest
 version as shown on the core module readme.
 
+### v0.2.4
+- Support `AsyncDatabaseWrapper` contract in the provided `CachingListener` implementations
+
 ### v0.2.3
-- Expose the cache pump of caching listeners, good for instrumenting.
+- Expose the cache pump of `CachingListener`s, good for instrumenting.
 
 ### v0.2.0
 - Delete deprecated code (mostly static SaucedEntity abuse)
