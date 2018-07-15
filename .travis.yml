@@ -1,8 +1,5 @@
 language: java
 
-jdk:
-  - oraclejdk8
-
 services:
   - postgresql
 addons:
@@ -25,24 +22,62 @@ cache:
     - ".gradle/caches"
     - "$HOME/.sonar/cache"
 
+stages:
+  - build & test
+  - sonar
+  - name: publish
+    if: tag IS present
+
 jobs:
+  fast_finish: true
+  allow_failures:
+    - jdk: openjdk-ea
+    - jdk: oraclejdk-ea
   include:
-    - stage: build
+    - stage: build & test
+      jdk: openjdk8
+      before_script:
+        - "psql -c 'create database testing;' -U postgres"
+      script:
+        - "java -Xmx32m -version"
+        - "./gradlew build --info"
+
+    - stage: build & test
+      jdk: oraclejdk8
+      before_script:
+        - "psql -c 'create database testing;' -U postgres"
+      script:
+        - "java -Xmx32m -version"
+        - "./gradlew build --info"
+
+    - stage: build & test
+      jdk: openjdk-ea
+      before_script:
+        - "psql -c 'create database testing;' -U postgres"
+      script:
+        - "java -Xmx32m -version"
+        - "./gradlew build -x test --info" #tests skipped due to jacoco incompatibility, watch https://github.com/jacoco/jacoco/issues/663
+
+    - stage: build & test
+      jdk: oraclejdk-ea
+      before_script:
+        - "psql -c 'create database testing;' -U postgres"
+      script:
+        - "java -Xmx32m -version"
+        - "./gradlew build -x test --info" #tests skipped due to jacoco incompatibility, watch https://github.com/jacoco/jacoco/issues/663
+
+    - stage: sonar
+      jdk: openjdk8
       before_script:
         - "psql -c 'create database testing;' -U postgres"
         #for sonar cloud blame information
         - "git fetch --unshallow"
       script:
-        # this includes tests
-        - "./gradlew build"
-      after_success:
+        - "java -Xmx32m -version"
         - "./gradlew sonarqube"
 
     - stage: publish
+      jdk: openjdk8
       script:
+        - "java -Xmx32m -version"
         - "./gradlew pub"
-
-stages:
-  - build
-  - name: publish
-    if: tag IS present
