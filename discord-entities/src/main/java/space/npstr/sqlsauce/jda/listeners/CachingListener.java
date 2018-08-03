@@ -37,7 +37,7 @@ import java.util.function.Consumer;
  *
  * @param <S> terminal class that is extending this listener for a fluent configuration
  */
-public abstract class CachingListener<E, S extends CachingListener<E, S>> extends ListenerAdapter {
+public abstract class CachingListener<E extends Cacheable<E>, S extends CachingListener<E, S>> extends ListenerAdapter {
 
     private final ThreadPoolExecutor cachePump;
     protected final Class<E> entityClass;

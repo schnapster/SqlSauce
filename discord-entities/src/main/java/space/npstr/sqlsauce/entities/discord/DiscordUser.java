@@ -29,28 +29,17 @@ import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.User;
 import net.dv8tion.jda.core.entities.impl.UserImpl;
 import org.hibernate.annotations.ColumnDefault;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import space.npstr.sqlsauce.DatabaseException;
-import space.npstr.sqlsauce.DatabaseWrapper;
 import space.npstr.sqlsauce.converters.PostgresHStoreConverter;
-import space.npstr.sqlsauce.fp.types.EntityKey;
-import space.npstr.sqlsauce.fp.types.Transfiguration;
+import space.npstr.sqlsauce.jda.listeners.CacheableUser;
 
 import javax.annotation.Nullable;
 import javax.persistence.Column;
 import javax.persistence.Convert;
 import javax.persistence.MappedSuperclass;
-import javax.persistence.PersistenceException;
 import javax.persistence.Transient;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
-import java.util.stream.Stream;
 
 /**
  * Created by napster on 17.10.17.
@@ -64,11 +53,7 @@ import java.util.stream.Stream;
  * value.
  */
 @MappedSuperclass
-public abstract class DiscordUser<S extends BaseDiscordUser<S>> extends BaseDiscordUser<S> {
-
-    @Transient
-    private static final Logger log = LoggerFactory.getLogger(DiscordUser.class);
-
+public abstract class DiscordUser<S extends BaseDiscordUser<S>> extends BaseDiscordUser<S> implements CacheableUser<S> {
 
     @Transient
     public static final String UNKNOWN_NAME = "Unknown User";
@@ -111,6 +96,7 @@ public abstract class DiscordUser<S extends BaseDiscordUser<S>> extends BaseDisc
 
     //Good idea to call this each time you are loading one of these before saving.
     //set general user values
+    @Override
     public S set(@Nullable final User user) {
         if (user == null) {
             return getThis();//gracefully ignore null users
@@ -124,6 +110,7 @@ public abstract class DiscordUser<S extends BaseDiscordUser<S>> extends BaseDisc
 
     //Good idea to call this each time you are loading one of these before saving.
     //set guild specific user values (additionally to user specific ones)
+    @Override
     public S set(@Nullable final Member member) {
         if (member == null) {
             return getThis();//gracefully ignore null members
@@ -138,70 +125,6 @@ public abstract class DiscordUser<S extends BaseDiscordUser<S>> extends BaseDisc
             this.nicks.put(member.getGuild().getId(), nick);
         }
         return getThis();
-    }
-
-
-    //convenience static setters for cached values
-
-
-    /**
-     * @throws DatabaseException
-     *         Wraps any {@link PersistenceException} that may be thrown.
-     */
-    public static <E extends DiscordUser<E>> DiscordUser<E> cache(final DatabaseWrapper dbWrapper, final User user,
-                                                                  final Class<E> clazz) {
-        return dbWrapper.findApplyAndMerge(EntityKey.of(user.getIdLong(), clazz),
-                discordUser -> discordUser.set(user));
-    }
-
-
-    /**
-     * @throws DatabaseException
-     *         Wraps any {@link PersistenceException} that may be thrown.
-     */
-    public static <E extends DiscordUser<E>> DiscordUser<E> cache(final DatabaseWrapper dbWrapper, final Member member,
-                                                                  final Class<E> clazz) {
-        return dbWrapper.findApplyAndMerge(EntityKey.of(member.getUser().getIdLong(), clazz),
-                discordUser -> discordUser.set(member));
-    }
-
-
-    /**
-     * Cache a bunch of users.
-     * Useful to keep data meaningful even after downtime (restarting or other reasons)
-     *
-     * @param dbWrapper
-     *         The database to run the sync on
-     * @param members
-     *         Stream over all members to be cached
-     * @param clazz
-     *         Class of the actual DiscordUser entity
-     *
-     * @return DatabaseExceptions caused by the execution of this method
-     */
-    public static <E extends DiscordUser<E>> Collection<DatabaseException> cacheAll(final DatabaseWrapper dbWrapper,
-                                                                                    final Stream<Member> members,
-                                                                                    final Class<E> clazz) {
-        final long started = System.currentTimeMillis();
-        final AtomicInteger streamed = new AtomicInteger(0);
-
-        final Function<Member, Function<E, E>> cache = member -> discorduser -> discorduser.set(member);
-
-
-        final Stream<Transfiguration<Long, E>> transfigurations = members.map(
-                member -> {
-                    if (streamed.incrementAndGet() % 1000 == 0) {
-                        log.debug("{} users processed while caching", streamed.get());
-                    }
-                    return Transfiguration.of(EntityKey.of(member.getUser().getIdLong(), clazz), cache.apply(member));
-                }
-        );
-
-        final List<DatabaseException> exceptions = new ArrayList<>(dbWrapper.findApplyAndMergeAll(transfigurations));
-
-        log.debug("Cached {} DiscordUser entities of class {} in {}ms with {} exceptions.",
-                streamed.get(), clazz.getSimpleName(), System.currentTimeMillis() - started, exceptions.size());
-        return exceptions;
     }
 
 

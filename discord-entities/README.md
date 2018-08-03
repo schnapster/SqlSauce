@@ -83,6 +83,9 @@ Setting the entity up to be automatically cached with [JDA](https://github.com/D
 Omitted versions mean there were no changes to this module. It is still recommended to use the latest
 version as shown on the core module readme.
 
+### v0.4.0
+- `CacheableGuild`s and `CacheableUser`s allow more generic `CachingListener`s
+
 ### v0.2.4
 - Support `AsyncDatabaseWrapper` contract in the provided `CachingListener` implementations
 

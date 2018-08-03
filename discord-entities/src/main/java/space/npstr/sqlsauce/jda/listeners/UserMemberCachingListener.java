@@ -38,7 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import space.npstr.sqlsauce.AsyncDatabaseWrapper;
 import space.npstr.sqlsauce.DatabaseWrapper;
-import space.npstr.sqlsauce.entities.discord.DiscordUser;
+import space.npstr.sqlsauce.entities.discord.BaseDiscordUser;
 
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -51,7 +51,7 @@ import java.util.function.Function;
  * Limitation: Currently only events relevant for DiscordUser are listened to. Extending classes might be interested in
  * more events.
  */
-public class UserMemberCachingListener<E extends DiscordUser<E>> extends CachingListener<E, UserMemberCachingListener<E>> {
+public class UserMemberCachingListener<E extends BaseDiscordUser<E> & CacheableUser<E>> extends CachingListener<E, UserMemberCachingListener<E>> {
 
     private static final Logger log = LoggerFactory.getLogger(GuildCachingListener.class);
 
@@ -108,14 +108,14 @@ public class UserMemberCachingListener<E extends DiscordUser<E>> extends Caching
     }
 
     private void onUserEvent(final GenericUserEvent event) {
-        Consumer<DatabaseWrapper> action = wrapper -> DiscordUser.cache(wrapper, event.getUser(), this.entityClass);
+        Consumer<DatabaseWrapper> action = wrapper -> DiscordEntityCacheUtil.cacheUser(wrapper, event.getUser(), this.entityClass);
         submit(() -> this.wrapperAdapter.accept(action),
                 e -> log.error("Failed to cache event {} for user {}",
                         event.getClass().getSimpleName(), event.getUser().getIdLong(), e));
     }
 
     private void onMemberEvent(final GenericGuildMemberEvent event) {
-        Consumer<DatabaseWrapper> action = wrapper -> DiscordUser.cache(wrapper, event.getMember(), this.entityClass);
+        Consumer<DatabaseWrapper> action = wrapper -> DiscordEntityCacheUtil.cacheMember(wrapper, event.getMember(), this.entityClass);
         submit(() -> this.wrapperAdapter.accept(action),
                 e -> log.error("Failed to cache event {} for member {} of guild {}",
                         event.getClass().getSimpleName(), event.getUser().getIdLong(), event.getGuild().getIdLong(), e));
@@ -126,7 +126,8 @@ public class UserMemberCachingListener<E extends DiscordUser<E>> extends Caching
 
     @Override
     public void onGuildJoin(final GuildJoinEvent event) {
-        Consumer<DatabaseWrapper> action = wrapper -> DiscordUser.cacheAll(wrapper, event.getGuild().getMemberCache().stream(), this.entityClass);
+        Consumer<DatabaseWrapper> action = wrapper -> DiscordEntityCacheUtil.cacheAllMembers(
+                wrapper, event.getGuild().getMemberCache().stream(), this.entityClass);
         submit(() -> this.wrapperAdapter.accept(action),
                 e -> log.error("Failed to mass cache members on event {} for guild {}",
                         event.getClass().getSimpleName(), event.getGuild().getIdLong()));
