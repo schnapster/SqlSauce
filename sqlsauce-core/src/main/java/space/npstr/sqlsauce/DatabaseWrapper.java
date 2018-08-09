@@ -440,6 +440,23 @@ public class DatabaseWrapper {
         }
     }
 
+    @Nullable
+    public <E> E doInPersistenceContext(Function<EntityManager, E> nullableDbOperation) {
+        try {
+            return executeNullableTransaction(nullableDbOperation);
+        } catch (final PersistenceException e) {
+            throw new DatabaseException("Failed to do nullable db operation in persistence context", e);
+        }
+    }
+
+    public <E> E doInPersistenceContext(NonnullFunction<EntityManager, E> dbOperation) {
+        try {
+            return executeTransaction(dbOperation);
+        } catch (final PersistenceException e) {
+            throw new DatabaseException("Failed to do db operation in persistence context", e);
+        }
+    }
+
     //################################################################################
     //                                 Deleting
     //################################################################################

@@ -293,6 +293,9 @@ Error level logs from Hibernate, so you should add your respective appenders for
 
 ## Changelog
 
+### v0.4.1
+- Add methods to the `DatabaseWrapper` to run generic db operation in a persistence context
+
 ### v0.3.0
 - Bump Hibernate to 5.3.x. This can break applications of end users depending on additional 5.2.x Hibernate packages. 
 
