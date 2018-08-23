@@ -4,7 +4,7 @@
 [![Bintray](https://api.bintray.com/packages/napster/SqlSauce/sqlsauce-core/images/download.svg) ](https://bintray.com/napster/SqlSauce/sqlsauce-core/_latestVersion)
 [![Build Status Development Branch](https://img.shields.io/travis/napstr/SqlSauce/dev.svg?style=flat-square)](https://travis-ci.org/napstr/SqlSauce/branches)
 [![License](https://img.shields.io/github/license/napstr/SqlSauce.svg?style=flat-square)]()
-[![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=space.npstr.SqlSauce%3ASqlSauce&metric=alert_status)](https://sonarcloud.io/dashboard?id=space.npstr.SqlSauce%3ASqlSauce)
+[![Maintainability](https://sonarcloud.io/api/project_badges/measure?project=space.npstr.SqlSauce%3ASqlSauce&metric=sqale_rating)](https://sonarcloud.io/dashboard?id=space.npstr.SqlSauce%3ASqlSauce)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/166017256c1846d4800880b95a57e431?style=flat)](https://www.codacy.com/app/napstr/SqlSauce)  
 
 
