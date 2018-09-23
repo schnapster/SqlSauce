@@ -329,7 +329,9 @@ public class DatabaseWrapper {
             try {
                 entityTransaction.begin();
                 final E result = transaction.apply(entityManager);
-                entityTransaction.commit();
+                if (entityTransaction.isActive()) {
+                    entityTransaction.commit();
+                }
                 return result;
             } finally {
                 if (entityTransaction.isActive()) {
@@ -846,7 +848,9 @@ public class DatabaseWrapper {
             try {
                 transaction.begin();
                 R result = closure.apply(entityManager);
-                transaction.commit();
+                if (transaction.isActive()) {
+                    transaction.commit();
+                }
                 return result;
             } finally {
                 if (transaction.isActive()) {

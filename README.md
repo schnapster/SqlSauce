@@ -293,6 +293,9 @@ Error level logs from Hibernate, so you should add your respective appenders for
 
 ## Changelog
 
+### v0.4.2
+- Don't commit transactions in wrappers methods if they are not active
+
 ### v0.4.1
 - Add methods to the `DatabaseWrapper` to run generic db operation in a persistence context
 
