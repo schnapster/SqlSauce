@@ -1,3 +1,8 @@
+# Archived
+
+This was a fun project of the innocent me. I have since learned that Hibernate, and ORMs generally, are leaky abstractions that usually just get into the way of using features of database to its fullest. Instead of learning SQL, a valuable and transferable skill, one learns the quirks of a specific ORM - but there are many ORMs in each programming language, and thus the knowledge gained about the internals of one ORM does not transfer well to others. I can also very much recommend to read [this](https://www.toptal.com/java/how-hibernate-ruined-my-career). Anyways, I have started to move my projects to use [jOOQ](https://www.jooq.org/). I am especially fond of the combination of flyway and jOOQ's code generation. Compile time safety of your SQL queries, how awesome is that?
+
+
 # SqlSauce
 
 [![Release](https://img.shields.io/github/tag/napstr/SqlSauce.svg?style=flat-square)](https://jitpack.io/#space.npstr/SqlSauce)
