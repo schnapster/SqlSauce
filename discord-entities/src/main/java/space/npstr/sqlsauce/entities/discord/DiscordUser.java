@@ -24,10 +24,9 @@
 
 package space.npstr.sqlsauce.entities.discord;
 
-import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.User;
-import net.dv8tion.jda.core.entities.impl.UserImpl;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.User;
 import org.hibernate.annotations.ColumnDefault;
 import space.npstr.sqlsauce.converters.PostgresHStoreConverter;
 import space.npstr.sqlsauce.jda.listeners.CacheableUser;
@@ -170,9 +169,7 @@ public abstract class DiscordUser<S extends BaseDiscordUser<S>> extends BaseDisc
     public String getEffectiveAvatarUrl() { //ty JDA
         final String avatarUrl = getAvatarUrl();
         return avatarUrl != null ? avatarUrl
-                : "https://discordapp.com/assets/"
-                + UserImpl.DefaultAvatar.values()[this.discriminator % UserImpl.DefaultAvatar.values().length].toString()
-                + ".png";
+                : "https://cdn.discordapp.com/embed/avatars/" + this.discriminator % 5 + ".png";
     }
 
     //look up the most fitting name for a user:

@@ -24,7 +24,7 @@
 
 package space.npstr.sqlsauce.entities;
 
-import net.dv8tion.jda.core.entities.Guild;
+import net.dv8tion.jda.api.entities.Guild;
 
 import javax.persistence.Column;
 import javax.persistence.Embeddable;

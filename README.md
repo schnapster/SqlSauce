@@ -298,6 +298,9 @@ Error level logs from Hibernate, so you should add your respective appenders for
 
 ## Changelog
 
+### v0.4.3
+- Ninja update of newly required JDA version
+
 ### v0.4.2
 - Don't commit transactions in wrappers methods if they are not active
 

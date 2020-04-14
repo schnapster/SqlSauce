@@ -24,11 +24,11 @@
 
 package space.npstr.sqlsauce.jda.listeners;
 
-import net.dv8tion.jda.core.events.ReconnectedEvent;
-import net.dv8tion.jda.core.events.guild.GenericGuildEvent;
-import net.dv8tion.jda.core.events.guild.GuildJoinEvent;
-import net.dv8tion.jda.core.events.guild.GuildLeaveEvent;
-import net.dv8tion.jda.core.events.guild.update.GenericGuildUpdateEvent;
+import net.dv8tion.jda.api.events.ReconnectedEvent;
+import net.dv8tion.jda.api.events.guild.GenericGuildEvent;
+import net.dv8tion.jda.api.events.guild.GuildJoinEvent;
+import net.dv8tion.jda.api.events.guild.GuildLeaveEvent;
+import net.dv8tion.jda.api.events.guild.update.GenericGuildUpdateEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import space.npstr.sqlsauce.AsyncDatabaseWrapper;

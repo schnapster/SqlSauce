@@ -24,16 +24,17 @@
 
 package space.npstr.sqlsauce.jda.listeners;
 
-import net.dv8tion.jda.core.events.ReconnectedEvent;
-import net.dv8tion.jda.core.events.guild.GuildJoinEvent;
-import net.dv8tion.jda.core.events.guild.member.GenericGuildMemberEvent;
-import net.dv8tion.jda.core.events.guild.member.GuildMemberJoinEvent;
-import net.dv8tion.jda.core.events.guild.member.GuildMemberLeaveEvent;
-import net.dv8tion.jda.core.events.guild.member.GuildMemberNickChangeEvent;
-import net.dv8tion.jda.core.events.user.GenericUserEvent;
-import net.dv8tion.jda.core.events.user.update.UserUpdateAvatarEvent;
-import net.dv8tion.jda.core.events.user.update.UserUpdateDiscriminatorEvent;
-import net.dv8tion.jda.core.events.user.update.UserUpdateNameEvent;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.events.ReconnectedEvent;
+import net.dv8tion.jda.api.events.guild.GenericGuildEvent;
+import net.dv8tion.jda.api.events.guild.GuildJoinEvent;
+import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
+import net.dv8tion.jda.api.events.guild.member.GuildMemberRemoveEvent;
+import net.dv8tion.jda.api.events.guild.member.update.GuildMemberUpdateNicknameEvent;
+import net.dv8tion.jda.api.events.user.GenericUserEvent;
+import net.dv8tion.jda.api.events.user.update.UserUpdateAvatarEvent;
+import net.dv8tion.jda.api.events.user.update.UserUpdateDiscriminatorEvent;
+import net.dv8tion.jda.api.events.user.update.UserUpdateNameEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import space.npstr.sqlsauce.AsyncDatabaseWrapper;
@@ -93,18 +94,21 @@ public class UserMemberCachingListener<E extends BaseDiscordUser<E> & CacheableU
     //member events
 
     @Override
-    public void onGuildMemberNickChange(final GuildMemberNickChangeEvent event) {
-        onMemberEvent(event);
+    public void onGuildMemberUpdateNickname(final GuildMemberUpdateNicknameEvent event) {
+        onMemberEvent(event, event.getMember());
     }
 
     @Override
     public void onGuildMemberJoin(final GuildMemberJoinEvent event) {
-        onMemberEvent(event);
+        onMemberEvent(event, event.getMember());
     }
 
     @Override
-    public void onGuildMemberLeave(final GuildMemberLeaveEvent event) {
-        onMemberEvent(event);
+    public void onGuildMemberRemove(final GuildMemberRemoveEvent event) {
+        Member member = event.getMember();
+        if (member != null) {
+            onMemberEvent(event, member);
+        }
     }
 
     private void onUserEvent(final GenericUserEvent event) {
@@ -114,11 +118,11 @@ public class UserMemberCachingListener<E extends BaseDiscordUser<E> & CacheableU
                         event.getClass().getSimpleName(), event.getUser().getIdLong(), e));
     }
 
-    private void onMemberEvent(final GenericGuildMemberEvent event) {
-        Consumer<DatabaseWrapper> action = wrapper -> DiscordEntityCacheUtil.cacheMember(wrapper, event.getMember(), this.entityClass);
+    private void onMemberEvent(GenericGuildEvent event, final Member member) {
+        Consumer<DatabaseWrapper> action = wrapper -> DiscordEntityCacheUtil.cacheMember(wrapper, member, this.entityClass);
         submit(() -> this.wrapperAdapter.accept(action),
                 e -> log.error("Failed to cache event {} for member {} of guild {}",
-                        event.getClass().getSimpleName(), event.getUser().getIdLong(), event.getGuild().getIdLong(), e));
+                        event.getClass().getSimpleName(), member.getUser().getIdLong(), member.getGuild().getIdLong(), e));
     }
 
 

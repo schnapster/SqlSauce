@@ -24,8 +24,8 @@
 
 package space.npstr.sqlsauce.entities.discord;
 
-import net.dv8tion.jda.core.Region;
-import net.dv8tion.jda.core.entities.Guild;
+import net.dv8tion.jda.api.Region;
+import net.dv8tion.jda.api.entities.Guild;
 import org.hibernate.annotations.ColumnDefault;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

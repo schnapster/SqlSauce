@@ -24,7 +24,7 @@
 
 package space.npstr.sqlsauce.jda.listeners;
 
-import net.dv8tion.jda.core.entities.Guild;
+import net.dv8tion.jda.api.entities.Guild;
 
 /**
  * Created by napster on 03.08.18.

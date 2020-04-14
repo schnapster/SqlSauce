@@ -24,8 +24,8 @@
 
 package space.npstr.sqlsauce.jda.listeners;
 
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.User;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.User;
 
 /**
  * Created by napster on 03.08.18.
